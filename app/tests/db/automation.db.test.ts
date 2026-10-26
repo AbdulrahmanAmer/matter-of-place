@@ -697,6 +697,8 @@ describe("seed (step 4)", () => {
       "digest.due": 2,
       // W9 item 3: seeded by its own migration with no step.
       "email.bounced": 0,
+      // W8 0h: a person's email recorded; the colleague's run is the work, so no step.
+      "email.received": 0,
       "health.failed": 1,
       "inquiry.received": 4,
       "invoice.issued": 1,

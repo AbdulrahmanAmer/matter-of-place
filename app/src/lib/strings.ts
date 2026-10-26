@@ -130,8 +130,20 @@ const en = {
     localSent:
       "Thank you. Place Notes opens with the live service; your address stays with you for now.",
     liveSent: "Thank you. Check your inbox to confirm.",
-    confirmed: "Thank you. Your address is confirmed.",
-    confirmFailed: "This link has expired or was already used. Subscribe again below.",
+    thanks: {
+      eyebrow: "PLACE NOTES",
+      home: "Home",
+      confirmed: {
+        title: "Thank you.",
+        text: "Your address is confirmed. We write only when there is something worth reading: a property we have accepted, a story, a note from one of our markets.",
+        action: "Read the stories",
+      },
+      expired: {
+        title: "This link has expired.",
+        text: "It was already used, or it is more than a few days old. Leave your address again and we will send a new one.",
+        action: "Subscribe again",
+      },
+    },
   },
   home: {
     intro:

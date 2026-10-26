@@ -36,16 +36,11 @@ describe("AccountConfirm", () => {
     ]);
   });
 
-  it("reads the token of a link that carries it in the query, and takes it out too", async () => {
+  it("does not read a token from the query: no client link carries one there", () => {
     window.history.replaceState(null, "", "/account/confirm?token_hash=query-hash");
     render(<AccountConfirm onDone={vi.fn()} />);
-    expect(window.location.href).toBe(`${window.location.origin}/account/confirm`);
-    press();
-    await waitFor(() => {
-      expect(vi.mocked(confirmAccountLinkFn).mock.calls).toEqual([
-        [{ data: { token_hash: "query-hash" } }],
-      ]);
-    });
+    expect(screen.getByRole("button", { name: "Sign in" }).hasAttribute("disabled")).toBe(true);
+    expect(confirmAccountLinkFn).not.toHaveBeenCalled();
   });
 
   it("keeps the button off when the address holds no token", () => {

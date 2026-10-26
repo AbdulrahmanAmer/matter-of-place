@@ -2,10 +2,12 @@
 // 2026-10-13 test 2 (P-3452): Matter's prose named `{{property_address}}`, the old reader cut from the first "{" and
 // failed, and a proposal Matter said it had filed was dropped. The reader now tries each "{" until one parses.
 import { z } from "zod";
+import { jsonValue } from "../../src/domain/json-value.ts";
 import { hireInputSchema } from "../../src/domain/workforce.ts";
 import { mediaRequestSchema } from "./media.ts";
 import { HOW_OFF_LIST, POSTURES } from "./posture.ts";
 import { reelRequestSchema } from "./reel.ts";
+import { studioDecisionSchema } from "./studio.ts";
 
 export const outcome = z.object({
   reply: z.string().default(""),
@@ -18,6 +20,9 @@ export const outcome = z.object({
         content: z.object({
           body: z.string().min(1).max(20000),
           to: z.string().max(300).optional(),
+          // W8 item 10: a social post's channels, formats, files and captions. Read loosely here and checked when it
+          // is filed, so a malformed post is refused with its reason instead of dropping the whole answer.
+          post: jsonValue.optional(),
         }),
       }),
     )
@@ -27,10 +32,13 @@ export const outcome = z.object({
   note: z.string().default(""),
   // W8 0d: Matter's read of a held message decides whether its owner may answer it within its criteria.
   allow: z.boolean().default(false),
-  // W8 0d: and how, as one of the closed postures; any other value reads as off the list and allows nothing.
+  // W8 0d: and how, as one of the closed postures; a missing value, or any other, allows nothing.
   how: z.enum(POSTURES).or(z.literal(HOW_OFF_LIST)).optional().catch(HOW_OFF_LIST),
   // Matter only (W2 step 5): media the daemon makes with the installed skills; W7 item 19: a reel goes to the studio.
-  media: z.array(z.union([mediaRequestSchema, reelRequestSchema])).default([]),
+  // W8 0f: and Matter's decision on a draft in the studio (approve, revise, ask the operator).
+  media: z
+    .array(z.union([mediaRequestSchema, reelRequestSchema, studioDecisionSchema]))
+    .default([]),
   // Matter only (gap item 31): admin calls, each checked by the runner and approved by a person before it is made.
   actions: z.array(z.unknown()).default([]),
 });

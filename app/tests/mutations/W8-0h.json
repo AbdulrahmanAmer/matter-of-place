@@ -1,0 +1,698 @@
+[
+  {
+    "id": "w8-0h-dmarc-clean",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail-reports.ts",
+    "find": "    if (dkim !== \"pass\" && spf !== \"pass\") {",
+    "replace": "    if (dkim !== \"pass\" || spf !== \"pass\" || messages > 0) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"records Google's DMARC report of 15 October with its counts and does not escalate it\"",
+    "expect": "× .*records Google's DMARC report of 15 October with its counts "
+  },
+  {
+    "id": "w8-0h-tls-clean",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail-reports.ts",
+    "find": "return report.kind === \"dmarc\" ? report.failed : report.failed > 0;",
+    "replace": "return report.kind === \"dmarc\" ? report.failed : report.failed >= 0;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"records Google's SMTP TLS report of 15 October and does not escalate it\"",
+    "expect": "× .*records Google's SMTP TLS report of 15 October and does not escalate i"
+  },
+  {
+    "id": "w8-0h-notice-escalated",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/service-notice.ts",
+    "find": "      ? { source: \"service_notice\", state: \"escalated\", service, why: \"a service notice\" }",
+    "replace": "      ? { source: \"service_notice\", state: \"recorded\", service, why: \"a service notice\" }",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"sends the Search Console notice to Matter as the runner's line, its subject fenced as data\"",
+    "expect": "× .*sends the Search Console notice to Matter as the runner's line, its su"
+  },
+  {
+    "id": "w8-0h-spoof-first-stamp",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/service-notice.ts",
+    "find": "  const block = end < 0 ? lines : lines.slice(0, end);",
+    "replace": "  const block = lines;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"never trusts a Zoho verdict that stands below the message's own headers\"",
+    "expect": "× .*never trusts a Zoho verdict that stands below the message's "
+  },
+  {
+    "id": "w8-0h-person-new",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/service-notice.ts",
+    "find": "return { source: \"email_inbound\", state: \"new\", service: null, why: \"a person writing to us\" };",
+    "replace": "return { source: \"email_inbound\", state: \"ignored\", service: null, why: \"a person writing to us\" };",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"sends a person's email to hello@ to its owner as new mail, with the alias it was sent to\"",
+    "expect": "× .*sends a person's email to hello@ to its owner as new mail, with the al"
+  },
+  {
+    "id": "w8-0h-bulk-ignored",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/service-notice.ts",
+    "find": "  if (isBulk(header))",
+    "replace": "  if (false)",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"keeps spam, bulk, a service's newsletter and our own mail for a person, and wakes no one for them\"",
+    "expect": "× .*keeps spam, bulk, a service's newsletter and our own mail for a person"
+  },
+  {
+    "id": "w8-0h-subject-withheld",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/service-notice.ts",
+    "find": "const shown = (subjectShownFrom as readonly string[]).includes(addressOf(input.from));",
+    "replace": "const shown = true;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"withholds the subject of a service whose subjects can carry outside words, like Sentry\"",
+    "expect": "× .*withholds the subject of a service whose subjects can carry outside wo"
+  },
+  {
+    "id": "w8-0h-dmarc-acted",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail-reports.ts",
+    "find": "    if (disposition !== \"none\") row.acted += messages;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"escalates a DMARC record that failed and was quarantined, naming the source and the counts\"",
+    "expect": "× .*escalates a DMARC record that failed and was quarantined, naming the s"
+  },
+  {
+    "id": "w8-0h-bomb-cap",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail-reports.ts",
+    "find": "return capped(() => gunzipSync(file, { maxOutputLength: MAX_EXPANDED }));",
+    "replace": "return gunzipSync(file);",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"refuses a decompression bomb as unparsed, never reading past the limit\"",
+    "expect": "× .*refuses a decompression bomb as unparsed, never reading past the limit"
+  },
+  {
+    "id": "w8-0h-no-dtd",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail-reports.ts",
+    "find": "if (/<!/.test(xml) || ",
+    "replace": "if (false && ",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"refuses XML with a DTD or an entity, and a report with too many records\"",
+    "expect": "× .*refuses XML with a DTD or an entity, and a report with too many record"
+  },
+  {
+    "id": "w8-0h-max-records",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail-reports.ts",
+    "find": "  if (records.length > MAX_RECORDS) throw new Refused(\"it holds too many records\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"refuses XML with a DTD or an entity, and a report with too many records\"",
+    "expect": "× .*refuses XML with a DTD or an entity, and a report with too many record"
+  },
+  {
+    "id": "w8-0h-zip-plain",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail-reports.ts",
+    "find": "if ((flags & 1) !== 0 || size === 0xffffffff)",
+    "replace": "if (size === 0xffffffff)",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"reads a zip's first XML entry and refuses an encrypted one\"",
+    "expect": "× .*reads a zip's first XML entry and refuses an encrypted one"
+  },
+  {
+    "id": "w8-0h-org-checked",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail-reports.ts",
+    "find": "return ORG.test(text) ? text : \"unknown\";",
+    "replace": "return text;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"escalates a TLS report with failed sessions and keeps no free text from inside a report\"",
+    "expect": "× .*escalates a TLS report with failed sessions and keeps no free text fro"
+  },
+  {
+    "id": "w8-0h-unparsed-escalates",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail-reports.ts",
+    "find": "if (report.kind === \"unparsed\") return true;",
+    "replace": "if (report.kind === \"unparsed\") return false;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"sends a notice whose report could not be read to Matter, unparsed, by its summary\"",
+    "expect": "× .*sends a notice whose report could not be read to Matter, unparsed, by "
+  },
+  {
+    "id": "w8-0h-event-source",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/criteria.ts",
+    "find": "  \"email.received\": \"email_inbound\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"lists email_inbound and service_notice, maps email.received to a person's email, and gives Matter none\"",
+    "expect": "× .*lists email_inbound and service_notice, maps email\\.received to a pers"
+  },
+  {
+    "id": "w8-0h-owner-by-alias",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "if (source === \"email_reply\" || source === \"email_inbound\")",
+    "replace": "if (source === \"email_reply\")",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"lists email_inbound and service_notice, maps email.received to a person's email, and gives Matter none\"",
+    "expect": "× .*lists email_inbound and service_notice, maps email\\.received to a pers"
+  },
+  {
+    "id": "w8-0h-record-line",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "(inquiry|email_reply|email_inbound|submission|privacy_request)",
+    "replace": "(inquiry|email_reply|submission|privacy_request)",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"lists email_inbound and service_notice, maps email.received to a person's email, and gives Matter none\"",
+    "expect": "× .*lists email_inbound and service_notice, maps email\\.received to a pers"
+  },
+  {
+    "id": "w8-0h-skip-sent",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail.ts",
+    "find": "[\"Drafts\", \"Templates\", \"Sent\", \"Trash\", \"Outbox\"]",
+    "replace": "[\"Drafts\", \"Templates\", \"Trash\", \"Outbox\"]",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"reads every folder but Drafts, Templates, Sent, Trash and Outbox, and records each new message once\"",
+    "expect": "× .*reads every folder but Drafts, Templates, Sent, Trash and Outbox, and "
+  },
+  {
+    "id": "w8-0h-unread-named",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail.ts",
+    "find": "      done.unread.push(name);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"names a folder it cannot read in the log and in the heartbeat, and reads the others\"",
+    "expect": "× .*names a folder it cannot read in the log and in the heartbeat, and rea"
+  },
+  {
+    "id": "w8-0h-known-skipped",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail.ts",
+    "find": "if (!known.has(row.messageId)) {",
+    "replace": "if (true) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"keeps a reply to our email on its own path and never fetches a message either table holds\"",
+    "expect": "× .*keeps a reply to our email on its own path and never fetches a message"
+  },
+  {
+    "id": "w8-0h-reply-first",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail.ts",
+    "find": "      if ((data as string | null) !== null) return \"reply\";",
+    "replace": "      void data;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"keeps a reply to our email on its own path and never fetches a message either table holds\"",
+    "expect": "× .*keeps a reply to our email on its own path and never fetches a message"
+  },
+  {
+    "id": "w8-0h-no-send-inbound",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail.ts",
+    "find": "      if ((data as string | null) !== null) return \"reply\";",
+    "replace": "      return \"reply\";",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"records as inbound mail a message from someone we wrote to that answers no send\"",
+    "expect": "× .*records as inbound mail a message from someone we wrote to that answer"
+  },
+  {
+    "id": "w8-0h-text-from-inbound",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/triage.ts",
+    "find": "    source === \"email_inbound\"\n",
+    "replace": "    source === \"email_reply\"\n",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"holds a crafted email carrying an instruction before any colleague prompt; only the tool-less triage reads it\"",
+    "expect": "× .*holds a crafted email carrying an instruction before any colleague pro"
+  },
+  {
+    "id": "w8-0h-note-held",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/inbound-mail.ts",
+    "find": "state: gate === \"hold\" ? \"held\" : \"routed\",",
+    "replace": "state: \"routed\",",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"writes back the triage's labels, never its words, to the inbound row\"",
+    "expect": "× .*writes back the triage's labels, never its words, to the inbound row"
+  },
+  {
+    "id": "w8-0h-sort-headers",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/service-notice.ts",
+    "find": "  if (input.automatic)\n",
+    "replace": "  if (input.automatic || /search console/i.test(input.subject))\n",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"never reads the body to decide where a message goes\"",
+    "expect": "× .*never reads the body to decide where a message goes"
+  },
+  {
+    "id": "w8-0h-svc-order",
+    "test": "tests/unit/inbound-mail.service.test.ts",
+    "file": "src/server/email/inbound/service.ts",
+    "find": ".order(\"received_at\", { ascending: false })",
+    "replace": ".order(\"received_at\", { ascending: true })",
+    "run": "bunx vitest run --project unit tests/unit/inbound-mail.service.test.ts -t \"lists the newest first with each message's source, owner, state and the triage's labels only\"",
+    "expect": "× .*lists the newest first with each message's source, owner, state and th"
+  },
+  {
+    "id": "w8-0h-svc-filter",
+    "test": "tests/unit/inbound-mail.service.test.ts",
+    "file": "src/server/email/inbound/service.ts",
+    "find": "  if (input.source !== undefined) query = query.eq(\"source\", input.source);\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/inbound-mail.service.test.ts -t \"keeps only the source and the state asked for\"",
+    "expect": "× .*keeps only the source and the state asked for"
+  },
+  {
+    "id": "w8-0h-svc-cursor",
+    "test": "tests/unit/inbound-mail.service.test.ts",
+    "file": "src/server/email/inbound/service.ts",
+    "find": "next_cursor: last === undefined ? null : `${last.received_at}~${last.id}`,",
+    "replace": "next_cursor: null,",
+    "run": "bunx vitest run --project unit tests/unit/inbound-mail.service.test.ts -t \"pages the newest first and goes on after the cursor, with no cursor on the last page\"",
+    "expect": "× .*pages the newest first and goes on after the cursor, with no cursor on"
+  },
+  {
+    "id": "w8-0h-svc-authz",
+    "test": "tests/unit/inbound-mail.service.test.ts",
+    "file": "src/server/email/inbound/service.ts",
+    "find": "  authorize(actor, \"audit.list\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/inbound-mail.service.test.ts -t \"refuses a cursor it did not give and a caller without the screen's right\"",
+    "expect": "× .*refuses a cursor it did not give and a caller without the screen's rig"
+  },
+  {
+    "id": "w8-0h-ui-plain",
+    "test": "src/admin/audit/inbound-mail.test.tsx",
+    "file": "src/admin/audit/InboundMailPart.tsx",
+    "find": "<p className=\"admin-preview__text\">{row.body}</p>",
+    "replace": "<p className=\"admin-preview__text\" dangerouslySetInnerHTML={{ __html: row.body }} />",
+    "run": "bunx vitest run --project component src/admin/audit/inbound-mail.test.tsx -t \"shows each message with its source, what became of it, its owner and state, as plain text\"",
+    "expect": "× .*shows each message with its source, what became of it, its owner and s"
+  },
+  {
+    "id": "w8-0h-ui-state-filter",
+    "test": "src/admin/audit/inbound-mail.test.tsx",
+    "file": "src/admin/audit/sent-emails-queries.ts",
+    "find": "  if (filters.state !== undefined) search.set(\"state\", filters.state);\n",
+    "replace": "",
+    "run": "bunx vitest run --project component src/admin/audit/inbound-mail.test.tsx -t \"asks for one source and one state when they are chosen\"",
+    "expect": "× .*asks for one source and one state when they are chosen"
+  },
+  {
+    "id": "w8-0h-ui-next",
+    "test": "src/admin/audit/inbound-mail.test.tsx",
+    "file": "src/admin/audit/InboundMailPart.tsx",
+    "find": "if (nextCursor !== null) setTrail((now) => [...now, nextCursor]);",
+    "replace": "void nextCursor;",
+    "run": "bunx vitest run --project component src/admin/audit/inbound-mail.test.tsx -t \"pages with the cursor the list gives, and back\"",
+    "expect": "× .*pages with the cursor the list gives, and back"
+  },
+  {
+    "id": "w8-0h-sql-owner-alias",
+    "kind": "sql",
+    "test": "tests/db/inbound-mail.db.test.ts",
+    "sql": "create or replace function public.inbound_mail_record(\n  p_provider_id text,\n  p_folder text,\n  p_from text,\n  p_name text,\n  p_alias text,\n  p_subject text,\n  p_body text,\n  p_received_at timestamptz,\n  p_attachments text[],\n  p_source text,\n  p_state text,\n  p_service text,\n  p_summary text,\n  p_report jsonb,\n  p_line text\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_state text := p_state;\n  v_cap int;\n  v_hour int;\n  v_owners text[];\n  v_owner text;\n  v_agent uuid;\n  v_id uuid;\n  v_event uuid;\n  v_line uuid;\n  -- Only one of our aliases is kept or put in the event; anything else is null.\n  v_alias text := case\n    when p_alias in ('hello', 'listings', 'press', 'privacy', 'billing', 'security', 'admin') then p_alias\n  end;\nbegin\n  -- W8 0h (operator, 2026-10-16): one message of the admin@ mailbox, as the laptop runner sorted it\n  -- (scripts/workforce/mail.ts, service-notice.ts). It is recorded once: an id this table or email_replies already\n  -- holds returns null, so a reply to our own email never comes in twice. A person's message ('new') emits\n  -- email.received and wakes its owner, who sees only its triage (W8 0a, 0b); a service notice ('escalated') becomes\n  -- the runner's fixed line in Matter's thread and a Matter run at read power (a system line, ruling H101). Neither\n  -- passes the hour's cap: past it the message waits as 'capped' for a person, and the team is told once that hour.\n  if p_provider_id is null or btrim(p_provider_id) = '' or p_received_at is null\n    or p_source is null or p_source not in ('email_inbound', 'service_notice', 'our_mail')\n    or p_state is null or p_state not in ('new', 'escalated', 'recorded', 'ignored', 'spam')\n    or (p_state = 'new' and p_source <> 'email_inbound')\n    or (p_state = 'escalated' and (p_source <> 'service_notice' or coalesce(btrim(p_line), '') = ''))\n  then\n    raise exception 'bad_request';\n  end if;\n  if exists (select 1 from public.inbound_mail where provider_id = p_provider_id)\n    or exists (select 1 from public.email_replies where provider_id = p_provider_id)\n  then\n    return null;\n  end if;\n  if v_state in ('new', 'escalated') then\n    -- 20 people's messages and 6 notices an hour reach a run; the rest are kept for a person, never dropped.\n    v_cap := case when v_state = 'new' then 20 else 6 end;\n    select count(*) into v_hour\n    from public.inbound_mail\n    where source = p_source and state in ('new', 'routed', 'held', 'escalated')\n      and created_at > now() - interval '1 hour';\n    if v_hour >= v_cap then\n      if not exists (\n        select 1 from public.inbound_mail\n        where source = p_source and state = 'capped' and created_at > now() - interval '1 hour'\n      ) then\n        insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n        values ('team', 'system', 'system', 'Mailbox', format(\n          'More than %s %s arrived this hour: the rest wait in the admin (Sent emails, Inbound mail) for a person.',\n          v_cap, case when p_source = 'email_inbound' then 'emails from people' else 'service notices' end\n        ));\n      end if;\n      v_state := 'capped';\n    end if;\n  end if;\n  if v_state = 'new' then\n    -- The Editor for listings@, the Concierge for everything else, then the chief of staff. Never Matter: a person's\n    -- words must not sit in the thread a person's line gives full power to (H101). Press and anything outside the\n    -- criteria reaches Matter through the hold (W8 0d), as its triage, never as text. A property offered to any other\n    -- address is handed to the Editor by the runner once the triage says so (inbound-mail.ts, handToEditor).\n    v_owners := array['concierge', 'concierge', 'chief'];\n    select a.slug, a.id into v_owner, v_agent\n    from public.agents a\n    where a.slug = any (v_owners) and a.slug <> 'matter' and a.state <> 'off'\n    order by array_position(v_owners, a.slug)\n    limit 1;\n  elsif v_state = 'escalated' then\n    select a.slug, a.id into v_owner, v_agent\n    from public.agents a\n    where a.slug = 'matter' and a.state <> 'off';\n  end if;\n  insert into public.inbound_mail (\n    provider_id, folder, from_email, from_name, alias, subject, body, attachments, received_at, source, service,\n    summary, report, owner_slug, state\n  )\n  values (\n    p_provider_id, left(coalesce(nullif(btrim(p_folder), ''), 'Inbox'), 100),\n    left(nullif(lower(btrim(coalesce(p_from, ''))), ''), 320), left(nullif(btrim(coalesce(p_name, '')), ''), 200),\n    v_alias,\n    -- W8 0h review: only a person's email keeps its body; a service's or our own mail can carry a login code.\n    left(coalesce(p_subject, ''), 500),\n    case when p_source = 'email_inbound' then left(coalesce(p_body, ''), 6000) else '' end,\n    (select coalesce(array_agg(left(a, 200)), '{}') from unnest((coalesce(p_attachments, '{}'))[1:50]) as a),\n    p_received_at, p_source, left(nullif(btrim(coalesce(p_service, '')), ''), 40),\n    left(coalesce(p_summary, ''), 2000), p_report, v_owner, v_state\n  )\n  on conflict (provider_id) do nothing\n  returning id into v_id;\n  if v_id is null then\n    return null;\n  end if;\n  if v_state = 'new' then\n    -- The event carries the row's id and the alias (our words) only: no part of the message reaches a prompt from it.\n    v_event := public.emit_event(\n      'email.received', 'inbound_mail', v_id, jsonb_build_object('inbound_id', v_id, 'alias', v_alias)\n    );\n    if v_agent is not null then\n      insert into public.agent_runs (agent_id, cause, event_id) values (v_agent, 'event', v_event)\n      on conflict do nothing;\n    else\n      insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n      values ('team', 'system', 'system', 'Mailbox',\n        'An email from a person arrived and no colleague is on to read it: it waits in the admin (Sent emails, Inbound mail).');\n    end if;\n  elsif v_state = 'escalated' and v_agent is not null then\n    -- The runner's own words with the record last, so nothing the sender wrote can stand in for it.\n    insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n    values ('matter', 'system', 'mailbox', 'Mailbox', left(p_line, 4000) || E'\\nRecord: service_notice ' || v_id || '.')\n    returning id into v_line;\n    insert into public.agent_runs (agent_id, cause, message_id) values (v_agent, 'message', v_line);\n  elsif v_state = 'escalated' then\n    -- W8 0h review: with Matter off, the team is told, as for a person's email with no colleague on.\n    insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n    values ('team', 'system', 'system', 'Mailbox',\n      'A service notice arrived and Matter is off to read it: it waits in the admin (Sent emails, Inbound mail).');\n  end if;\n  return v_id;\nend;\n$$;\n\nrevoke execute on function public.inbound_mail_record(\n  text, text, text, text, text, text, text, timestamptz, text[], text, text, text, text, jsonb, text\n) from public, anon, authenticated;\ngrant execute on function public.inbound_mail_record(\n  text, text, text, text, text, text, text, timestamptz, text[], text, text, text, text, jsonb, text\n) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/inbound-mail.db.test.ts -t \"records a person's email once and wakes its owner by alias through email.received\"",
+    "expect": "× .*records a person's email once and wakes its owner by alias through ema"
+  },
+  {
+    "id": "w8-0h-sql-once-replies",
+    "kind": "sql",
+    "test": "tests/db/inbound-mail.db.test.ts",
+    "sql": "create or replace function public.inbound_mail_record(\n  p_provider_id text,\n  p_folder text,\n  p_from text,\n  p_name text,\n  p_alias text,\n  p_subject text,\n  p_body text,\n  p_received_at timestamptz,\n  p_attachments text[],\n  p_source text,\n  p_state text,\n  p_service text,\n  p_summary text,\n  p_report jsonb,\n  p_line text\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_state text := p_state;\n  v_cap int;\n  v_hour int;\n  v_owners text[];\n  v_owner text;\n  v_agent uuid;\n  v_id uuid;\n  v_event uuid;\n  v_line uuid;\n  -- Only one of our aliases is kept or put in the event; anything else is null.\n  v_alias text := case\n    when p_alias in ('hello', 'listings', 'press', 'privacy', 'billing', 'security', 'admin') then p_alias\n  end;\nbegin\n  -- W8 0h (operator, 2026-10-16): one message of the admin@ mailbox, as the laptop runner sorted it\n  -- (scripts/workforce/mail.ts, service-notice.ts). It is recorded once: an id this table or email_replies already\n  -- holds returns null, so a reply to our own email never comes in twice. A person's message ('new') emits\n  -- email.received and wakes its owner, who sees only its triage (W8 0a, 0b); a service notice ('escalated') becomes\n  -- the runner's fixed line in Matter's thread and a Matter run at read power (a system line, ruling H101). Neither\n  -- passes the hour's cap: past it the message waits as 'capped' for a person, and the team is told once that hour.\n  if p_provider_id is null or btrim(p_provider_id) = '' or p_received_at is null\n    or p_source is null or p_source not in ('email_inbound', 'service_notice', 'our_mail')\n    or p_state is null or p_state not in ('new', 'escalated', 'recorded', 'ignored', 'spam')\n    or (p_state = 'new' and p_source <> 'email_inbound')\n    or (p_state = 'escalated' and (p_source <> 'service_notice' or coalesce(btrim(p_line), '') = ''))\n  then\n    raise exception 'bad_request';\n  end if;\n  if exists (select 1 from public.inbound_mail where provider_id = p_provider_id)\n  then\n    return null;\n  end if;\n  if v_state in ('new', 'escalated') then\n    -- 20 people's messages and 6 notices an hour reach a run; the rest are kept for a person, never dropped.\n    v_cap := case when v_state = 'new' then 20 else 6 end;\n    select count(*) into v_hour\n    from public.inbound_mail\n    where source = p_source and state in ('new', 'routed', 'held', 'escalated')\n      and created_at > now() - interval '1 hour';\n    if v_hour >= v_cap then\n      if not exists (\n        select 1 from public.inbound_mail\n        where source = p_source and state = 'capped' and created_at > now() - interval '1 hour'\n      ) then\n        insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n        values ('team', 'system', 'system', 'Mailbox', format(\n          'More than %s %s arrived this hour: the rest wait in the admin (Sent emails, Inbound mail) for a person.',\n          v_cap, case when p_source = 'email_inbound' then 'emails from people' else 'service notices' end\n        ));\n      end if;\n      v_state := 'capped';\n    end if;\n  end if;\n  if v_state = 'new' then\n    -- The Editor for listings@, the Concierge for everything else, then the chief of staff. Never Matter: a person's\n    -- words must not sit in the thread a person's line gives full power to (H101). Press and anything outside the\n    -- criteria reaches Matter through the hold (W8 0d), as its triage, never as text. A property offered to any other\n    -- address is handed to the Editor by the runner once the triage says so (inbound-mail.ts, handToEditor).\n    v_owners := array[case when v_alias = 'listings' then 'editor' else 'concierge' end, 'concierge', 'chief'];\n    select a.slug, a.id into v_owner, v_agent\n    from public.agents a\n    where a.slug = any (v_owners) and a.slug <> 'matter' and a.state <> 'off'\n    order by array_position(v_owners, a.slug)\n    limit 1;\n  elsif v_state = 'escalated' then\n    select a.slug, a.id into v_owner, v_agent\n    from public.agents a\n    where a.slug = 'matter' and a.state <> 'off';\n  end if;\n  insert into public.inbound_mail (\n    provider_id, folder, from_email, from_name, alias, subject, body, attachments, received_at, source, service,\n    summary, report, owner_slug, state\n  )\n  values (\n    p_provider_id, left(coalesce(nullif(btrim(p_folder), ''), 'Inbox'), 100),\n    left(nullif(lower(btrim(coalesce(p_from, ''))), ''), 320), left(nullif(btrim(coalesce(p_name, '')), ''), 200),\n    v_alias,\n    -- W8 0h review: only a person's email keeps its body; a service's or our own mail can carry a login code.\n    left(coalesce(p_subject, ''), 500),\n    case when p_source = 'email_inbound' then left(coalesce(p_body, ''), 6000) else '' end,\n    (select coalesce(array_agg(left(a, 200)), '{}') from unnest((coalesce(p_attachments, '{}'))[1:50]) as a),\n    p_received_at, p_source, left(nullif(btrim(coalesce(p_service, '')), ''), 40),\n    left(coalesce(p_summary, ''), 2000), p_report, v_owner, v_state\n  )\n  on conflict (provider_id) do nothing\n  returning id into v_id;\n  if v_id is null then\n    return null;\n  end if;\n  if v_state = 'new' then\n    -- The event carries the row's id and the alias (our words) only: no part of the message reaches a prompt from it.\n    v_event := public.emit_event(\n      'email.received', 'inbound_mail', v_id, jsonb_build_object('inbound_id', v_id, 'alias', v_alias)\n    );\n    if v_agent is not null then\n      insert into public.agent_runs (agent_id, cause, event_id) values (v_agent, 'event', v_event)\n      on conflict do nothing;\n    else\n      insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n      values ('team', 'system', 'system', 'Mailbox',\n        'An email from a person arrived and no colleague is on to read it: it waits in the admin (Sent emails, Inbound mail).');\n    end if;\n  elsif v_state = 'escalated' and v_agent is not null then\n    -- The runner's own words with the record last, so nothing the sender wrote can stand in for it.\n    insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n    values ('matter', 'system', 'mailbox', 'Mailbox', left(p_line, 4000) || E'\\nRecord: service_notice ' || v_id || '.')\n    returning id into v_line;\n    insert into public.agent_runs (agent_id, cause, message_id) values (v_agent, 'message', v_line);\n  elsif v_state = 'escalated' then\n    -- W8 0h review: with Matter off, the team is told, as for a person's email with no colleague on.\n    insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n    values ('team', 'system', 'system', 'Mailbox',\n      'A service notice arrived and Matter is off to read it: it waits in the admin (Sent emails, Inbound mail).');\n  end if;\n  return v_id;\nend;\n$$;\n\nrevoke execute on function public.inbound_mail_record(\n  text, text, text, text, text, text, text, timestamptz, text[], text, text, text, text, jsonb, text\n) from public, anon, authenticated;\ngrant execute on function public.inbound_mail_record(\n  text, text, text, text, text, text, text, timestamptz, text[], text, text, text, text, jsonb, text\n) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/inbound-mail.db.test.ts -t \"never records an id email_replies already holds\"",
+    "expect": "× .*never records an id email_replies already holds"
+  },
+  {
+    "id": "w8-0h-sql-record-last",
+    "kind": "sql",
+    "test": "tests/db/inbound-mail.db.test.ts",
+    "sql": "create or replace function public.inbound_mail_record(\n  p_provider_id text,\n  p_folder text,\n  p_from text,\n  p_name text,\n  p_alias text,\n  p_subject text,\n  p_body text,\n  p_received_at timestamptz,\n  p_attachments text[],\n  p_source text,\n  p_state text,\n  p_service text,\n  p_summary text,\n  p_report jsonb,\n  p_line text\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_state text := p_state;\n  v_cap int;\n  v_hour int;\n  v_owners text[];\n  v_owner text;\n  v_agent uuid;\n  v_id uuid;\n  v_event uuid;\n  v_line uuid;\n  -- Only one of our aliases is kept or put in the event; anything else is null.\n  v_alias text := case\n    when p_alias in ('hello', 'listings', 'press', 'privacy', 'billing', 'security', 'admin') then p_alias\n  end;\nbegin\n  -- W8 0h (operator, 2026-10-16): one message of the admin@ mailbox, as the laptop runner sorted it\n  -- (scripts/workforce/mail.ts, service-notice.ts). It is recorded once: an id this table or email_replies already\n  -- holds returns null, so a reply to our own email never comes in twice. A person's message ('new') emits\n  -- email.received and wakes its owner, who sees only its triage (W8 0a, 0b); a service notice ('escalated') becomes\n  -- the runner's fixed line in Matter's thread and a Matter run at read power (a system line, ruling H101). Neither\n  -- passes the hour's cap: past it the message waits as 'capped' for a person, and the team is told once that hour.\n  if p_provider_id is null or btrim(p_provider_id) = '' or p_received_at is null\n    or p_source is null or p_source not in ('email_inbound', 'service_notice', 'our_mail')\n    or p_state is null or p_state not in ('new', 'escalated', 'recorded', 'ignored', 'spam')\n    or (p_state = 'new' and p_source <> 'email_inbound')\n    or (p_state = 'escalated' and (p_source <> 'service_notice' or coalesce(btrim(p_line), '') = ''))\n  then\n    raise exception 'bad_request';\n  end if;\n  if exists (select 1 from public.inbound_mail where provider_id = p_provider_id)\n    or exists (select 1 from public.email_replies where provider_id = p_provider_id)\n  then\n    return null;\n  end if;\n  if v_state in ('new', 'escalated') then\n    -- 20 people's messages and 6 notices an hour reach a run; the rest are kept for a person, never dropped.\n    v_cap := case when v_state = 'new' then 20 else 6 end;\n    select count(*) into v_hour\n    from public.inbound_mail\n    where source = p_source and state in ('new', 'routed', 'held', 'escalated')\n      and created_at > now() - interval '1 hour';\n    if v_hour >= v_cap then\n      if not exists (\n        select 1 from public.inbound_mail\n        where source = p_source and state = 'capped' and created_at > now() - interval '1 hour'\n      ) then\n        insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n        values ('team', 'system', 'system', 'Mailbox', format(\n          'More than %s %s arrived this hour: the rest wait in the admin (Sent emails, Inbound mail) for a person.',\n          v_cap, case when p_source = 'email_inbound' then 'emails from people' else 'service notices' end\n        ));\n      end if;\n      v_state := 'capped';\n    end if;\n  end if;\n  if v_state = 'new' then\n    -- The Editor for listings@, the Concierge for everything else, then the chief of staff. Never Matter: a person's\n    -- words must not sit in the thread a person's line gives full power to (H101). Press and anything outside the\n    -- criteria reaches Matter through the hold (W8 0d), as its triage, never as text. A property offered to any other\n    -- address is handed to the Editor by the runner once the triage says so (inbound-mail.ts, handToEditor).\n    v_owners := array[case when v_alias = 'listings' then 'editor' else 'concierge' end, 'concierge', 'chief'];\n    select a.slug, a.id into v_owner, v_agent\n    from public.agents a\n    where a.slug = any (v_owners) and a.slug <> 'matter' and a.state <> 'off'\n    order by array_position(v_owners, a.slug)\n    limit 1;\n  elsif v_state = 'escalated' then\n    select a.slug, a.id into v_owner, v_agent\n    from public.agents a\n    where a.slug = 'matter' and a.state <> 'off';\n  end if;\n  insert into public.inbound_mail (\n    provider_id, folder, from_email, from_name, alias, subject, body, attachments, received_at, source, service,\n    summary, report, owner_slug, state\n  )\n  values (\n    p_provider_id, left(coalesce(nullif(btrim(p_folder), ''), 'Inbox'), 100),\n    left(nullif(lower(btrim(coalesce(p_from, ''))), ''), 320), left(nullif(btrim(coalesce(p_name, '')), ''), 200),\n    v_alias,\n    -- W8 0h review: only a person's email keeps its body; a service's or our own mail can carry a login code.\n    left(coalesce(p_subject, ''), 500),\n    case when p_source = 'email_inbound' then left(coalesce(p_body, ''), 6000) else '' end,\n    (select coalesce(array_agg(left(a, 200)), '{}') from unnest((coalesce(p_attachments, '{}'))[1:50]) as a),\n    p_received_at, p_source, left(nullif(btrim(coalesce(p_service, '')), ''), 40),\n    left(coalesce(p_summary, ''), 2000), p_report, v_owner, v_state\n  )\n  on conflict (provider_id) do nothing\n  returning id into v_id;\n  if v_id is null then\n    return null;\n  end if;\n  if v_state = 'new' then\n    -- The event carries the row's id and the alias (our words) only: no part of the message reaches a prompt from it.\n    v_event := public.emit_event(\n      'email.received', 'inbound_mail', v_id, jsonb_build_object('inbound_id', v_id, 'alias', v_alias)\n    );\n    if v_agent is not null then\n      insert into public.agent_runs (agent_id, cause, event_id) values (v_agent, 'event', v_event)\n      on conflict do nothing;\n    else\n      insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n      values ('team', 'system', 'system', 'Mailbox',\n        'An email from a person arrived and no colleague is on to read it: it waits in the admin (Sent emails, Inbound mail).');\n    end if;\n  elsif v_state = 'escalated' and v_agent is not null then\n    -- The runner's own words with the record last, so nothing the sender wrote can stand in for it.\n    insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n    values ('matter', 'system', 'mailbox', 'Mailbox', left(p_line, 4000))\n    returning id into v_line;\n    insert into public.agent_runs (agent_id, cause, message_id) values (v_agent, 'message', v_line);\n  elsif v_state = 'escalated' then\n    -- W8 0h review: with Matter off, the team is told, as for a person's email with no colleague on.\n    insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n    values ('team', 'system', 'system', 'Mailbox',\n      'A service notice arrived and Matter is off to read it: it waits in the admin (Sent emails, Inbound mail).');\n  end if;\n  return v_id;\nend;\n$$;\n\nrevoke execute on function public.inbound_mail_record(\n  text, text, text, text, text, text, text, timestamptz, text[], text, text, text, text, jsonb, text\n) from public, anon, authenticated;\ngrant execute on function public.inbound_mail_record(\n  text, text, text, text, text, text, text, timestamptz, text[], text, text, text, text, jsonb, text\n) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/inbound-mail.db.test.ts -t \"puts a service notice in Matter's thread as a system line with the record last, and queues Matter once\"",
+    "expect": "× .*puts a service notice in Matter's thread as a system line with the rec"
+  },
+  {
+    "id": "w8-0h-sql-quiet",
+    "kind": "sql",
+    "test": "tests/db/inbound-mail.db.test.ts",
+    "sql": "create or replace function public.inbound_mail_record(\n  p_provider_id text,\n  p_folder text,\n  p_from text,\n  p_name text,\n  p_alias text,\n  p_subject text,\n  p_body text,\n  p_received_at timestamptz,\n  p_attachments text[],\n  p_source text,\n  p_state text,\n  p_service text,\n  p_summary text,\n  p_report jsonb,\n  p_line text\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_state text := p_state;\n  v_cap int;\n  v_hour int;\n  v_owners text[];\n  v_owner text;\n  v_agent uuid;\n  v_id uuid;\n  v_event uuid;\n  v_line uuid;\n  -- Only one of our aliases is kept or put in the event; anything else is null.\n  v_alias text := case\n    when p_alias in ('hello', 'listings', 'press', 'privacy', 'billing', 'security', 'admin') then p_alias\n  end;\nbegin\n  -- W8 0h (operator, 2026-10-16): one message of the admin@ mailbox, as the laptop runner sorted it\n  -- (scripts/workforce/mail.ts, service-notice.ts). It is recorded once: an id this table or email_replies already\n  -- holds returns null, so a reply to our own email never comes in twice. A person's message ('new') emits\n  -- email.received and wakes its owner, who sees only its triage (W8 0a, 0b); a service notice ('escalated') becomes\n  -- the runner's fixed line in Matter's thread and a Matter run at read power (a system line, ruling H101). Neither\n  -- passes the hour's cap: past it the message waits as 'capped' for a person, and the team is told once that hour.\n  if p_provider_id is null or btrim(p_provider_id) = '' or p_received_at is null\n    or p_source is null or p_source not in ('email_inbound', 'service_notice', 'our_mail')\n    or p_state is null or p_state not in ('new', 'escalated', 'recorded', 'ignored', 'spam')\n    or (p_state = 'new' and p_source <> 'email_inbound')\n    or (p_state = 'escalated' and (p_source <> 'service_notice' or coalesce(btrim(p_line), '') = ''))\n  then\n    raise exception 'bad_request';\n  end if;\n  if exists (select 1 from public.inbound_mail where provider_id = p_provider_id)\n    or exists (select 1 from public.email_replies where provider_id = p_provider_id)\n  then\n    return null;\n  end if;\n  if v_state in ('new', 'escalated') then\n    -- 20 people's messages and 6 notices an hour reach a run; the rest are kept for a person, never dropped.\n    v_cap := case when v_state = 'new' then 20 else 6 end;\n    select count(*) into v_hour\n    from public.inbound_mail\n    where source = p_source and state in ('new', 'routed', 'held', 'escalated')\n      and created_at > now() - interval '1 hour';\n    if v_hour >= v_cap then\n      if not exists (\n        select 1 from public.inbound_mail\n        where source = p_source and state = 'capped' and created_at > now() - interval '1 hour'\n      ) then\n        insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n        values ('team', 'system', 'system', 'Mailbox', format(\n          'More than %s %s arrived this hour: the rest wait in the admin (Sent emails, Inbound mail) for a person.',\n          v_cap, case when p_source = 'email_inbound' then 'emails from people' else 'service notices' end\n        ));\n      end if;\n      v_state := 'capped';\n    end if;\n  end if;\n  if v_state = 'new' then\n    -- The Editor for listings@, the Concierge for everything else, then the chief of staff. Never Matter: a person's\n    -- words must not sit in the thread a person's line gives full power to (H101). Press and anything outside the\n    -- criteria reaches Matter through the hold (W8 0d), as its triage, never as text. A property offered to any other\n    -- address is handed to the Editor by the runner once the triage says so (inbound-mail.ts, handToEditor).\n    v_owners := array[case when v_alias = 'listings' then 'editor' else 'concierge' end, 'concierge', 'chief'];\n    select a.slug, a.id into v_owner, v_agent\n    from public.agents a\n    where a.slug = any (v_owners) and a.slug <> 'matter' and a.state <> 'off'\n    order by array_position(v_owners, a.slug)\n    limit 1;\n  elsif v_state = 'escalated' then\n    select a.slug, a.id into v_owner, v_agent\n    from public.agents a\n    where a.slug = 'matter' and a.state <> 'off';\n  end if;\n  insert into public.inbound_mail (\n    provider_id, folder, from_email, from_name, alias, subject, body, attachments, received_at, source, service,\n    summary, report, owner_slug, state\n  )\n  values (\n    p_provider_id, left(coalesce(nullif(btrim(p_folder), ''), 'Inbox'), 100),\n    left(nullif(lower(btrim(coalesce(p_from, ''))), ''), 320), left(nullif(btrim(coalesce(p_name, '')), ''), 200),\n    v_alias,\n    -- W8 0h review: only a person's email keeps its body; a service's or our own mail can carry a login code.\n    left(coalesce(p_subject, ''), 500),\n    case when p_source = 'email_inbound' then left(coalesce(p_body, ''), 6000) else '' end,\n    (select coalesce(array_agg(left(a, 200)), '{}') from unnest((coalesce(p_attachments, '{}'))[1:50]) as a),\n    p_received_at, p_source, left(nullif(btrim(coalesce(p_service, '')), ''), 40),\n    left(coalesce(p_summary, ''), 2000), p_report, v_owner, v_state\n  )\n  on conflict (provider_id) do nothing\n  returning id into v_id;\n  if v_id is null then\n    return null;\n  end if;\n  if v_state in ('new', 'spam') then\n    -- The event carries the row's id and the alias (our words) only: no part of the message reaches a prompt from it.\n    v_event := public.emit_event(\n      'email.received', 'inbound_mail', v_id, jsonb_build_object('inbound_id', v_id, 'alias', v_alias)\n    );\n    if v_agent is not null then\n      insert into public.agent_runs (agent_id, cause, event_id) values (v_agent, 'event', v_event)\n      on conflict do nothing;\n    else\n      insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n      values ('team', 'system', 'system', 'Mailbox',\n        'An email from a person arrived and no colleague is on to read it: it waits in the admin (Sent emails, Inbound mail).');\n    end if;\n  elsif v_state = 'escalated' and v_agent is not null then\n    -- The runner's own words with the record last, so nothing the sender wrote can stand in for it.\n    insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n    values ('matter', 'system', 'mailbox', 'Mailbox', left(p_line, 4000) || E'\\nRecord: service_notice ' || v_id || '.')\n    returning id into v_line;\n    insert into public.agent_runs (agent_id, cause, message_id) values (v_agent, 'message', v_line);\n  elsif v_state = 'escalated' then\n    -- W8 0h review: with Matter off, the team is told, as for a person's email with no colleague on.\n    insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n    values ('team', 'system', 'system', 'Mailbox',\n      'A service notice arrived and Matter is off to read it: it waits in the admin (Sent emails, Inbound mail).');\n  end if;\n  return v_id;\nend;\n$$;\n\nrevoke execute on function public.inbound_mail_record(\n  text, text, text, text, text, text, text, timestamptz, text[], text, text, text, text, jsonb, text\n) from public, anon, authenticated;\ngrant execute on function public.inbound_mail_record(\n  text, text, text, text, text, text, text, timestamptz, text[], text, text, text, text, jsonb, text\n) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/inbound-mail.db.test.ts -t \"records a clean report and spam without waking anyone\"",
+    "expect": "× .*records a clean report and spam without waking anyone"
+  },
+  {
+    "id": "w8-0h-sql-cap",
+    "kind": "sql",
+    "test": "tests/db/inbound-mail.db.test.ts",
+    "sql": "create or replace function public.inbound_mail_record(\n  p_provider_id text,\n  p_folder text,\n  p_from text,\n  p_name text,\n  p_alias text,\n  p_subject text,\n  p_body text,\n  p_received_at timestamptz,\n  p_attachments text[],\n  p_source text,\n  p_state text,\n  p_service text,\n  p_summary text,\n  p_report jsonb,\n  p_line text\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_state text := p_state;\n  v_cap int;\n  v_hour int;\n  v_owners text[];\n  v_owner text;\n  v_agent uuid;\n  v_id uuid;\n  v_event uuid;\n  v_line uuid;\n  -- Only one of our aliases is kept or put in the event; anything else is null.\n  v_alias text := case\n    when p_alias in ('hello', 'listings', 'press', 'privacy', 'billing', 'security', 'admin') then p_alias\n  end;\nbegin\n  -- W8 0h (operator, 2026-10-16): one message of the admin@ mailbox, as the laptop runner sorted it\n  -- (scripts/workforce/mail.ts, service-notice.ts). It is recorded once: an id this table or email_replies already\n  -- holds returns null, so a reply to our own email never comes in twice. A person's message ('new') emits\n  -- email.received and wakes its owner, who sees only its triage (W8 0a, 0b); a service notice ('escalated') becomes\n  -- the runner's fixed line in Matter's thread and a Matter run at read power (a system line, ruling H101). Neither\n  -- passes the hour's cap: past it the message waits as 'capped' for a person, and the team is told once that hour.\n  if p_provider_id is null or btrim(p_provider_id) = '' or p_received_at is null\n    or p_source is null or p_source not in ('email_inbound', 'service_notice', 'our_mail')\n    or p_state is null or p_state not in ('new', 'escalated', 'recorded', 'ignored', 'spam')\n    or (p_state = 'new' and p_source <> 'email_inbound')\n    or (p_state = 'escalated' and (p_source <> 'service_notice' or coalesce(btrim(p_line), '') = ''))\n  then\n    raise exception 'bad_request';\n  end if;\n  if exists (select 1 from public.inbound_mail where provider_id = p_provider_id)\n    or exists (select 1 from public.email_replies where provider_id = p_provider_id)\n  then\n    return null;\n  end if;\n  if v_state in ('new', 'escalated') then\n    -- 20 people's messages and 6 notices an hour reach a run; the rest are kept for a person, never dropped.\n    v_cap := case when v_state = 'new' then 20 else 6 end;\n    select count(*) into v_hour\n    from public.inbound_mail\n    where source = p_source and state in ('new', 'routed', 'held', 'escalated')\n      and created_at > now() - interval '1 hour';\n    if false then\n      if not exists (\n        select 1 from public.inbound_mail\n        where source = p_source and state = 'capped' and created_at > now() - interval '1 hour'\n      ) then\n        insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n        values ('team', 'system', 'system', 'Mailbox', format(\n          'More than %s %s arrived this hour: the rest wait in the admin (Sent emails, Inbound mail) for a person.',\n          v_cap, case when p_source = 'email_inbound' then 'emails from people' else 'service notices' end\n        ));\n      end if;\n      v_state := 'capped';\n    end if;\n  end if;\n  if v_state = 'new' then\n    -- The Editor for listings@, the Concierge for everything else, then the chief of staff. Never Matter: a person's\n    -- words must not sit in the thread a person's line gives full power to (H101). Press and anything outside the\n    -- criteria reaches Matter through the hold (W8 0d), as its triage, never as text. A property offered to any other\n    -- address is handed to the Editor by the runner once the triage says so (inbound-mail.ts, handToEditor).\n    v_owners := array[case when v_alias = 'listings' then 'editor' else 'concierge' end, 'concierge', 'chief'];\n    select a.slug, a.id into v_owner, v_agent\n    from public.agents a\n    where a.slug = any (v_owners) and a.slug <> 'matter' and a.state <> 'off'\n    order by array_position(v_owners, a.slug)\n    limit 1;\n  elsif v_state = 'escalated' then\n    select a.slug, a.id into v_owner, v_agent\n    from public.agents a\n    where a.slug = 'matter' and a.state <> 'off';\n  end if;\n  insert into public.inbound_mail (\n    provider_id, folder, from_email, from_name, alias, subject, body, attachments, received_at, source, service,\n    summary, report, owner_slug, state\n  )\n  values (\n    p_provider_id, left(coalesce(nullif(btrim(p_folder), ''), 'Inbox'), 100),\n    left(nullif(lower(btrim(coalesce(p_from, ''))), ''), 320), left(nullif(btrim(coalesce(p_name, '')), ''), 200),\n    v_alias,\n    -- W8 0h review: only a person's email keeps its body; a service's or our own mail can carry a login code.\n    left(coalesce(p_subject, ''), 500),\n    case when p_source = 'email_inbound' then left(coalesce(p_body, ''), 6000) else '' end,\n    (select coalesce(array_agg(left(a, 200)), '{}') from unnest((coalesce(p_attachments, '{}'))[1:50]) as a),\n    p_received_at, p_source, left(nullif(btrim(coalesce(p_service, '')), ''), 40),\n    left(coalesce(p_summary, ''), 2000), p_report, v_owner, v_state\n  )\n  on conflict (provider_id) do nothing\n  returning id into v_id;\n  if v_id is null then\n    return null;\n  end if;\n  if v_state = 'new' then\n    -- The event carries the row's id and the alias (our words) only: no part of the message reaches a prompt from it.\n    v_event := public.emit_event(\n      'email.received', 'inbound_mail', v_id, jsonb_build_object('inbound_id', v_id, 'alias', v_alias)\n    );\n    if v_agent is not null then\n      insert into public.agent_runs (agent_id, cause, event_id) values (v_agent, 'event', v_event)\n      on conflict do nothing;\n    else\n      insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n      values ('team', 'system', 'system', 'Mailbox',\n        'An email from a person arrived and no colleague is on to read it: it waits in the admin (Sent emails, Inbound mail).');\n    end if;\n  elsif v_state = 'escalated' and v_agent is not null then\n    -- The runner's own words with the record last, so nothing the sender wrote can stand in for it.\n    insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n    values ('matter', 'system', 'mailbox', 'Mailbox', left(p_line, 4000) || E'\\nRecord: service_notice ' || v_id || '.')\n    returning id into v_line;\n    insert into public.agent_runs (agent_id, cause, message_id) values (v_agent, 'message', v_line);\n  elsif v_state = 'escalated' then\n    -- W8 0h review: with Matter off, the team is told, as for a person's email with no colleague on.\n    insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n    values ('team', 'system', 'system', 'Mailbox',\n      'A service notice arrived and Matter is off to read it: it waits in the admin (Sent emails, Inbound mail).');\n  end if;\n  return v_id;\nend;\n$$;\n\nrevoke execute on function public.inbound_mail_record(\n  text, text, text, text, text, text, text, timestamptz, text[], text, text, text, text, jsonb, text\n) from public, anon, authenticated;\ngrant execute on function public.inbound_mail_record(\n  text, text, text, text, text, text, text, timestamptz, text[], text, text, text, text, jsonb, text\n) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/inbound-mail.db.test.ts -t \"keeps a person's email past the hour's cap for a person, and tells the team once\"",
+    "expect": "× .*keeps a person's email past the hour's cap for a person, and tells the"
+  },
+  {
+    "id": "w8-0h-sql-refuse",
+    "kind": "sql",
+    "test": "tests/db/inbound-mail.db.test.ts",
+    "sql": "create or replace function public.inbound_mail_record(\n  p_provider_id text,\n  p_folder text,\n  p_from text,\n  p_name text,\n  p_alias text,\n  p_subject text,\n  p_body text,\n  p_received_at timestamptz,\n  p_attachments text[],\n  p_source text,\n  p_state text,\n  p_service text,\n  p_summary text,\n  p_report jsonb,\n  p_line text\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_state text := p_state;\n  v_cap int;\n  v_hour int;\n  v_owners text[];\n  v_owner text;\n  v_agent uuid;\n  v_id uuid;\n  v_event uuid;\n  v_line uuid;\n  -- Only one of our aliases is kept or put in the event; anything else is null.\n  v_alias text := case\n    when p_alias in ('hello', 'listings', 'press', 'privacy', 'billing', 'security', 'admin') then p_alias\n  end;\nbegin\n  -- W8 0h (operator, 2026-10-16): one message of the admin@ mailbox, as the laptop runner sorted it\n  -- (scripts/workforce/mail.ts, service-notice.ts). It is recorded once: an id this table or email_replies already\n  -- holds returns null, so a reply to our own email never comes in twice. A person's message ('new') emits\n  -- email.received and wakes its owner, who sees only its triage (W8 0a, 0b); a service notice ('escalated') becomes\n  -- the runner's fixed line in Matter's thread and a Matter run at read power (a system line, ruling H101). Neither\n  -- passes the hour's cap: past it the message waits as 'capped' for a person, and the team is told once that hour.\n  if p_provider_id is null or btrim(p_provider_id) = '' or p_received_at is null\n    or p_source is null or p_source not in ('email_inbound', 'service_notice', 'our_mail')\n    or p_state is null or p_state not in ('new', 'escalated', 'recorded', 'ignored', 'spam')\n    or (p_state = 'new' and p_source <> 'email_inbound')\n  then\n    raise exception 'bad_request';\n  end if;\n  if exists (select 1 from public.inbound_mail where provider_id = p_provider_id)\n    or exists (select 1 from public.email_replies where provider_id = p_provider_id)\n  then\n    return null;\n  end if;\n  if v_state in ('new', 'escalated') then\n    -- 20 people's messages and 6 notices an hour reach a run; the rest are kept for a person, never dropped.\n    v_cap := case when v_state = 'new' then 20 else 6 end;\n    select count(*) into v_hour\n    from public.inbound_mail\n    where source = p_source and state in ('new', 'routed', 'held', 'escalated')\n      and created_at > now() - interval '1 hour';\n    if v_hour >= v_cap then\n      if not exists (\n        select 1 from public.inbound_mail\n        where source = p_source and state = 'capped' and created_at > now() - interval '1 hour'\n      ) then\n        insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n        values ('team', 'system', 'system', 'Mailbox', format(\n          'More than %s %s arrived this hour: the rest wait in the admin (Sent emails, Inbound mail) for a person.',\n          v_cap, case when p_source = 'email_inbound' then 'emails from people' else 'service notices' end\n        ));\n      end if;\n      v_state := 'capped';\n    end if;\n  end if;\n  if v_state = 'new' then\n    -- The Editor for listings@, the Concierge for everything else, then the chief of staff. Never Matter: a person's\n    -- words must not sit in the thread a person's line gives full power to (H101). Press and anything outside the\n    -- criteria reaches Matter through the hold (W8 0d), as its triage, never as text. A property offered to any other\n    -- address is handed to the Editor by the runner once the triage says so (inbound-mail.ts, handToEditor).\n    v_owners := array[case when v_alias = 'listings' then 'editor' else 'concierge' end, 'concierge', 'chief'];\n    select a.slug, a.id into v_owner, v_agent\n    from public.agents a\n    where a.slug = any (v_owners) and a.slug <> 'matter' and a.state <> 'off'\n    order by array_position(v_owners, a.slug)\n    limit 1;\n  elsif v_state = 'escalated' then\n    select a.slug, a.id into v_owner, v_agent\n    from public.agents a\n    where a.slug = 'matter' and a.state <> 'off';\n  end if;\n  insert into public.inbound_mail (\n    provider_id, folder, from_email, from_name, alias, subject, body, attachments, received_at, source, service,\n    summary, report, owner_slug, state\n  )\n  values (\n    p_provider_id, left(coalesce(nullif(btrim(p_folder), ''), 'Inbox'), 100),\n    left(nullif(lower(btrim(coalesce(p_from, ''))), ''), 320), left(nullif(btrim(coalesce(p_name, '')), ''), 200),\n    v_alias,\n    -- W8 0h review: only a person's email keeps its body; a service's or our own mail can carry a login code.\n    left(coalesce(p_subject, ''), 500),\n    case when p_source = 'email_inbound' then left(coalesce(p_body, ''), 6000) else '' end,\n    (select coalesce(array_agg(left(a, 200)), '{}') from unnest((coalesce(p_attachments, '{}'))[1:50]) as a),\n    p_received_at, p_source, left(nullif(btrim(coalesce(p_service, '')), ''), 40),\n    left(coalesce(p_summary, ''), 2000), p_report, v_owner, v_state\n  )\n  on conflict (provider_id) do nothing\n  returning id into v_id;\n  if v_id is null then\n    return null;\n  end if;\n  if v_state = 'new' then\n    -- The event carries the row's id and the alias (our words) only: no part of the message reaches a prompt from it.\n    v_event := public.emit_event(\n      'email.received', 'inbound_mail', v_id, jsonb_build_object('inbound_id', v_id, 'alias', v_alias)\n    );\n    if v_agent is not null then\n      insert into public.agent_runs (agent_id, cause, event_id) values (v_agent, 'event', v_event)\n      on conflict do nothing;\n    else\n      insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n      values ('team', 'system', 'system', 'Mailbox',\n        'An email from a person arrived and no colleague is on to read it: it waits in the admin (Sent emails, Inbound mail).');\n    end if;\n  elsif v_state = 'escalated' and v_agent is not null then\n    -- The runner's own words with the record last, so nothing the sender wrote can stand in for it.\n    insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n    values ('matter', 'system', 'mailbox', 'Mailbox', left(p_line, 4000) || E'\\nRecord: service_notice ' || v_id || '.')\n    returning id into v_line;\n    insert into public.agent_runs (agent_id, cause, message_id) values (v_agent, 'message', v_line);\n  elsif v_state = 'escalated' then\n    -- W8 0h review: with Matter off, the team is told, as for a person's email with no colleague on.\n    insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n    values ('team', 'system', 'system', 'Mailbox',\n      'A service notice arrived and Matter is off to read it: it waits in the admin (Sent emails, Inbound mail).');\n  end if;\n  return v_id;\nend;\n$$;\n\nrevoke execute on function public.inbound_mail_record(\n  text, text, text, text, text, text, text, timestamptz, text[], text, text, text, text, jsonb, text\n) from public, anon, authenticated;\ngrant execute on function public.inbound_mail_record(\n  text, text, text, text, text, text, text, timestamptz, text[], text, text, text, text, jsonb, text\n) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/inbound-mail.db.test.ts -t \"refuses a notice without the runner's line and a person's state for a service\"",
+    "expect": "× .*refuses a notice without the runner's line and a person's state for a "
+  },
+  {
+    "id": "w8-0h-sql-health",
+    "kind": "sql",
+    "test": "tests/db/inbound-mail.db.test.ts",
+    "sql": "create or replace function public.ops_health(p_now timestamptz)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_failing text[] := '{}';\n  v_keepwarm boolean := false;\n  v_backup boolean := false;\nbegin\n  -- DO-03, JOB-04: a runner the cron cannot reach never beats, so a stale row covers a 401, a 500 and a paused project.\n  if not exists (\n    select 1 from public.ops_heartbeats where name = 'runner' and at >= p_now - interval '3 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'runner');\n  end if;\n  -- B8b's schedule_settings: keepwarm and backup are watched only while their row is enabled, and not before it exists.\n  if to_regclass('public.schedule_settings') is not null then\n    execute $q$\n      select coalesce(bool_or(enabled) filter (where key = 'keepwarm'), false),\n        coalesce(bool_or(enabled) filter (where key = 'backup'), false)\n      from public.schedule_settings\n    $q$ into v_keepwarm, v_backup;\n  end if;\n  if v_keepwarm and not exists (\n    select 1 from public.ops_heartbeats where name = 'keepwarm' and at >= p_now - interval '25 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'keepwarm');\n  end if;\n  if v_backup and not exists (\n    select 1 from public.ops_heartbeats where name = 'backup' and at >= p_now - interval '26 hours'\n  ) then\n    v_failing := array_append(v_failing, 'backup');\n  end if;\n  -- W8 0h: the laptop's mailbox check beats `mail_folders` every five minutes; a folder it could not read (or a\n  -- mailbox it could not reach, or no Zoho names) beats ok false, named here until a check reads them all again. While\n  -- the laptop runner passes (it touches Matter's last_seen_at every pass; the `runner` row is the Worker's) a check\n  -- that has not beaten for 30 minutes is named too, so a mailbox never read is never green (fourth review, H121 (17)).\n  if exists (\n    select 1 from public.ops_heartbeats\n    where name = 'mail_folders' and at >= p_now - interval '30 minutes' and detail ->> 'ok' = 'never'\n  ) or (\n    exists (\n      select 1 from public.agents\n      where slug = 'matter' and last_seen_at >= p_now - interval '10 minutes'\n    )\n    and not exists (\n      select 1 from public.ops_heartbeats\n      where name = 'mail_folders' and at >= p_now - interval '30 minutes'\n    )\n  ) then\n    v_failing := array_append(v_failing, 'mail_folders');\n  end if;\n  -- W8 0g: the nightly copy to Google Drive beats `drive_copy` after the backup; a missing Drive folder beats ok false.\n  if v_backup and not exists (\n    select 1 from public.ops_heartbeats\n    where name = 'drive_copy' and at >= p_now - interval '26 hours' and detail ->> 'ok' = 'true'\n  ) then\n    v_failing := array_append(v_failing, 'drive_copy');\n  end if;\n  -- A local job waits for the laptop by design (ruling H34 (2)); captions_waiting watches it instead.\n  if exists (\n    select 1 from public.jobs\n    where status = 'queued' and not run_local and run_after < p_now - interval '15 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'stale_queue');\n  end if;\n  if exists (\n    select 1 from public.jobs\n    where status = 'dead' and finished_at > p_now - interval '24 hours'\n  ) then\n    v_failing := array_append(v_failing, 'dead_jobs');\n  end if;\n  return jsonb_build_object('ok', cardinality(v_failing) = 0, 'failing', to_jsonb(v_failing));\nend;\n$$;\n\nrevoke execute on function public.ops_health(timestamptz) from public, anon, authenticated;\ngrant execute on function public.ops_health(timestamptz) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/inbound-mail.db.test.ts -t \"names mail_folders in ops_health while the mailbox check says a folder was not read\"",
+    "expect": "× .*names mail_folders in ops_health while the mailbox check say"
+  },
+  {
+    "id": "w8-0h-sql-retention",
+    "kind": "sql",
+    "test": "tests/db/inbound-mail.db.test.ts",
+    "sql": "create or replace function public.retention_delete_rows(p_key text, p_dry_run boolean default false)\nreturns int\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_rows text;\n  v_keep interval;\n  v_count int;\nbegin\n  -- GD-03: the allow-list of plain row deletes, each with its table and filter; any other key raises, so a kept table\n  -- such as audit_log can never be named here. $1 is the policy row's keep_for.\n  v_rows := case p_key\n    when 'rate_limits' then 'public.rate_limits where at < now() - $1'\n    when 'webhook_receipts' then 'public.webhook_receipts where received_at < now() - $1'\n    when 'subject_requests' then\n      $r$public.subject_requests where status in ('fulfilled', 'rejected') and received_at < now() - $1$r$\n    -- G16: a dead job goes with its job_events by the foreign key's cascade.\n    when 'jobs_dead' then $r$public.jobs where status = 'dead' and finished_at < now() - $1$r$\n    -- G16: an event goes only once no job points at it, so jobs_dead runs first.\n    when 'events_processed' then\n      $r$public.events e where e.processed_at is not null and e.processed_at < now() - $1\n        and not exists (select 1 from public.jobs j where j.event_id = e.id)$r$\n    when 'unconfirmed_subscribers' then\n      'public.subscribers where confirmed_at is null and created_at < now() - $1'\n    -- Ruling H15, PERF-02: pg_cron's run history.\n    when 'cron_history' then 'cron.job_run_details where end_time < now() - $1'\n    -- Ruling H16: the daily aggregates, by UTC day.\n    when 'analytics_daily' then\n      $r$public.analytics_daily where day < ((now() at time zone 'utc') - $1)::date$r$\n    -- JOB-10: the claimed and requeued rows of a job still waiting, keeping its newest row of each kind.\n    when 'job_wait_events' then\n      $r$public.job_events je where je.kind in ('claimed', 'requeued') and je.at < now() - $1\n        and exists (select 1 from public.jobs j where j.id = je.job_id and j.status in ('queued', 'failed'))\n        and je.id < (select max(n.id) from public.job_events n where n.job_id = je.job_id and n.kind = je.kind)$r$\n    -- Gap audit item 17: the AI staff's records. A run's approvals keep their row (run_id is set null), a message's\n    -- runs keep theirs (message_id is set null); a pending approval and an unfinished run are never removed.\n    when 'agent_approvals_decided' then\n      $r$public.agent_approvals where state <> 'pending' and coalesce(decided_at, created_at) < now() - $1$r$\n    when 'agent_runs_finished' then\n      $r$public.agent_runs where state in ('done', 'failed') and finished_at < now() - $1$r$\n    when 'agent_messages' then 'public.agent_messages where created_at < now() - $1'\n    -- W4: an email reply names a person and quotes them, so it is deleted, not anonymised.\n    when 'email_replies' then 'public.email_replies where received_at < now() - $1'\n    -- W8 0h: inbound mail names a person and quotes them, so it is deleted, not anonymised.\n  end;\n  if v_rows is null then\n    raise exception 'bad_request';\n  end if;\n  select keep_for into v_keep\n  from public.retention_policies\n  where key = p_key and enabled and keep_for is not null;\n  if not found then\n    return 0;\n  end if;\n  if p_dry_run then\n    execute 'select count(*)::int from ' || v_rows into v_count using v_keep;\n    return v_count;\n  end if;\n  perform set_config('mop.retention', 'on', true);\n  execute 'with gone as (delete from ' || v_rows || ' returning 1) select count(*)::int from gone'\n    into v_count using v_keep;\n  perform set_config('mop.retention', 'off', true);\n  update public.retention_policies set last_run_at = now(), last_count = v_count where key = p_key;\n  return v_count;\nend;\n$$;\n\nrevoke execute on function public.retention_delete_rows(text, boolean) from public, anon, authenticated;\ngrant execute on function public.retention_delete_rows(text, boolean) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/inbound-mail.db.test.ts -t \"deletes inbound mail past its year through the retention allow-list\"",
+    "expect": "× .*deletes inbound mail past its year through the retention allow-list"
+  },
+  {
+    "id": "w8-0h-dmarc-pnone",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail-reports.ts",
+    "find": "    if (dkim !== \"pass\" && spf !== \"pass\") {",
+    "replace": "    if (dkim !== \"pass\" && spf !== \"pass\" && disposition !== \"none\") {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"wakes Matter for a p=none report whose record failed DMARC, though the receiver did nothing with it\"",
+    "expect": "× .*wakes Matter for a p=none report whose record failed DMARC, "
+  },
+  {
+    "id": "w8-0h-auth-one-verdict",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/service-notice.ts",
+    "find": "  if (zohoVerdicts.length !== 1) return null;",
+    "replace": "  if (zohoVerdicts.length === 0) return null;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"treats a forged Zoho verdict inside the trace block as unauthenticated\"",
+    "expect": "× .*treats a forged Zoho verdict inside the trace block as unaut"
+  },
+  {
+    "id": "w8-0h-fixture-lines",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/service-notice.ts",
+    "find": "received|received-spf|arc-seal|arc-message-signature",
+    "replace": "received|received-spf|arc-message-signature",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"replays every header line of the real messages in order, and Zoho's verdict authenticates google.com on them\"",
+    "expect": "× .*replays every header line of the real messages in order, and"
+  },
+  {
+    "id": "w8-0h-sc-labels",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/service-notice.ts",
+    "find": "  if (addressOf(from) !== \"sc-noreply@google.com\") return null;",
+    "replace": "  if (addressOf(from) !== \"sc-noreply@google.com\" || content !== \"\") return null;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"tells Matter what the Search Console notice says in labels from closed lists, never its body\"",
+    "expect": "× .*tells Matter what the Search Console notice says in labels f"
+  },
+  {
+    "id": "w8-0h-newsletter-by-report",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/service-notice.ts",
+    "find": "      ? { source: \"service_notice\", state: \"escalated\", service, why: \"a service notice\" }",
+    "replace": "      ? { source: \"service_notice\", state: input.folderName === \"Newsletter\" ? \"ignored\" : \"escalated\", service, why: \"a service notice\" }",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"reads an authenticated service's mail Zoho filed under Newsletter by its sender and its report, not the folder\"",
+    "expect": "× .*reads an authenticated service's mail Zoho filed under Newsl"
+  },
+  {
+    "id": "w8-0h-newsletter-fetch",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail.ts",
+    "find": "  const wanted = sorted.source === \"service_notice\" && sorted.state === \"escalated\";",
+    "replace": "  const wanted = sorted.source === \"service_notice\" && sorted.state === \"escalated\" && name !== \"Newsletter\";",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"reads the reports of a service's mail filed under Newsletter\"",
+    "expect": "× .*reads the reports of a service's mail filed under Newsletter"
+  },
+  {
+    "id": "w8-0h-body-person-only",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/inbound-mail.ts",
+    "find": "sorted.source === \"email_inbound\"",
+    "replace": "true",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"keeps no body of a service's or our own mail, and a person's email in full\"",
+    "expect": "× .*keeps no body of a service's or our own mail, and a person's"
+  },
+  {
+    "id": "w8-0h-cursor-processed",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail.ts",
+    "find": "        next.folders[folderId] = Math.max(since, cursorAfter(rows, index));",
+    "replace": "        next.folders[folderId] = rows.at(-1)?.received ?? since;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"reads the oldest new mail first and moves the cursor only over what it read, so nothing is dropped\"",
+    "expect": "× .*reads the oldest new mail first and moves the cursor only ov"
+  },
+  {
+    "id": "w8-0h-cursor-same-ms",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail.ts",
+    "find": "  return next === undefined ? here : Math.min(here, next - 1);",
+    "replace": "  return next === undefined ? here : here;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"reads the oldest new mail first and moves the cursor only over what it read, so nothing is dropped\"",
+    "expect": "× .*reads the oldest new mail first and moves the cursor only ov"
+  },
+  {
+    "id": "w8-0h-hand-editor",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/inbound-mail.ts",
+    "find": "  if (gate !== \"answer\" || agentSlug === \"editor\" || eventId === null) return false;",
+    "replace": "  if (gate !== \"answer\" || eventId === null) return false;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"hands a property offered to hello@ to the Editor once the triage says so, and nothing else\"",
+    "expect": "× .*hands a property offered to hello@ to the Editor once the tr"
+  },
+  {
+    "id": "w8-0h-retention-keys",
+    "test": "tests/unit/jobs/retention.test.ts",
+    "file": "src/server/jobs/system/retention.ts",
+    "find": "steps.map(([key]) => key)",
+    "replace": "steps.map(([key]) => key).filter((key) => key !== \"email_replies\" && key !== \"inbound_mail\")",
+    "run": "bunx vitest run --project unit tests/unit/jobs/retention.test.ts -t \"runs the policies in order after the rollup and writes one audit row with affected and remaining\"",
+    "expect": "× .*runs the policies in order after the rollup and writes one a"
+  },
+  {
+    "id": "w8-0h-sql-body",
+    "kind": "sql",
+    "test": "tests/db/inbound-mail.db.test.ts",
+    "sql": "create or replace function public.inbound_mail_record(\n  p_provider_id text,\n  p_folder text,\n  p_from text,\n  p_name text,\n  p_alias text,\n  p_subject text,\n  p_body text,\n  p_received_at timestamptz,\n  p_attachments text[],\n  p_source text,\n  p_state text,\n  p_service text,\n  p_summary text,\n  p_report jsonb,\n  p_line text\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_state text := p_state;\n  v_cap int;\n  v_hour int;\n  v_owners text[];\n  v_owner text;\n  v_agent uuid;\n  v_id uuid;\n  v_event uuid;\n  v_line uuid;\n  -- Only one of our aliases is kept or put in the event; anything else is null.\n  v_alias text := case\n    when p_alias in ('hello', 'listings', 'press', 'privacy', 'billing', 'security', 'admin') then p_alias\n  end;\nbegin\n  -- W8 0h (operator, 2026-10-16): one message of the admin@ mailbox, as the laptop runner sorted it\n  -- (scripts/workforce/mail.ts, service-notice.ts). It is recorded once: an id this table or email_replies already\n  -- holds returns null, so a reply to our own email never comes in twice. A person's message ('new') emits\n  -- email.received and wakes its owner, who sees only its triage (W8 0a, 0b); a service notice ('escalated') becomes\n  -- the runner's fixed line in Matter's thread and a Matter run at read power (a system line, ruling H101). Neither\n  -- passes the hour's cap: past it the message waits as 'capped' for a person, and the team is told once that hour.\n  if p_provider_id is null or btrim(p_provider_id) = '' or p_received_at is null\n    or p_source is null or p_source not in ('email_inbound', 'service_notice', 'our_mail')\n    or p_state is null or p_state not in ('new', 'escalated', 'recorded', 'ignored', 'spam')\n    or (p_state = 'new' and p_source <> 'email_inbound')\n    or (p_state = 'escalated' and (p_source <> 'service_notice' or coalesce(btrim(p_line), '') = ''))\n  then\n    raise exception 'bad_request';\n  end if;\n  if exists (select 1 from public.inbound_mail where provider_id = p_provider_id)\n    or exists (select 1 from public.email_replies where provider_id = p_provider_id)\n  then\n    return null;\n  end if;\n  if v_state in ('new', 'escalated') then\n    -- 20 people's messages and 6 notices an hour reach a run; the rest are kept for a person, never dropped.\n    v_cap := case when v_state = 'new' then 20 else 6 end;\n    select count(*) into v_hour\n    from public.inbound_mail\n    where source = p_source and state in ('new', 'routed', 'held', 'escalated')\n      and created_at > now() - interval '1 hour';\n    if v_hour >= v_cap then\n      if not exists (\n        select 1 from public.inbound_mail\n        where source = p_source and state = 'capped' and created_at > now() - interval '1 hour'\n      ) then\n        insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n        values ('team', 'system', 'system', 'Mailbox', format(\n          'More than %s %s arrived this hour: the rest wait in the admin (Sent emails, Inbound mail) for a person.',\n          v_cap, case when p_source = 'email_inbound' then 'emails from people' else 'service notices' end\n        ));\n      end if;\n      v_state := 'capped';\n    end if;\n  end if;\n  if v_state = 'new' then\n    -- The Editor for listings@, the Concierge for everything else, then the chief of staff. Never Matter: a person's\n    -- words must not sit in the thread a person's line gives full power to (H101). Press and anything outside the\n    -- criteria reaches Matter through the hold (W8 0d), as its triage, never as text. A property offered to any other\n    -- address is handed to the Editor by the runner once the triage says so (inbound-mail.ts, handToEditor).\n    v_owners := array[case when v_alias = 'listings' then 'editor' else 'concierge' end, 'concierge', 'chief'];\n    select a.slug, a.id into v_owner, v_agent\n    from public.agents a\n    where a.slug = any (v_owners) and a.slug <> 'matter' and a.state <> 'off'\n    order by array_position(v_owners, a.slug)\n    limit 1;\n  elsif v_state = 'escalated' then\n    select a.slug, a.id into v_owner, v_agent\n    from public.agents a\n    where a.slug = 'matter' and a.state <> 'off';\n  end if;\n  insert into public.inbound_mail (\n    provider_id, folder, from_email, from_name, alias, subject, body, attachments, received_at, source, service,\n    summary, report, owner_slug, state\n  )\n  values (\n    p_provider_id, left(coalesce(nullif(btrim(p_folder), ''), 'Inbox'), 100),\n    left(nullif(lower(btrim(coalesce(p_from, ''))), ''), 320), left(nullif(btrim(coalesce(p_name, '')), ''), 200),\n    v_alias,\n    -- W8 0h review: only a person's email keeps its body; a service's or our own mail can carry a login code.\n    left(coalesce(p_subject, ''), 500),\n    left(coalesce(p_body, ''), 6000),\n    (select coalesce(array_agg(left(a, 200)), '{}') from unnest((coalesce(p_attachments, '{}'))[1:50]) as a),\n    p_received_at, p_source, left(nullif(btrim(coalesce(p_service, '')), ''), 40),\n    left(coalesce(p_summary, ''), 2000), p_report, v_owner, v_state\n  )\n  on conflict (provider_id) do nothing\n  returning id into v_id;\n  if v_id is null then\n    return null;\n  end if;\n  if v_state = 'new' then\n    -- The event carries the row's id and the alias (our words) only: no part of the message reaches a prompt from it.\n    v_event := public.emit_event(\n      'email.received', 'inbound_mail', v_id, jsonb_build_object('inbound_id', v_id, 'alias', v_alias)\n    );\n    if v_agent is not null then\n      insert into public.agent_runs (agent_id, cause, event_id) values (v_agent, 'event', v_event)\n      on conflict do nothing;\n    else\n      insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n      values ('team', 'system', 'system', 'Mailbox',\n        'An email from a person arrived and no colleague is on to read it: it waits in the admin (Sent emails, Inbound mail).');\n    end if;\n  elsif v_state = 'escalated' and v_agent is not null then\n    -- The runner's own words with the record last, so nothing the sender wrote can stand in for it.\n    insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n    values ('matter', 'system', 'mailbox', 'Mailbox', left(p_line, 4000) || E'\\nRecord: service_notice ' || v_id || '.')\n    returning id into v_line;\n    insert into public.agent_runs (agent_id, cause, message_id) values (v_agent, 'message', v_line);\n  elsif v_state = 'escalated' then\n    -- W8 0h review: with Matter off, the team is told, as for a person's email with no colleague on.\n    insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n    values ('team', 'system', 'system', 'Mailbox',\n      'A service notice arrived and Matter is off to read it: it waits in the admin (Sent emails, Inbound mail).');\n  end if;\n  return v_id;\nend;\n$$;\n\nrevoke execute on function public.inbound_mail_record(\n  text, text, text, text, text, text, text, timestamptz, text[], text, text, text, text, jsonb, text\n) from public, anon, authenticated;\ngrant execute on function public.inbound_mail_record(\n  text, text, text, text, text, text, text, timestamptz, text[], text, text, text, text, jsonb, text\n) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/inbound-mail.db.test.ts -t \"keeps no body for a service's or our own mail, and the table refuses one\"",
+    "expect": "× .*keeps no body for a service's or our own mail, and the table"
+  },
+  {
+    "id": "w8-0h-sql-matter-off",
+    "kind": "sql",
+    "test": "tests/db/inbound-mail.db.test.ts",
+    "sql": "create or replace function public.inbound_mail_record(\n  p_provider_id text,\n  p_folder text,\n  p_from text,\n  p_name text,\n  p_alias text,\n  p_subject text,\n  p_body text,\n  p_received_at timestamptz,\n  p_attachments text[],\n  p_source text,\n  p_state text,\n  p_service text,\n  p_summary text,\n  p_report jsonb,\n  p_line text\n)\nreturns uuid\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_state text := p_state;\n  v_cap int;\n  v_hour int;\n  v_owners text[];\n  v_owner text;\n  v_agent uuid;\n  v_id uuid;\n  v_event uuid;\n  v_line uuid;\n  -- Only one of our aliases is kept or put in the event; anything else is null.\n  v_alias text := case\n    when p_alias in ('hello', 'listings', 'press', 'privacy', 'billing', 'security', 'admin') then p_alias\n  end;\nbegin\n  -- W8 0h (operator, 2026-10-16): one message of the admin@ mailbox, as the laptop runner sorted it\n  -- (scripts/workforce/mail.ts, service-notice.ts). It is recorded once: an id this table or email_replies already\n  -- holds returns null, so a reply to our own email never comes in twice. A person's message ('new') emits\n  -- email.received and wakes its owner, who sees only its triage (W8 0a, 0b); a service notice ('escalated') becomes\n  -- the runner's fixed line in Matter's thread and a Matter run at read power (a system line, ruling H101). Neither\n  -- passes the hour's cap: past it the message waits as 'capped' for a person, and the team is told once that hour.\n  if p_provider_id is null or btrim(p_provider_id) = '' or p_received_at is null\n    or p_source is null or p_source not in ('email_inbound', 'service_notice', 'our_mail')\n    or p_state is null or p_state not in ('new', 'escalated', 'recorded', 'ignored', 'spam')\n    or (p_state = 'new' and p_source <> 'email_inbound')\n    or (p_state = 'escalated' and (p_source <> 'service_notice' or coalesce(btrim(p_line), '') = ''))\n  then\n    raise exception 'bad_request';\n  end if;\n  if exists (select 1 from public.inbound_mail where provider_id = p_provider_id)\n    or exists (select 1 from public.email_replies where provider_id = p_provider_id)\n  then\n    return null;\n  end if;\n  if v_state in ('new', 'escalated') then\n    -- 20 people's messages and 6 notices an hour reach a run; the rest are kept for a person, never dropped.\n    v_cap := case when v_state = 'new' then 20 else 6 end;\n    select count(*) into v_hour\n    from public.inbound_mail\n    where source = p_source and state in ('new', 'routed', 'held', 'escalated')\n      and created_at > now() - interval '1 hour';\n    if v_hour >= v_cap then\n      if not exists (\n        select 1 from public.inbound_mail\n        where source = p_source and state = 'capped' and created_at > now() - interval '1 hour'\n      ) then\n        insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n        values ('team', 'system', 'system', 'Mailbox', format(\n          'More than %s %s arrived this hour: the rest wait in the admin (Sent emails, Inbound mail) for a person.',\n          v_cap, case when p_source = 'email_inbound' then 'emails from people' else 'service notices' end\n        ));\n      end if;\n      v_state := 'capped';\n    end if;\n  end if;\n  if v_state = 'new' then\n    -- The Editor for listings@, the Concierge for everything else, then the chief of staff. Never Matter: a person's\n    -- words must not sit in the thread a person's line gives full power to (H101). Press and anything outside the\n    -- criteria reaches Matter through the hold (W8 0d), as its triage, never as text. A property offered to any other\n    -- address is handed to the Editor by the runner once the triage says so (inbound-mail.ts, handToEditor).\n    v_owners := array[case when v_alias = 'listings' then 'editor' else 'concierge' end, 'concierge', 'chief'];\n    select a.slug, a.id into v_owner, v_agent\n    from public.agents a\n    where a.slug = any (v_owners) and a.slug <> 'matter' and a.state <> 'off'\n    order by array_position(v_owners, a.slug)\n    limit 1;\n  elsif v_state = 'escalated' then\n    select a.slug, a.id into v_owner, v_agent\n    from public.agents a\n    where a.slug = 'matter' and a.state <> 'off';\n  end if;\n  insert into public.inbound_mail (\n    provider_id, folder, from_email, from_name, alias, subject, body, attachments, received_at, source, service,\n    summary, report, owner_slug, state\n  )\n  values (\n    p_provider_id, left(coalesce(nullif(btrim(p_folder), ''), 'Inbox'), 100),\n    left(nullif(lower(btrim(coalesce(p_from, ''))), ''), 320), left(nullif(btrim(coalesce(p_name, '')), ''), 200),\n    v_alias,\n    -- W8 0h review: only a person's email keeps its body; a service's or our own mail can carry a login code.\n    left(coalesce(p_subject, ''), 500),\n    case when p_source = 'email_inbound' then left(coalesce(p_body, ''), 6000) else '' end,\n    (select coalesce(array_agg(left(a, 200)), '{}') from unnest((coalesce(p_attachments, '{}'))[1:50]) as a),\n    p_received_at, p_source, left(nullif(btrim(coalesce(p_service, '')), ''), 40),\n    left(coalesce(p_summary, ''), 2000), p_report, v_owner, v_state\n  )\n  on conflict (provider_id) do nothing\n  returning id into v_id;\n  if v_id is null then\n    return null;\n  end if;\n  if v_state = 'new' then\n    -- The event carries the row's id and the alias (our words) only: no part of the message reaches a prompt from it.\n    v_event := public.emit_event(\n      'email.received', 'inbound_mail', v_id, jsonb_build_object('inbound_id', v_id, 'alias', v_alias)\n    );\n    if v_agent is not null then\n      insert into public.agent_runs (agent_id, cause, event_id) values (v_agent, 'event', v_event)\n      on conflict do nothing;\n    else\n      insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n      values ('team', 'system', 'system', 'Mailbox',\n        'An email from a person arrived and no colleague is on to read it: it waits in the admin (Sent emails, Inbound mail).');\n    end if;\n  elsif v_state = 'escalated' and v_agent is not null then\n    -- The runner's own words with the record last, so nothing the sender wrote can stand in for it.\n    insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n    values ('matter', 'system', 'mailbox', 'Mailbox', left(p_line, 4000) || E'\\nRecord: service_notice ' || v_id || '.')\n    returning id into v_line;\n    insert into public.agent_runs (agent_id, cause, message_id) values (v_agent, 'message', v_line);\n  elsif false then\n    -- W8 0h review: with Matter off, the team is told, as for a person's email with no colleague on.\n    insert into public.agent_messages (thread, author_kind, author_id, author_name, body)\n    values ('team', 'system', 'system', 'Mailbox',\n      'A service notice arrived and Matter is off to read it: it waits in the admin (Sent emails, Inbound mail).');\n  end if;\n  return v_id;\nend;\n$$;\n\nrevoke execute on function public.inbound_mail_record(\n  text, text, text, text, text, text, text, timestamptz, text[], text, text, text, text, jsonb, text\n) from public, anon, authenticated;\ngrant execute on function public.inbound_mail_record(\n  text, text, text, text, text, text, text, timestamptz, text[], text, text, text, text, jsonb, text\n) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/inbound-mail.db.test.ts -t \"tells the team when a service notice arrives with Matter off, and queues no run\"",
+    "expect": "× .*tells the team when a service notice arrives with Matter off"
+  },
+  {
+    "id": "w8-0h-cursor-backlog",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail.ts",
+    "find": "  return oldestAfter(zoho, account, folder, since);",
+    "replace": "  return [];",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"works through a backlog longer than forty pages from its oldest new message\"",
+    "expect": "× .*works through a backlog longer than forty pages from its old"
+  },
+  {
+    "id": "w8-0h-attachment-name-cut",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail.ts",
+    "find": "        attachmentName: z.string().transform((name) => name.slice(0, 200)),",
+    "replace": "        attachmentName: z.string().max(300),",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"records a message whose attachment name runs to 400 characters, and the message after it\"",
+    "expect": "× .*records a message whose attachment name runs to 400 characte"
+  },
+  {
+    "id": "w8-0h-part-unread",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail.ts",
+    "find": "      unread.push(what);\n      return missing;",
+    "replace": "      throw new Error(\"mail: a part was refused\");",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"records a message whose text, header and attachment list Zoho refuses, naming what was not read\"",
+    "expect": "× .*records a message whose text, header and attachment list Zoh"
+  },
+  {
+    "id": "w8-0h-tries-limit",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail.ts",
+    "find": "              tries >= MAX_TRIES,",
+    "replace": "              false,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"records a message that failed three checks from its listing alone, and the folder moves on\"",
+    "expect": "× .*records a message that failed three checks from its listing "
+  },
+  {
+    "id": "w8-0h-unlisted-recorded",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/service-notice.ts",
+    "find": "    return (escalatedFrom as readonly string[]).includes(addressOf(from))",
+    "replace": "    return true",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"records an authenticated Google mail from an address that is not listed for a person, and wakes no one\"",
+    "expect": "× .*records an authenticated Google mail from an address that is"
+  },
+  {
+    "id": "w8-0h-export-schema-inbound",
+    "test": "tests/unit/subject-requests.test.ts",
+    "file": "src/domain/admin-audit.ts",
+    "find": "  inbound_mail: z.array(z.unknown()),\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/subject-requests.test.ts -t \"hands back the person's recorded emails with the rest of the bundle\"",
+    "expect": "× .*hands back the person's recorded emails with the rest of the"
+  },
+  {
+    "id": "w8-0h-sql-subject-export",
+    "kind": "sql",
+    "test": "tests/db/inbound-mail.db.test.ts",
+    "sql": "create or replace function public.export_subject(\n  p_subject_request_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_row public.subject_requests;\n  v_email text;\n  v_contacts uuid[];\n  v_bundle jsonb;\nbegin\n  -- Invariant 15 (GP-01): an access request, once identity is confirmed, gets one bundle of every row the address\n  -- appears in, and the request is fulfilled.\n  select * into v_row from public.subject_requests r where r.id = p_subject_request_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_row.kind <> 'access' then\n    raise exception 'wrong_kind';\n  end if;\n  if v_row.status in ('fulfilled', 'rejected') then\n    raise exception 'wrong_state';\n  end if;\n  if v_row.verified_at is null then\n    raise exception 'not_verified';\n  end if;\n  v_email := lower(v_row.email);\n\n  -- S55: the person's contacts row with its notes, and every submission made under the address or linked to it.\n  select coalesce(array_agg(c.id), '{}') into v_contacts from public.contacts c where lower(c.email) = v_email;\n  select jsonb_build_object(\n    'request', jsonb_build_object('id', v_row.id, 'kind', v_row.kind, 'received_at', v_row.received_at),\n    'email', v_email,\n    'subscribers', coalesce((\n      select jsonb_agg(to_jsonb(s) - 'confirm_token_hash' order by s.created_at)\n      from public.subscribers s where lower(s.email) = v_email\n    ), '[]'),\n    'inquiries', coalesce((\n      select jsonb_agg(to_jsonb(i) order by i.received_at)\n      from public.inquiries i where lower(i.email) = v_email\n    ), '[]'),\n    'contacts', coalesce((\n      select jsonb_agg(to_jsonb(c) order by c.created_at)\n      from public.contacts c where c.id = any (v_contacts)\n    ), '[]'),\n    'submissions', coalesce((\n      select jsonb_agg(to_jsonb(s) order by s.received_at)\n      from public.submissions s\n      where lower(s.submitter_email) = v_email or s.contact_id = any (v_contacts)\n    ), '[]'),\n    -- W8 0h review: every email the person sent us that the mailbox check recorded.\n    'inbound_mail', coalesce((\n      select jsonb_agg(to_jsonb(m) order by m.received_at)\n      from public.inbound_mail m where false\n    ), '[]')\n  ) into v_bundle;\n\n  update public.subject_requests r\n  set status = 'fulfilled', fulfilled_at = now(), handled_by = p_actor\n  where r.id = p_subject_request_id;\n  -- Ids and counts only (invariant 18).\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'audit.subject_export', 'subject_request', p_subject_request_id,\n    jsonb_build_object('id', v_row.id, 'status', v_row.status),\n    jsonb_build_object(\n      'id', v_row.id, 'status', 'fulfilled',\n      'counts', jsonb_build_object(\n        'subscribers', jsonb_array_length(v_bundle -> 'subscribers'),\n        'inquiries', jsonb_array_length(v_bundle -> 'inquiries'),\n        'contacts', jsonb_array_length(v_bundle -> 'contacts'),\n        'submissions', jsonb_array_length(v_bundle -> 'submissions'),\n        'inbound_mail', jsonb_array_length(v_bundle -> 'inbound_mail')\n      )\n    ),\n    p_request_id\n  );\n  return v_bundle;\nend;\n$$;\n\nrevoke execute on function public.export_subject(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.export_subject(uuid, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/inbound-mail.db.test.ts -t \"exports a person's emails by their address and anonymises them on a deletion request\"",
+    "expect": "× .*exports a person's emails by their address and anonymises th"
+  },
+  {
+    "id": "w8-0h-sql-subject-delete",
+    "kind": "sql",
+    "test": "tests/db/inbound-mail.db.test.ts",
+    "sql": "create or replace function public.delete_subject(\n  p_subject_request_id uuid,\n  p_actor uuid,\n  p_actor_kind public.actor_kind,\n  p_request_id text\n)\nreturns jsonb\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_row public.subject_requests;\n  v_email text;\n  v_contacts uuid[];\n  v_inquiries uuid[];\n  v_subscribers int;\n  v_submissions int;\n  v_inbound int;\n  v_counts jsonb;\nbegin\n  -- Invariant 15 (GP-01): a deletion request, once identity is confirmed, anonymises every row the address appears\n  -- in. Nothing is hard deleted (GD-04): the rows stay for the counts and lose what names the person.\n  select * into v_row from public.subject_requests r where r.id = p_subject_request_id for update;\n  if not found then\n    raise exception 'not_found' using errcode = 'P0002';\n  end if;\n  if v_row.kind <> 'deletion' then\n    raise exception 'wrong_kind';\n  end if;\n  if v_row.status in ('fulfilled', 'rejected') then\n    raise exception 'wrong_state';\n  end if;\n  if v_row.verified_at is null then\n    raise exception 'not_verified';\n  end if;\n  v_email := lower(v_row.email);\n  select coalesce(array_agg(c.id), '{}') into v_contacts from public.contacts c where lower(c.email) = v_email;\n  select coalesce(array_agg(i.id), '{}') into v_inquiries from public.inquiries i where lower(i.email) = v_email;\n\n  -- The same columns as B8's retention_anonymise_contacts (S55); the address becomes a hash no one can write to.\n  update public.submissions s\n  set submitter_name = '',\n    submitter_email = encode(sha256(convert_to(s.submitter_email, 'UTF8')), 'hex') || '@anonymised.invalid',\n    submitter_phone = null,\n    listing_agent_name = null\n  where lower(s.submitter_email) = v_email or s.contact_id = any (v_contacts);\n  get diagnostics v_submissions = row_count;\n  update public.contacts c\n  set name = '',\n    email = encode(sha256(convert_to(c.email, 'UTF8')), 'hex') || '@anonymised.invalid',\n    phone = null,\n    brokerage = null,\n    notes = null,\n    archived_at = now()\n  where c.id = any (v_contacts);\n  -- The same columns as B8's retention_anonymise_inquiries, so screen 11 shows both paths the same way.\n  update public.inquiries i\n  set name = '',\n    message = '',\n    phone = null,\n    location = null,\n    details = '{}'::jsonb,\n    attribution = '{}'::jsonb,\n    forwarded_payload = null,\n    email = encode(sha256(convert_to(i.email, 'UTF8')), 'hex') || '@anonymised.invalid',\n    anonymised_at = now()\n  where i.id = any (v_inquiries);\n  -- G16: a webhook job of those inquiries keeps no copy of the old email or message.\n  update public.jobs\n  set result = result - 'body'\n  where type = 'webhook_omnikom'\n    and payload -> 'data' ->> 'inquiry_id' = any (v_inquiries::text[])\n    and result ? 'body';\n  update public.subscribers s\n  set email = encode(sha256(convert_to(s.email, 'UTF8')), 'hex') || '@anonymised.invalid',\n    confirm_token_hash = null,\n    unsubscribed_at = coalesce(s.unsubscribed_at, now())\n  where lower(s.email) = v_email;\n  get diagnostics v_subscribers = row_count;\n  -- W8 0h review: the person's emails read from the mailbox keep their place and lose the address, name and words.\n  update public.inbound_mail m\n  set from_email = encode(sha256(convert_to(m.from_email, 'UTF8')), 'hex') || '@anonymised.invalid',\n    from_name = null,\n    subject = '',\n    body = '',\n    attachments = '{}'\n  where false;\n  get diagnostics v_inbound = row_count;\n\n  update public.subject_requests r\n  set status = 'fulfilled', fulfilled_at = now(), handled_by = p_actor\n  where r.id = p_subject_request_id;\n  v_counts := jsonb_build_object(\n    'subscribers', v_subscribers,\n    'inquiries', cardinality(v_inquiries),\n    'contacts', cardinality(v_contacts),\n    'submissions', v_submissions,\n    'inbound_mail', v_inbound\n  );\n  -- Ids and counts only (invariant 18): the audit trail keeps no copy of the address.\n  perform public.write_audit(\n    p_actor, p_actor_kind, 'audit.subject_delete', 'subject_request', p_subject_request_id,\n    jsonb_build_object('id', v_row.id, 'status', v_row.status),\n    jsonb_build_object('id', v_row.id, 'status', 'fulfilled', 'counts', v_counts),\n    p_request_id\n  );\n  return jsonb_build_object('id', v_row.id, 'status', 'fulfilled', 'counts', v_counts);\nend;\n$$;\n\nrevoke execute on function public.delete_subject(uuid, uuid, public.actor_kind, text)\n  from public, anon, authenticated;\ngrant execute on function public.delete_subject(uuid, uuid, public.actor_kind, text) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/inbound-mail.db.test.ts -t \"exports a person's emails by their address and anonymises them on a deletion request\"",
+    "expect": "× .*exports a person's emails by their address and anonymises th"
+  },
+  {
+    "id": "w8-0h-sql-rls-privacy",
+    "kind": "sql",
+    "test": "tests/db/rls.db.test.ts",
+    "sql": "drop policy inbound_mail_select_privacy on public.inbound_mail;\ncreate policy inbound_mail_select_privacy on public.inbound_mail for select to authenticated\nusing (app.is_staff());\n",
+    "run": "bunx vitest run --project db tests/db/rls.db.test.ts -t \"every table and operation matches the matrix\"",
+    "expect": "× .*every table and operation matches the matrix"
+  },
+  {
+    "id": "w8-0h-sql-queue-once",
+    "kind": "sql",
+    "test": "tests/db/inbound-mail.db.test.ts",
+    "sql": "create or replace function public.queue_event_runs(p_agents uuid[], p_events uuid[])\nreturns integer\nlanguage plpgsql\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_queued integer;\nbegin\n  -- W8 0h fourth review: the one way the laptop runner queues a run on an event (the daemon's wake, the hand-off of a\n  -- property to the Editor). The index that keeps one run per (agent, event) is partial, so the conflict names its\n  -- predicate: without it Postgres refuses the insert (42P10) and nothing is queued. Pairs by position; returns how\n  -- many runs are new, so a pair already queued counts 0 and is not an error.\n  if p_agents is null or p_events is null or cardinality(p_agents) <> cardinality(p_events)\n    or cardinality(p_agents) > 1000\n  then\n    raise exception 'bad_request';\n  end if;\n  insert into public.agent_runs (agent_id, cause, event_id)\n  select pair.agent_id, 'event', pair.event_id\n  from unnest(p_agents, p_events) as pair (agent_id, event_id)\n  where pair.agent_id is not null and pair.event_id is not null;\n  get diagnostics v_queued = row_count;\n  return v_queued;\nend;\n$$;\n\nrevoke execute on function public.queue_event_runs(uuid[], uuid[]) from public, anon, authenticated;\ngrant execute on function public.queue_event_runs(uuid[], uuid[]) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/inbound-mail.db.test.ts -t \"queues one Editor run when the same event is handed to it twice\"",
+    "expect": "× .*queues one Editor run when the same event is handed to it tw"
+  },
+  {
+    "id": "w8-0h-sql-health-stale",
+    "kind": "sql",
+    "test": "tests/db/inbound-mail.db.test.ts",
+    "sql": "create or replace function public.ops_health(p_now timestamptz)\nreturns jsonb\nlanguage plpgsql\nstable\nsecurity definer\nset search_path = ''\nas $$\ndeclare\n  v_failing text[] := '{}';\n  v_keepwarm boolean := false;\n  v_backup boolean := false;\nbegin\n  -- DO-03, JOB-04: a runner the cron cannot reach never beats, so a stale row covers a 401, a 500 and a paused project.\n  if not exists (\n    select 1 from public.ops_heartbeats where name = 'runner' and at >= p_now - interval '3 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'runner');\n  end if;\n  -- B8b's schedule_settings: keepwarm and backup are watched only while their row is enabled, and not before it exists.\n  if to_regclass('public.schedule_settings') is not null then\n    execute $q$\n      select coalesce(bool_or(enabled) filter (where key = 'keepwarm'), false),\n        coalesce(bool_or(enabled) filter (where key = 'backup'), false)\n      from public.schedule_settings\n    $q$ into v_keepwarm, v_backup;\n  end if;\n  if v_keepwarm and not exists (\n    select 1 from public.ops_heartbeats where name = 'keepwarm' and at >= p_now - interval '25 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'keepwarm');\n  end if;\n  if v_backup and not exists (\n    select 1 from public.ops_heartbeats where name = 'backup' and at >= p_now - interval '26 hours'\n  ) then\n    v_failing := array_append(v_failing, 'backup');\n  end if;\n  -- W8 0h: the laptop's mailbox check beats `mail_folders` every five minutes; a folder it could not read (or a\n  -- mailbox it could not reach, or no Zoho names) beats ok false, named here until a check reads them all again. While\n  -- the laptop runner passes (it touches Matter's last_seen_at every pass; the `runner` row is the Worker's) a check\n  -- that has not beaten for 30 minutes is named too, so a mailbox never read is never green (fourth review, H121 (17)).\n  if exists (\n    select 1 from public.ops_heartbeats\n    where name = 'mail_folders' and at >= p_now - interval '30 minutes' and detail ->> 'ok' = 'false'\n  ) or (\n    exists (\n      select 1 from public.agents\n      where slug = 'matter' and last_seen_at >= p_now + interval '10 minutes'\n    )\n    and not exists (\n      select 1 from public.ops_heartbeats\n      where name = 'mail_folders' and at >= p_now - interval '30 minutes'\n    )\n  ) then\n    v_failing := array_append(v_failing, 'mail_folders');\n  end if;\n  -- W8 0g: the nightly copy to Google Drive beats `drive_copy` after the backup; a missing Drive folder beats ok false.\n  if v_backup and not exists (\n    select 1 from public.ops_heartbeats\n    where name = 'drive_copy' and at >= p_now - interval '26 hours' and detail ->> 'ok' = 'true'\n  ) then\n    v_failing := array_append(v_failing, 'drive_copy');\n  end if;\n  -- A local job waits for the laptop by design (ruling H34 (2)); captions_waiting watches it instead.\n  if exists (\n    select 1 from public.jobs\n    where status = 'queued' and not run_local and run_after < p_now - interval '15 minutes'\n  ) then\n    v_failing := array_append(v_failing, 'stale_queue');\n  end if;\n  if exists (\n    select 1 from public.jobs\n    where status = 'dead' and finished_at > p_now - interval '24 hours'\n  ) then\n    v_failing := array_append(v_failing, 'dead_jobs');\n  end if;\n  return jsonb_build_object('ok', cardinality(v_failing) = 0, 'failing', to_jsonb(v_failing));\nend;\n$$;\n\nrevoke execute on function public.ops_health(timestamptz) from public, anon, authenticated;\ngrant execute on function public.ops_health(timestamptz) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/inbound-mail.db.test.ts -t \"names mail_folders in ops_health while the laptop runner passes and the mailbox check has not beaten\"",
+    "expect": "× .*names mail_folders in ops_health while the laptop runner pas"
+  },
+  {
+    "id": "w8-0h-hand-editor-refused",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/inbound-mail.ts",
+    "find": "if (error !== null) return false;",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"keeps the run when the Editor cannot be queued, and names no new owner\"",
+    "expect": "× .*keeps the run when the Editor cannot be queued, and names no"
+  },
+  {
+    "id": "w8-0h-wake-refused",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "if (refused !== null) throw new Error(\"workforce: the runs on new events could not be queued\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"keeps the cursor before an event whose runs could not be queued, so the next pass wakes it again\"",
+    "expect": "× .*keeps the cursor before an event whose runs could not be que"
+  },
+  {
+    "id": "w8-0h-wake-queued",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    queued = data;",
+    "replace": "    queued = rows.length + 1;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"queues the waking agents' runs in one call and moves the cursor past the event\"",
+    "expect": "× .*queues the waking agents' runs in one call and moves the cur"
+  },
+  {
+    "id": "w8-0h-storable-nul",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/inbound-mail.ts",
+    "find": ".replaceAll(\"\\u0000\", \"\")",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"records a message whose listed subject and name carry U\"",
+    "expect": "× .*records a message whose listed subject and name carry U"
+  },
+  {
+    "id": "w8-0h-storable-surrogate",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/inbound-mail.ts",
+    "find": ".replaceAll(/[\\uD800-\\uDBFF](?![\\uDC00-\\uDFFF])|(?<![\\uD800-\\uDBFF])[\\uDC00-\\uDFFF]/g, \"\");",
+    "replace": ".replaceAll(/(?!)/g, \"\");",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"records a message whose listed subject and name carry U\"",
+    "expect": "× .*records a message whose listed subject and name carry U"
+  },
+  {
+    "id": "w8-0h-reply-storable",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail.ts",
+    "find": "p_subject: storable(row.subject),",
+    "replace": "p_subject: row.subject,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"and an unpaired surrogate from a reply's listed subject and name\"",
+    "expect": "× .*and an unpaired surrogate from a reply's listed subject and "
+  },
+  {
+    "id": "w8-0h-listed-fixed-words",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail.ts",
+    "find": "if (!listingOnly) throw failure;",
+    "replace": "throw failure;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"records with fixed words a message whose listed subject the database still refuses after three checks\"",
+    "expect": "× .*records with fixed words a message whose listed subject the "
+  },
+  {
+    "id": "w8-0h-names-missing",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail.ts",
+    "find": "done.unread.push(\"the mailbox\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"beats the heartbeat not ok, naming the mailbox, when the Zoho names are missing\"",
+    "expect": "× .*beats the heartbeat not ok, naming the mailbox, when the Zoh"
+  },
+  {
+    "id": "w8-0h-subject-fence-close",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/service-notice.ts",
+    "find": "unfenced = unfenced.replaceAll(\"<<<\", \"\").replaceAll(\">>>\", \"\");",
+    "replace": "unfenced = unfenced.replaceAll(\"<<<\", \"\");",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"shows Matter a hostile Search Console subject on one line inside one fence\"",
+    "expect": "× .*shows Matter a hostile Search Console subject on one line in"
+  },
+  {
+    "id": "w8-0h-subject-fence-again",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/service-notice.ts",
+    "find": "for (let before = \"\"; before !== unfenced;) {",
+    "replace": "for (let before = \"\"; before === \"\";) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"shows Matter a hostile Search Console subject on one line inside one fence\"",
+    "expect": "× .*shows Matter a hostile Search Console subject on one line in"
+  },
+  {
+    "id": "w8-0h-subject-one-line",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/service-notice.ts",
+    "find": "    .replace(/\\d{4,}/g, \"[number]\")\n    .replace(/\\s+/g, \" \")",
+    "replace": "    .replace(/\\d{4,}/g, \"[number]\")\n    .replace(/ +/g, \" \")",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"shows Matter a hostile Search Console subject on one line inside one fence\"",
+    "expect": "× .*shows Matter a hostile Search Console subject on one line in"
+  },
+  {
+    "id": "w8-0h-ui-waiting",
+    "test": "src/admin/audit/inbound-mail.test.tsx",
+    "file": "src/admin/audit/InboundMailPart.tsx",
+    "find": "const waiting = mail.state === \"capped\" || (owned && mail.owner_slug === null);",
+    "replace": "const waiting = mail.state === \"capped\";",
+    "run": "bunx vitest run --project component src/admin/audit/inbound-mail.test.tsx -t \"says a message with no owner waits for a person, never that it was sent\"",
+    "expect": "× .*says a message with no owner waits for a person, never that "
+  },
+  {
+    "id": "w8-0h5-agents-unread",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "  if (unread !== null) throw new Error(\"workforce: the colleagues could not be read\");\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"when the colleagues cannot be read\"",
+    "expect": "× .*keeps the cursor before an event when the colleagues cannot be read"
+  },
+  {
+    "id": "w8-0h5-cut-before-clean",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/inbound-mail.ts",
+    "find": "storable(plainText(message.content).slice(0, BODY_CAP))",
+    "replace": "storable(plainText(message.content)).slice(0, BODY_CAP)",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"an emoji split at the cap\"",
+    "expect": "× .*cuts a person's text before cleaning it"
+  },
+  {
+    "id": "w8-0h5-attachments-more",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail.ts",
+    "find": "  if (more > 0)\n",
+    "replace": "  if (false)\n",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"how many more there were\"",
+    "expect": "× .*keeps the first fifty attachment names"
+  }
+]

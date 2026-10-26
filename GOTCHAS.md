@@ -1188,6 +1188,7 @@ Entry template
 - rule: pick each row's input so that exactly one mechanism decides it (a block comment before a `do` block, because `^do` needs the comment gone; `drop table` inside a string, because `drop table` is matched anywhere). When the input the review named is guarded twice, keep it in the probe output of the log and write the row for the input one mechanism carries. Never write a mutation that changes two places to force a red.
 - hit again: 2026-10-04, B8 g7: the plan's watched-fail (as) ("let `retention_accepted_media` ignore `staging_path`") stayed green, `WATCHED-FAIL BAD: stayed green (B8:as)`, because the staged photograph of the test had `media_key` null too, so `pm.media_key is null` alone still kept it out. The row now has both a key and a staging path (a new original waiting while the old variants keep their key), and (as) replays `WATCHED-FAIL OK B8:as`.
 - proof: from `app/`, `node ../scratch/replay.mjs cm-string-drop cm-block-comment` → both `RED`; before the fix round's row change, the run of all `cm-` entries printed `NOT RED cm-rename-string: exit=1 expect=false` (2026-10-02).
+- hit again: 2026-10-16, W7 item 9a third round: `context` asks the request desk only for a request's owner, and `requestDesk` refuses anyone else on its own, so deleting the context gate left every test green; the context test now also asserts the desk was never asked (no `agents` read), and each gate has its own registry entry (`w7-9-owner-context-gate`, `w7-9-owner-desk-only`).
 - added: 2026-10-02
 - hit again: 2026-10-06, B17 g3 rework: a listener that closes the cookie notice on any stored choice made the notice's own `setOpen(false)` after `writeConsent` redundant, so B3b's `b3b-cn-collapse` (remove that line) could no longer turn red. The line became `if (!writeConsent(analytics)) setOpen(false)` (the refused-store path, which has its own test and entry) and the B3b entry now removes the listener's close.
 - hit again: 2026-10-10, B7 g2 (step 15a): the plan's watched-fail (n), "let `delete_subject` write the email into `audit_log`", first added `'email', v_email` to the audit `after`; `write_audit` replaces the value of every `pii_columns` key of the entity (`subject_requests.email`) with `{"pii": "changed"}`, so the no-plaintext case stayed green in CI (run 38034831411). The mutation now writes the address under a key no `pii_columns` row names (`'address'`), which only `delete_subject` guards.
@@ -1422,6 +1423,7 @@ Entry template
 - rule: every lane runs with a `bankBase` and its own `previewPort` (`workspace/05-plans/restart.json`; ruling H45 (5)): spine P-150/G-40 on port 8788, db P-300/G-100 on 8798, tests P-400/G-150 on 8808, design P-700/G-250 on 8818, a fifth lane api P-800/G-300 on 8828; the orchestrator writes from P-500/G-200. Wherever a plan, a script or an entry says 8788, a lane uses its own port, and it stops only the processes it started. When the driver reports the same id on both sides, renumber the lane's entry into the lane's series, fix the references in the lane's logs, and append the other side's entry back.
 - proof: `grep -c '"bankBase"' workspace/05-plans/restart.json` prints 4; `grep -o '"previewPort": [0-9]*' workspace/05-plans/restart.json` prints 8798, 8808 and 8818 (spine takes the default 8788 of `build-slice.js`).
 - hit again: 2026-10-08, B11 g10: merging main into slice/b11 stopped at `bank-merge: refused, nothing written / number collision P-2405` and `P-2406`: the B7 lane had numbered two entries P-2405 and P-2406, inside B11's series (P-2400 on). The lane's two were renumbered P-2421 and P-2422 in a scratch copy of git's stage 2 and merged with `bank-merge.mjs --base --ours --theirs --out`; the earlier B11 log blocks still say P-2405 and P-2406 for them. Two lanes running at once need two bases, and the base belongs in the brief of every lane.
+- hit again: 2026-10-16, W7 item 9 merge: this branch's P-3590 and overdrive/finish's P-3590 were two different entries; `merge-gotchas` kept ours and said so. Ours became P-3700, after reading every number on origin/main and every origin/overdrive/* branch.
 - added: 2026-10-03
 - hit again: 2026-10-08, B10 g9: the merge of main renumbered the lane's P-2405 and P-2406 to P-2223 and P-2224 through `bank-merge.mjs` after it refused the collision; the cost is banked in P-2456.
 - hit again: 2026-10-10, H1 g8: the runner moves a Worker with `HARDEN_PORT_<port>` but not Playwright's dev server (`E2E_PORT`); the sweep was started on 8848, which lane g7 was serving a Worker on (`Error: http://127.0.0.1:8848 is already used`, H1-28 failed). Take every port of a run from the lane's own pair (8838 and 8839 here) and run `netstat -ano | grep LISTENING | grep :<port>` before the first start.
@@ -3186,6 +3188,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && node node_modules/vitest/vitest.mjs run --project unit tests/unit/assets/steps.test.ts -t "approved render_cover untouched by a second publish" 2>&1 | grep -a "Tests "` → `Tests  1 passed` (2026-10-04, B9 g6).
 - hit again: 2026-10-06, B7 g4: the db case `refuses a visual editor through write_audit (42501) and moves nothing` replayed as `WATCHED-FAIL BAD: stayed green`; run alone with the mutation it printed `Tests  16 skipped (16)`, because `(42501)` is a regex group and matches the title without its parentheses. The title became `... write_audit with 42501 ...` and the entry replayed `WATCHED-FAIL OK`. Before writing a db title, keep `(`, `)`, `*`, `+`, `?` and `[` out of it.
 - added: 2026-10-04
+- hit again: 2026-10-16, W8 0h: `w8-0h-subject-withheld` stayed green because its title ended in `(a Sentry issue title)`; under `-t` the parentheses are a regex group, the title matched nothing and zero tests ran. The title lost its parentheses and the entry was replayed red.
 
 ## P-723 · A live proof that reads a row only a lane's migration seeds fails before that migration is on main
 - symptom: B9 g7's `bun run scripts/caption-golden.ts` printed `caption_model_missing` and exited 1 against mop-dev, although the CLI answered: `settings.caption_model` is seeded by B9 g6's migration, which no lane pushes (DB-01, H57), so the row did not exist.
@@ -4506,6 +4509,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && bunx vitest run tests/unit/action-roles.sync.test.ts` → `2 passed` after the generator; `ls supabase/migrations | grep action_roles | tail -3` lists the lane's two files after main's.
 - added: 2026-10-07
 - hit again: 2026-10-07, B6 g3: the merge of main (B10 channels, reports) left the lane's newest `action_roles` file without those actions; `bun run scripts/gen-action-roles.mjs` wrote `20261008040840_action_roles.sql` and `action-roles.sync.test.ts` went green.
+- hit again: 2026-10-16, W8 item 10: the branch's `action_roles` file, written before merging `overdrive/finish` (item 9's matrix change), was newer than the base's and would have upserted the old roles over it; it was removed and regenerated after the merge (`20261016100732_action_roles.sql`, 154 actions).
 - hit again: 2026-10-13, feat/matter-actions (orchestrator, not a worker): `dashboard.search` was added to the matrix without the generator or the hand-typed row in `tests/unit/authz.matrix.test.ts`; three full checks died earlier (lint, knip, jscpd), so the two failures showed only at the fourth. A new matrix action takes three edits in one commit: the matrix, `bun run scripts/gen-action-roles.mjs`, and the fixture row.
 
 ## P-2315 · `scripts/gen-action-roles.mjs` has no dry run and ignores every flag: `--check` wrote a new migration into a read-only review
@@ -4891,6 +4895,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: B11 g3's `newsletter_issues` needed a `schemaManifest` entry (`schema.db.test.ts`), an `rlsMatrix` row (`rls-matrix.ts`), and then a fixture row in the `FIXTURES` block of `tests/db/rls.db.test.ts`: with only the matrix row, all seven role probes failed with `newsletter_issues select: refused` (the probe selects a row the fixtures wrote, and an empty table reads as refused). A new template key also needs its class in `tests/db/email.db.test.ts`'s `classes` map when it is not `transactional`.
 - cause: the RLS probe works on one fixture row per table, written as `postgres` in the test's transaction; the matrix alone gives it nothing to read.
 - rule: a migration that creates a `public` table adds, in the same commit, its columns to `tests/db/schema-manifest.ts`, its row to `tests/db/rls-matrix.ts` and one insert to `FIXTURES` in `tests/db/rls.db.test.ts`; run `schema`, `rls` and `function-source` with the migration as prelude (P-312) before the first push.
+- hit again: 2026-10-16, W8 0h: `inbound_mail` was pushed in round one without any of the three, though `edit-impact` printed the COMPANION note on every edit of the migration; the review round added them. A COMPANION note is acted on before the push, like a STALE one.
 - proof: from `app/` with the dev profile and the two B11 migrations exported as `MOP_MUTATION_SQL`, `env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/rls.db.test.ts` → `Tests  7 failed | 7 passed (14)` without the `FIXTURES` insert and `Tests  14 passed (14)` with it (measured 2026-10-07).
 - added: 2026-10-07
 
@@ -8545,6 +8550,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: when a component run says `Failed to start forks worker`, rerun it with `--pool=threads` before calling anything red; a registry entry's `run` may carry `--pool=threads` (W7-4.json does). Two replays in a row then went `BAD: wrong reason` once each for entries that were `WATCHED-FAIL OK` alone, so a BAD under load is rerun alone before it is believed.
 - proof: `cd app && bunx vitest run --project component --pool=threads src/admin/workforce/team-memory.test.tsx` → `Tests 18 passed (18)`.
 - added: 2026-10-16
+- hit again: 2026-10-19, W8 0h fourth review: `src/admin/audit/inbound-mail.test.tsx` failed twice with `Failed to start forks worker ... Timeout waiting for worker to respond` and `Tests no tests` before this entry was found; with `--pool=threads` → `Tests 4 passed (4)`. Search the bank for the error's words before the second run, not after.
 
 ## P-3579 · A reel about a property filed as `brand` shows no photograph of it, and nothing in the route or the review noticed (H110 miss)
 - symptom: 2026-10-16, the Fairfield test: Maya's request was `kind: "brand"` with her three picks named in prose, because the house was not on the site (a campaign reel needs `property_id`). The studio drew abstract models and a flat-roofed box for a 2021 pitched-roof house; the gate and the review passed it (it was well made), and the operator caught it: "a reader would be misled about the home".
@@ -8553,10 +8559,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w8-h110-scene-draws-shots` → `WATCHED-FAIL OK`; `reelRequestSchema.safeParse({...brand, photos: [...]})` is `success: false`.
 - added: 2026-10-16
 
-## P-3578 · A studio refusal that names the engine's own drawing cannot be fixed by the designer, so its revisions are spent for nothing
-- symptom: 2026-10-16: the Fairfield test reel was refused in review three times (REVISIONS 2) for "a soft, blurred oval of light on the doorway floor" and a reflection that "fades smoothly"; the designer, confined to the studio folder, can only edit `scene/`, and the pool and the mirrored floor are drawn by `launch/engine/moves/door.mjs` (`ctx.filter = "blur(9px)"`).
-- rule: when a review refusal names a drawing that belongs to the engine (the door move's pool, reflection, beam), the redraw brief says so: draw that shot in `scene.mjs` with flat polygons, or cut the shot; and the engine fix is a PR of its own, not a revision loop.
-- proof: `grep -n 'blur(9px)' launch/engine/moves/door.mjs` → line 483; the refused brief's `reason` in `~/.mop-workforce/studio/2026-10-16-fairfield-test-reel/brief.json` (before the requeue) names the doorway floor.
+## P-3578 · Generate a registry after prettier, never before: prettier rewraps the lines a `find` names
+- symptom: 2026-10-16, W7 9: the registry was written before `prettier --write`; prettier joined the two-line `sizeMark` condition into one line, and the entry `w7-9-family-size-marks` found 0 occurrences (edit-impact: STALE).
+- rule: format every edited file first, then write or update registry `find` strings from the formatted text, then `node scripts/watchfail.mjs --registry tests/mutations --check`.
+- proof: `cd app && node ~/.claude/hooks/edit-impact.mjs --changed ..` prints no STALE line for W7-9 after the registry was regenerated from the formatted files (2026-10-16).
 - added: 2026-10-16
 
 ## P-3692 · A script that rewrote `check-layout.mjs` dropped the closing quote of `SERVER_DOMAINS`, and the first CI run died at its first step
@@ -8573,17 +8579,18 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: CI `check` job, `tsc --noEmit -p tsconfig.json`: six TS2375 on the old shape, none on the new (run 38878332417 and its successor).
 - added: 2026-10-16
 
-## P-3694 · Branches that each pass alone fail together on the tables every page, form and class must be named in
-- symptom: 2026-10-16, draft PR 447 CI round 5: four unit tests red after typecheck and lint were green: the client room's two pages missing from the route map (`routes-covered`), its two forms missing from the table of public forms (`turnstile-coverage`), `wf-mem__status` with no style rule (`admin-classes`), and `.credentials.json` not refused by name (`workforce-drive-copy`).
-- cause: each builder ran its own folder's tests; the tables that name every route, form and admin class live in other folders, and with no local full run nothing joined them before CI.
-- rule: a builder of a new page route, public form or admin class opens `tests/e2e/fixtures/routes.ts`, `workspace/audits/tools/public-forms.mjs` and `tests/unit/admin-classes.test.ts` and adds its rows in the same commit; the brief of every item that adds a page, a form or a class says so. A name-matching secret rule is tested with the dotfile spelling too (`.credentials.json`).
-- proof: CI `check` job, `vitest run --project unit`, round 5: 4 failed | 443 passed files; after the rows are added the four are green (round 6).
+## P-3694 · A window bounded by two other rows (the held line, Matter's run) shows another run's reply; bind a reply to the run that wrote it
+- symptom: 2026-10-16, the review of W8 0d: Matter's prompt took the owner's newest `outside-reply:<owner>` between the held line and Matter's own run, but the owner writes every outside reply into one thread, so a run on another inquiry that finished inside that wait was shown as "the owner's explanation" while the thread said the explanation had failed.
+- cause: the window was named by rows around the explanation, not by the explanation's own run, and a failed run left no mark the reader looked at.
+- rule: a reader that wants "what run R wrote" reads R's `agent_runs` row (agent, message id, `state = done`) and takes only lines between its `started_at` and `finished_at`; no row, an unfinished run or a failed one is "none". The in-memory test database owns the clock for `finished_at` (it is stamped from the same ticking counter as `created_at`), or a real-time `finished_at` is older than the rows it should bound. A paused or switched-off owner is never claimed (`claim_agent_run` takes idle and working colleagues), so a hold checks the owner's state and queues the next reader directly.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w8-0d3-explanation-run-done` → `WATCHED-FAIL OK` (the state check removed turns `finds the owner's explanation in the owner's own run` red).
 - added: 2026-10-16
 
-## P-3695 · `prettier --write` run from `app/` on a `workspace/` file reformats it to a width eslint's prettier rule then refuses
-- symptom: 2026-10-16, draft PR 447 CI round 6: four lint errors in `workspace/audits/tools/public-forms.mjs` after the file was formatted with `app`'s prettier from the app folder (80 columns for a file outside the app's config).
-- rule: before every push, format exactly the files the commit changed, wherever they live, through the app's config: from `app/`, `prettier --config .prettierrc --write <files>` (what `bun run format` does; a file under `workspace/` or `scripts/` has no config of its own, so prettier without `--config` formats it at 80 columns and eslint's prettier rule refuses it). Mechanical: `bash E:/mop-build/.tmp/format-changed.sh <worktree> [base]` lists `git diff --name-only --diff-filter=ACM <base> HEAD -- '*.ts' '*.tsx' '*.mjs' '*.js' '*.json' '*.css'` and does exactly that; the merge script runs it after every merge. A prettier run from the repo root gives 80 columns too (there is no root config): the same refusal.
-- proof: `gh run view 38881442885 --log-failed` shows the four `Replace`/`Delete` errors at 109:18, 113:12, 124:12, 135:11; the file restored from its pre-format form passes the same rule (round 7).
+## P-3695 · A whole-prompt `not.toContain` of a line the thread history also shows fenced goes red for the wrong reason
+- symptom: 2026-10-16, W8 0d follow-up: the new failed-explanation case asserted that an unrelated reply was absent from Matter's whole prompt and failed, because the prompt's thread history lists every `outside-reply` line (fenced) in its own section.
+- cause: the same line legitimately appears in two sections; only one of them is the thing under test.
+- rule: assert on the section's own words (here the absence of the heading `The owner's explanation to the team` and the presence of `The owner's explanation: none.`), never on the absence of a line the history may show.
+- proof: `cd app && bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t "says a failed explanation"` → `1 passed`; with the explanation window opened to the whole thread (`w8-0d2-explanation-newer`) it fails on `The owner's explanation to the team`.
 - added: 2026-10-16
 
 ## P-3606 · The usage policy downgrades Matter and stops his goal without anyone deciding it
@@ -8598,22 +8605,56 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: PR 447 as a draft ran check and build only; after `gh pr ready 447` the next push ran db (18m29s) and e2e (10m42s), all green (2026-10-16).
 - added: 2026-10-16
 
+## P-3696 · A throwaway Postgres built from 145 migrations takes about 30 minutes on a busy laptop, dies with its background job, and can crash with 0xC0000142 mid-build
+- symptom: 2026-10-16, W6 item 7 follow-up: the build script (initdb, start, apply every migration) was stopped at its 30-minute job limit after 138 files, and the server had also crashed (`client backend was terminated by exception 0xC0000142`) leaving a postmaster that answered nothing and a `postmaster.pid` the next start refused.
+- cause: the machine was loaded by other builders; the server was a child of the job that built the database, so it went when the job did; a crashed postmaster stays in `reinitializing` and holds the lock file.
+- rule: run the server as its own background job (`postgres -D <dir> -p <port>` in the foreground, timeout 2 hours) and apply the migrations from a second script that takes a first file number, so a stop resumes (`FAILED <n> <file>` names it; `create or replace function` files are safe to apply twice). A stuck postmaster of your own cluster (the first line of its `postmaster.pid`) is killed with `taskkill /F /T /PID`, never another builder's. Do not start the build before the migrations are final: a late `db:fn` migration is applied by the resume script, which needs no rebuild.
+- proof: `psql -h 127.0.0.1 -p <port> -U postgres -d <db> -Atc "select count(*) from public.contacts"` → `0` once the last file is applied; the resume log ends `done through 145`.
+- added: 2026-10-16
+
+## P-3697 · A registry `find` that is one line of a shared service matches twice once a sibling function repeats it
+- symptom: 2026-10-16, `inviteExisting` repeated `p_note: "invite",` beside `inviteUser`'s, and `B7:b7-14-svc-invite-note` went STALE (its find occurs 2 times) while its replay would have changed the wrong block.
+- cause: the entry's `find` was a bare line, unique only until a second function used the same call shape.
+- rule: when a new function repeats a call shape of an existing one in the same file, run `node ~/.claude/hooks/edit-impact.mjs --changed <worktree>` before any replay and make each entry's `find` include its indentation or a neighbouring line; the leading newline plus the exact indent separates a nested block from a shallower one.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only b7-14-svc-invite-note` → `WATCHED-FAIL OK` with the find `"\n          p_note: \"invite\","`.
+- added: 2026-10-16
+
+## P-3698 · Branches that each pass alone fail together on the tables every page, form and class must be named in
+- symptom: 2026-10-16, draft PR 447 CI round 5: four unit tests red after typecheck and lint were green: the client room's two pages missing from the route map (`routes-covered`), its two forms missing from the table of public forms (`turnstile-coverage`), `wf-mem__status` with no style rule (`admin-classes`), and `.credentials.json` not refused by name (`workforce-drive-copy`).
+- cause: each builder ran its own folder's tests; the tables that name every route, form and admin class live in other folders, and with no local full run nothing joined them before CI.
+- rule: a builder of a new page route, public form or admin class opens `tests/e2e/fixtures/routes.ts`, `workspace/audits/tools/public-forms.mjs` and `tests/unit/admin-classes.test.ts` and adds its rows in the same commit; the brief of every item that adds a page, a form or a class says so. A name-matching secret rule is tested with the dotfile spelling too (`.credentials.json`).
+- proof: CI `check` job, `vitest run --project unit`, round 5: 4 failed | 443 passed files; after the rows are added the four are green (round 6).
+- added: 2026-10-16
+
+## P-3699 · `prettier --write` run from `app/` on a `workspace/` file reformats it to a width eslint's prettier rule then refuses
+- symptom: 2026-10-16, draft PR 447 CI round 6: four lint errors in `workspace/audits/tools/public-forms.mjs` after the file was formatted with `app`'s prettier from the app folder (80 columns for a file outside the app's config).
+- rule: before every push, format exactly the files the commit changed, wherever they live, through the app's config: from `app/`, `prettier --config .prettierrc --write <files>` (what `bun run format` does; a file under `workspace/` or `scripts/` has no config of its own, so prettier without `--config` formats it at 80 columns and eslint's prettier rule refuses it). Mechanical: `bash E:/mop-build/.tmp/format-changed.sh <worktree> [base]` lists `git diff --name-only --diff-filter=ACM <base> HEAD -- '*.ts' '*.tsx' '*.mjs' '*.js' '*.json' '*.css'` and does exactly that; the merge script runs it after every merge. A prettier run from the repo root gives 80 columns too (there is no root config): the same refusal.
+- proof: `gh run view 38881442885 --log-failed` shows the four `Replace`/`Delete` errors at 109:18, 113:12, 124:12, 135:11; the file restored from its pre-format form passes the same rule (round 7).
+- added: 2026-10-16
+
+## P-3700 · A mutation of a threshold stays green when the test's inputs are decided by another threshold
+- symptom: 2026-10-16 (W7 9), the registry entry `w7-9-strangers-apart` raised `SAME_PICTURE_BITS` (the limit for two images of different addresses) to 64 to make "keeps two different pictures apart" red; the replay printed `WATCHED-FAIL BAD: wrong reason`. The test's two addresses (`IMG_1234_1024.jpg`, `IMG_1235_1024.jpg`) share a size family, so `samePicture` used `SAME_FAMILY_BITS` and the mutated limit never applied.
+- rule: before writing a mutation of a constant that one of several branches reads, trace which branch the test's inputs take (`app/scripts/workforce/pull-images.ts`: same family → `SAME_FAMILY_BITS`, else `SAME_PICTURE_BITS`) and mutate that one; one entry per branch the tests reach.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w7-9-strangers-apart` → `mutated scripts/workforce/pull-images.ts:154  const SAME_FAMILY_BITS = 64;` and `WATCHED-FAIL OK W7-9:w7-9-strangers-apart`.
+- added: 2026-10-16
+
+## P-3701 · `context()`'s test default `owns = () => true` makes every test run the owner of every source, so a new gate on ownership reads tables the fixture never had
+- symptom: 2026-10-16, W7 item 9a third round: `context` began asking the request desk for any run that owns submissions, and the desk began reading the colleague's row first; four tests outside the change failed with `Error: unexpected table agents` (two W8 context tests in `tests/unit/workforce-triage.test.ts` that call `context` with the default `owns`, a concierge and a social run) and `TypeError: client.from(...).update is not a function` (the fake database has no update).
+- cause: the default `owns` says yes to every source, which no real run does (the runner passes `ownsSource(source, agent.slug)`), and the fake database answers only the tables and methods a test registered.
+- rule: a test that calls `context` passes the run's real ownership, `(source) => ownsSource(source, "<slug>")`, never the default; a test of a runner step that writes (an update, an insert) wraps `fakeDb` with a small recorder for that table, as `recorder` in the triage test does.
+- proof: `cd app && bunx vitest run --project unit tests/unit/workforce-triage.test.ts -t "builds the owner's prompt with the triage only"` passes with `ownsSource(source, "concierge")`; with `() => true` back in place it fails on `unexpected table agents` (2026-10-16).
+- added: 2026-10-16
+
 ## P-3608 · A fix to the live supervisor's idle check cannot install itself; restart it
 - symptom: 2026-10-16, PR 447 merged the goal hand-off fix and the runner folder held it, but the running supervisor (started 02:24) never moved: it moves to new code only when idle, and the fault it carried kept it from ever reading as idle.
 - rule: after merging any change to `scripts/matter/live.ts`, check `git -C E:/mop-build/live merge-base --is-ancestor <merge> HEAD` and the live process start time; if the process predates the merge, restart it while Matter has no run in progress (`taskkill /T` on the wscript root, then `Start-ScheduledTask "MOP Matter Live"`), and read live.log for the first goal step or skip reason.
 - proof: after the restart at 17:01, live.log: `14:01:25Z live: goal step W8-0d ...` and `14:01:32Z live: goal step skipped: 1 line(s) in hand` (2026-10-16).
 - added: 2026-10-16
 
-## P-3699 · An unseen Turnstile challenge leaves every public form, sign-in included, waiting for good
-- symptom: 2026-10-19, the operator could not sign in nor receive the link: "Send a sign-in link" loaded Cloudflare's interactive challenge (`.../turnstile/.../normal`) into the bottom-right `turnstile-host`, nobody saw a box to tick, and `getTurnstileToken` never settled, so no `/api/admin/auth/send-link` request left the page; auth logs and `rate_limits` held nothing.
-- rule: the client token wait has a ceiling (`TOKEN_WAIT_MS`, 3 min) and the widget's `before-interactive-callback` puts a plain line above the box ("One more step: tick the box below ..."); a form that waits on a third party always says what it waits for and gives up in bounded time.
-- proof: `tests/unit/turnstile-client.test.tsx` "says above the box what to do while Cloudflare asks" and "goes on without a token when Cloudflare never answers", registry `fix-turnstile.json` tc-d-ask-line and tc-e-no-endless-wait (2026-10-19).
-- added: 2026-10-19
-
-## P-3700 · The admin pages never loaded the Turnstile styles, and a missing token still answered "sent"
-- symptom: 2026-10-19, on /admin/sign-in `#turnstile-host` was an unstyled full-width strip at y=732 in a 732-pixel window (below the page): `src/styles/admin/index.css` never imported `components/turnstile.css`; and with no token `requestSignInLink` still posted, the Worker refused (`verifyTurnstile` null -> fail) and answered "sent", so no email ever came (Resend: no sign-in email between 10-16 and 10-19).
-- rule: any stylesheet entry whose pages run a public-form write imports `components/turnstile.css`; a client sign-in or form request with no token while a site key is set throws, so the page shows its error, never a false "sent".
-- proof: `tests/unit/sign-in-token.test.ts` (no token, no request) and registry `fix-turnstile.json` tc-f-no-token-no-request (2026-10-19).
+## P-3702 · A supervisor stuck on a call that never answers stays "running" for days, and the task cannot start another
+- symptom: 2026-10-19, Matter's live supervisor (bun scripts/matter/live.ts, started 10-17 03:34) wrote its last heartbeat at 10-17 14:25 and its last log line at 11:04Z; the process stayed alive, so "MOP Matter Live" answered 0x80070420 (already running) every minute and nothing woke Matter for two days.
+- rule: the supervisor runs a one-minute watchdog timer beside its loop (`exitIfStalled`): a heartbeat older than `LOOP_STALE_MS` (10 min) ends Matter's session and the process, and the task starts a fresh one; check `ls -la ~/.mop-workforce/matter/live.heartbeat` when Matter seems quiet.
+- proof: `tests/unit/matter-live.test.ts` "lets the watchdog end a supervisor whose heartbeat is over ten minutes old", registry `W8-runner.json` w8-runner-watchdog-stale (2026-10-19).
 - added: 2026-10-19
 
 ## P-3704 · A foreground "until done; sleep" loop holds the conversation for minutes; the operator had to background it himself
@@ -8634,19 +8675,238 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `tests/unit/matter-live.test.ts` "gives up on a database call that never answers", "names the supervisor for the outside watchdog...", "ends only a process whose command line is Matter's supervisor"; registry W8-runner.json w8-runner-db-deadline, w8-runner-outside-watchdog, w8-runner-outside-watchdog-command (2026-10-19).
 - added: 2026-10-19
 
-## P-3702 · A supervisor stuck on a call that never answers stays "running" for days, and the task cannot start another
-- symptom: 2026-10-19, Matter's live supervisor (bun scripts/matter/live.ts, started 10-17 03:34) wrote its last heartbeat at 10-17 14:25 and its last log line at 11:04Z; the process stayed alive, so "MOP Matter Live" answered 0x80070420 (already running) every minute and nothing woke Matter for two days.
-- rule: the supervisor runs a one-minute watchdog timer beside its loop (`exitIfStalled`): a heartbeat older than `LOOP_STALE_MS` (10 min) ends Matter's session and the process, and the task starts a fresh one; check `ls -la ~/.mop-workforce/matter/live.heartbeat` when Matter seems quiet.
-- proof: `tests/unit/matter-live.test.ts` "lets the watchdog end a supervisor whose heartbeat is over ten minutes old", registry `W8-runner.json` w8-runner-watchdog-stale (2026-10-19).
+## P-3610 · A builder's worktree has no `.env`, so its db tests run on a native cluster, and `pg-shims.sql` is three objects short of the migrations
+- symptom: 2026-10-16, W8 item 10: `node scripts/load-env.mjs --profile dev` in `E:/mop-build/od-w8-10` printed `ENOENT: no such file or directory, open 'E:\mop-build\od-w8-10\.env'`, so the P-312 prelude route had no `DEV_DB_URL` (and the builder brief forbids reading or copying a `.env`). A cluster built the way `scripts/harden/migration-rollback-drill.sh` builds one stopped at `20261010154545_audit_reads.sql` (`function pgmq.metrics_all() does not exist`), then at `20261012221926_staging_orphans.sql` (`column o.created_at does not exist`).
+- cause: a worktree is made from git, which never holds `.env`; `pg-shims.sql` was written before those two migrations, so the rollback drill stops on them too.
+- rule: in a worktree, prove migrations on a native PostgreSQL 18 cluster: `initdb`, `pg-shims.sql`, then `pgmq.metrics_all()` (an empty table function), `pgmq.drop_queue(text)` and `storage.objects` `owner`, `created_at`, `updated_at`, then every migration without its `create extension` lines, and run the db project with `DEV_DB_URL=postgresql://postgres@127.0.0.1:<port>/mop` through `node node_modules/vitest/vitest.mjs`. A `kind: "sql"` replay works there unchanged, because the cluster already holds the branch's migrations. The three shims belong in `pg-shims.sql` (not folded in here: outside the item).
+- proof: from `app/`, the W8 item 10 cluster (the shims above, 2026-10-16) applied every migration, and `DEV_DB_URL=postgresql://postgres@127.0.0.1:55491/mop node node_modules/vitest/vitest.mjs run --project db tests/db/proposed-posts.db.test.ts` ran the item's db test; without the extra shims the build stops with the two errors above.
+- added: 2026-10-16
+
+## P-3611 · A service that checks the actor's roles breaks STANDARDS R12: who may act is the matrix's, and a service checks only the actor's kind
+- symptom: 2026-10-16, W8 item 10: the first service let only an agent key holding `admin` (Matter's) reject a proposed post, with `actor.roles.includes("admin")` in `service.ts`; R12 says services never check roles, so the rule was invisible to `action_roles`, `write_audit` and the matrix test.
+- rule: put the distinction in the matrix entry's roles (here: deciders `chief_editor` and `admin`, as `workforce.decide`, which Matter's key holds and a colleague's key does not), regenerate `action_roles`, and keep in the service only a check of `actor.kind` (`manual_approval` for an agent, as `approveAsset`).
+- proof: `cd app && grep -n "roles.includes" src/server/publishing/proposed-posts/service.ts` → nothing; `node scripts/watchfail.mjs --registry tests/mutations --only w8-10-deciders` (media_ops added to the deciders) → `WATCHED-FAIL OK`.
+- added: 2026-10-16
+
+## P-3612 · A builder worktree's `node_modules` is a junction to another worktree's, so the watched-fail lock is shared by every builder
+- symptom: 2026-10-16, W8 item 10: of the first thirteen replays of `tests/mutations/W8-10.json` one ran; the other twelve exited 3 at once with `watchfail: another replay (pid 19704) is mutating files in this folder; wait for it (P-3444)`, and a summary that read only the exit codes looked like twelve silent entries.
+- cause: `E:/mop-build/od-w8-10/app/node_modules` is a junction to `E:/mop-build/od-slide/app/node_modules`, and the P-3444 lock is `node_modules/.cache/watchfail.lock`, so a replay in any builder's worktree holds it for all of them.
+- rule: a builder's replay loop treats exit 3 as "wait", not as a result: retry the same id every 20 seconds until the exit is not 3, and judge each entry by its `WATCHED-FAIL OK` line and its red run's text. Never delete the lock while its pid is alive.
+- proof: `ls -la E:/mop-build/od-w8-10/app/node_modules` → `node_modules -> /e/mop-build/od-slide/app/node_modules`; `cat E:/mop-build/od-w8-10/app/node_modules/.cache/watchfail.lock` printed another worktree's live pid during the W8 item 10 replay (2026-10-16).
+- added: 2026-10-16
+
+## P-3613 · `agentRoles` reaches only `authorize`: `write_audit` checks an agent against the person roles of `action_roles`
+- symptom: 2026-10-16, W8 item 10 review fix: aligning `channels.proposed_reject` with `assets.reject` (roles media_ops and chief_editor, `agentRoles: admin`) would have left Matter's key passing the route and then refused `forbidden` inside `reject_proposed_post`, whose audit went through `write_audit`.
+- cause: `scripts/gen-action-roles.mjs` writes `roles` and `human_only` only; `write_audit` refuses an actor whose enabled roles miss `action_roles.roles`, whatever the matrix's `agentRoles` say.
+- rule: a SQL function behind an action whose `agentRoles` are outside its `roles` writes the agent's audit row itself and checks the agent's grant in SQL, as `reject_asset` (item 9) and `reject_proposed_post` do; a person still goes through `write_audit`.
+- proof: `grep -n "roles, human_only" app/scripts/gen-action-roles.mjs` shows no agent column; `grep -n "v_rule.roles && v_roles" app/supabase/sql/functions/write_audit.sql` is the refusal; the case "refuses a key that is not Matter's" in `tests/db/proposed-posts.db.test.ts` and "lets Matter send a post back" run both branches (CI db job).
+- added: 2026-10-16
+
+## P-3614 · `check-migrations.mjs` reads the committed range, so a migration renamed or removed in the worktree crashes it with ENOENT until the commit
+- symptom: 2026-10-16, W8 item 10: after `git mv` of `20261016050108_proposed_posts.sql` and `git rm` of two generated files, `node scripts/check-migrations.mjs` threw `ENOENT ... 20261016050108_proposed_posts.sql`.
+- cause: it lists files with `git diff origin/main...HEAD` and reads each from the disk.
+- rule: rename and regenerate migrations, commit, then run `node scripts/check-migrations.mjs`; its answer before the commit is about the old tree.
+- proof: `cd app && node scripts/check-migrations.mjs` after the commit prints no failure (2026-10-16).
+- added: 2026-10-16
+
+## P-3577 · A `context()` test of an event-woken submission run needs `maybeSingle` from the fake database
+- symptom: 2026-10-16, W7 9 review fix: two new `context()` tests on a `submission.received` event failed with `TypeError: client.from(...).select(...).eq(...).maybeSingle is not a function`; every earlier `context()` test used a person's line or an inquiry event, so `requestSequence` (grounding.ts) never ran under `fakeDb`.
+- rule: `tests/fixtures/fake-db.ts` now answers `maybeSingle()` with the first registered row (or null); a runner read that ends in another builder method (`single`, `range`) is added there the same way, never worked around in the test.
+- proof: `cd app && bunx vitest run --project unit tests/unit/workforce-request-desk.test.ts` → the cases "shows a triaged run the request fenced" and "not a triaged run" pass; without `maybeSingle` in the fixture they fail with the TypeError above.
+- added: 2026-10-16
+
+## P-3706 · An in-memory test database that stamps a column the real runner stamps itself hides clock skew
+- symptom: 2026-10-16, second Opus review of W8 0d: `ownerExplanation` bounded the owner's reply by the run's `started_at` (database `now()`) and `finished_at` (the runner's laptop clock), so a laptop clock behind Supabase's hid the explanation; the unit test passed because its mock database overwrote `finished_at` with its own counter, and said so in a comment that was false for `agent_runs.finished_at`.
+- cause: the mock "owned the clock" for a column production leaves to the caller, and nothing in the test could make the two clocks differ.
+- rule: a mock database stamps only the columns the real one stamps (`created_at`, `started_at` by `claim_agent_run`); a column the runner sends keeps what it sent; give the mock a clock offset and run one walk-through with the database an hour ahead. Bind a reply to the run that wrote it by id (`agent_runs.reply_message_id`), never by a window of times across two clocks.
+- proof: `bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t "database clock is an hour ahead"` is green with the id and red with the old `gte`/`lte` window (registry `w8-0d4-explanation-by-reply-id`, `w8-0d4-reply-id-recorded`).
+- added: 2026-10-16
+
+## P-4501 · Zoho refuses OAuth refreshes after a handful in a minute ("Access Denied"), for every holder of the refresh token
+- symptom: 2026-10-16, W8 0h: probing the admin@ mailbox with one `node` process per call (about fourteen token refreshes in a minute) made `accounts.zoho.com/oauth/v2/token` answer `{"error":"Access Denied"}` for about fifteen minutes, to the probe and to the laptop runner's mail check, which uses the same refresh token.
+- cause: Zoho throttles access-token refreshes per refresh token.
+- rule: one access token per process: a probe batches every call into one run, never a loop of single-call scripts; the runner refreshes once per check (every five minutes).
+- proof: `grep -n "one token serves a whole check" app/scripts/workforce/mail.ts` → the comment above `accessToken`.
+- added: 2026-10-16
+
+## P-4502 · Zoho's header order differs by message: its `Authentication-Results` is not always after its own `Received`
+- symptom: W8 0h's first rule (trust the first `Authentication-Results` only after Zoho's `Received: ... by mx.zohomail.com`) held for the Search Console notice and refused Google's own DMARC and TLS reports, where Zoho writes `Delivered-To, Received-SPF, Authentication-Results, ARC-*, Return-Path, Received` in that order.
+- rule: trust only the first `Authentication-Results` inside the top block of trace headers (Delivered-To, Received-SPF, ARC-*, Return-Path, Received) that holds Zoho's own Received, and only `dmarc=pass` naming the From domain; one after the first message header is the sender's. And the message must hold exactly one verdict from `mx.zohomail.com` anywhere: on the Search Console notice Zoho writes its verdict below the sender's own Received line, so a sender who writes a passing one there would stand first in the block.
+- hit again: 2026-10-16, W8 0h review: the first-in-block rule alone let a verdict forged inside the trace block win; the fixtures it was proved on had their header lines allow-listed (P-4507), so no test met a real trace block. Fixed with the one-verdict count.
+- proof: `cd app && bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts` passes on the real headers; `node scripts/watchfail.mjs --registry tests/mutations --only w8-0h-auth-one-verdict` → `WATCHED-FAIL OK` (red: `treats a forged Zoho verdict inside the trace block as unauthenticated`).
+- added: 2026-10-16
+
+## P-4503 · The retention job never purged `email_replies`: a policy row and an allow-list key are not enough
+- symptom: W8 0h, asked to purge inbound mail "like email_replies": `retention_policies` had its row since W4 and `retention_delete_rows` its `when`, but `ROW_KEYS_AFTER_EMAIL` in `src/server/jobs/system/retention.ts` did not list it, so no reply was ever deleted.
+- rule: a retention key lands in three places in one commit: the policy row (migration), the `when` of `retention_delete_rows`, and the job's step list with the order in `tests/unit/jobs/retention.test.ts`. The job reads the policies of its own steps (`steps.map(([key]) => key)`), never a second list.
+- hit again: 2026-10-16, W8 0h review: the fix added both keys to the step list but not to `POLICY_KEYS`, the list `readPolicies` filtered by, so neither step ever ran; the test fake's `.in()` returned every row whatever keys it was given (P-4506), so it stayed green.
+- proof: `cd app && bunx vitest run --project unit tests/unit/jobs/retention.test.ts` passes with `retention_delete_rows:email_replies` and `:inbound_mail` in the order; `node scripts/watchfail.mjs --registry tests/mutations --only w8-0h-retention-keys` → `WATCHED-FAIL OK`.
+- added: 2026-10-16
+
+## P-4506 · A test fake of a filtered read that ignores its filter proves nothing about what is read
+- symptom: W8 0h review: `retention.test.ts`'s fake answered `.in("key", keys)` with every policy row, so a job that asked for the wrong keys passed; the same shape hid nothing in the mail pass only because its `.in()` happened to be unused.
+- cause: the fake was written for the rows it returns, not for the question it is asked.
+- rule: a fake of `.in()`, `.eq()` or any filtered read applies the filter to its rows with the arguments it receives (`rows.filter((row) => asked.includes(row.key))`), and a registry entry breaks the caller's arguments, not the rows.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w8-0h-retention-keys` → `WATCHED-FAIL OK`; with the fake's `.in()` returning every row again the same replay reports `BAD` (green under the mutation).
+- added: 2026-10-16
+
+## P-4507 · A fixture that keeps only some header lines shares its answer with a check that reads where lines stand
+- symptom: W8 0h review: the replayed real messages kept an allow-list of header lines; `authenticatedDomain` ends the trace block at the first line not on its own list, so the lines removed (DKIM-Signature, X-Received, X-Google-*) decided whether the real notice authenticated, and the replay could not show it.
+- rule: a fixture of a real message keeps every header line in order and redacts values, never lines (`Name: [redacted]`); its test asserts the line names in order, so a fixture that drops a line goes red.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w8-0h-fixture-lines` → `WATCHED-FAIL OK` (dropping `arc-seal` from the trace list ends the real block at line 2).
+- added: 2026-10-16
+
+## P-4508 · The native stub cluster answers "server closed the connection unexpectedly": its children cannot reserve shared memory
+- symptom: W8 0h, 2026-10-16: every `psql` to the scratch cluster on 55492 failed with `server closed the connection unexpectedly`; `pg.log` held `could not reserve shared memory region ... error code 487` for each child, while `pg_ctl status` said running.
+- cause: Windows address-space randomisation sometimes leaves the postmaster's shared memory address taken in a new child.
+- rule: stop and start the cluster (`pg_ctl -D <dir> -m fast stop`, then `pg_ctl -D <dir> -o "-p <port>" -l <log> -w start` as a background command, since the foreground call holds the shell); then rebuild the stub database.
+- proof: `psql -h 127.0.0.1 -p 55492 -U postgres -d postgres -Atc "select 'ok'"` → `ok` after the restart (2026-10-16).
+- added: 2026-10-16
+
+## P-4509 · An Edit whose new text ends in a space loses that space
+- symptom: W8 0h third round, 2026-10-16: an Edit replacing `` `${notice.summary} Not read: `` (old and new text both ending in `Not read: `) wrote `Not read:${...}`; two unit cases failed on `Not read:the text`, and the retry case looped a fourth refusal because its fake matched `Not read: the message`.
+- cause: the edit tool trims trailing whitespace off the strings it is given, so a space at the end of `new_string` never reaches the file.
+- rule: never end an Edit's `old_string` or `new_string` with a space; carry the next character (`Not read: ${`) so the space sits inside the text.
+- proof: `grep -n "Not read: \${" app/scripts/workforce/inbound-mail.ts` → one line; before the fix it printed nothing and `grep -n "Not read:\${"` printed the line (2026-10-16).
+- added: 2026-10-16
+
+## P-4510 · `check-migrations.mjs` reads the committed branch: an uncommitted rename crashes it with ENOENT
+- symptom: W8 0h third round: after `git mv` of a migration and `git rm` of another, `node scripts/check-migrations.mjs` threw `ENOENT: no such file or directory, open '...20261016084324_w8_0h_inbound_mail.sql'` (the old name).
+- cause: it lists names with `git diff origin/main...HEAD`, the commits, and reads each file from the working tree.
+- rule: commit a migration rename before the name scan; read a red ENOENT there as "not committed yet", not as a missing file.
+- proof: `cd app && node scripts/check-migrations.mjs` exits 0 after the commit that holds the rename (2026-10-16).
+- added: 2026-10-16
+
+## P-4504 · A worktree cannot load the dev profile, and db tests refuse mop-dev since the switch: prove an unmerged function on a stub database
+- symptom: W8 0h: `node scripts/load-env.mjs --profile dev` in the worktree failed `ENOENT ... od-w8-0h/.env`; from the main checkout it refused with `load-env: .env has no OMNIKOM_MOCK_SECRET`, so no schema dump; H35 refuses mop-dev for db tests anyway.
+- rule: copy a stopped stub cluster (W7 item 2's `w7-2-pg`) to the scratch folder, start it on a port of its own, add the tables the function touches from their migrations, apply the branch's migrations, and run the db test with `DEV_DB_URL=postgresql://postgres@127.0.0.1:<port>/<db>`; generate the types from it and splice only the new entries into `src/db/types.ts`. The PR's CI db job stays the one that counts.
+- proof: `cd app && DEV_DB_URL=postgresql://postgres@127.0.0.1:55492/mopw env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/inbound-mail.db.test.ts` → `Tests  8 passed (8)` (2026-10-16, while that cluster runs).
+- added: 2026-10-16
+
+## P-4505 · `watchfail --changed` from the brief's base replays main's entries when the branch already merged main, and a stopped replay leaves its mutation
+- symptom: W8 0h: `--changed 544a7db5` (the merge-base with overdrive/finish) also selected every entry of the files main brought in through the branch's own merge commit, so it replayed authz entries for minutes; stopping it left `checkLayout();` inserted in `app/scripts/check-layout.mjs`.
+- rule: replay from the commit before your own first commit (`git log --oneline` → the parent of your first commit), and after stopping any replay run `git status --short` and `git restore` every file it left changed before the next step.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --changed 89d5bdc4 --kinds unit` selects only W8 0h's files and the entries anchored on them.
+- hit again: 2026-10-16, W8 0h review round: `--changed` reads `git diff <ref>...HEAD`, so uncommitted edits select nothing, and the kinds are `unit,sql,manual` (a file entry is `unit`; `--kinds file` selects nothing). Two replays printed `replayed 0` before either was seen: commit first, and read the `replayed N` line before trusting a clean exit.
+- added: 2026-10-16
+
+## P-3718 · A heredoc script that shell-shaper rewrites lands under E:\tmp, not in Git Bash's /tmp
+- symptom: 2026-10-19, W6 item 6: `cat > /tmp/probe-try/patch1.mjs <<'EOF'` was rewritten by shell-shaper to `: wrote /tmp/probe-try/patch1.mjs`, and `node /tmp/probe-try/patch1.mjs` then failed with MODULE_NOT_FOUND at `C:\Users\DELL\AppData\Local\Temp\probe-try\patch1.mjs`. The hook writes with Node, where `/tmp` means `<current drive>:\tmp` (here `E:\tmp\probe-try\`), while Git Bash maps `/tmp` to the Windows temp folder.
+- rule: write a script with the Write tool at a full Windows path (`C:/Users/DELL/AppData/Local/Temp/...` or a path in the worktree) and run it by that path; never a heredoc into `/tmp`. Clean a stray `E:\tmp\...` file with plain `rm <file>` and `rmdir` (RAGA guard blocks `rm -rf`).
+- proof: `ls /e/tmp/probe-try` showed the file after the failed run (2026-10-19); with the Write tool at the temp path `node C:/Users/DELL/AppData/Local/Temp/probe-try/replay.mjs` ran.
 - added: 2026-10-19
 
-## P-3701 · Turnstile in Managed mode can lock everyone out when Cloudflare rates the traffic as bots
-- symptom: 2026-10-19, the Turnstile widget's analytics read "Likely human 0%, Likely bot 100%" (6 challenges issued for `auth-send-link`, 0 solved); in Managed mode each of those wanted an interactive box that never rendered on our pages, so sign-in and every public form failed for three days, while the page said "sent".
-- rule: the widget runs Non-interactive (ruling H133); after any change to the widget or a new form, read the widget's analytics (Cloudflare › Turnstile › the widget: challenges issued vs solved) and send one real form from a browser, then confirm the result arrived (Resend for an email, the table for a record).
-- proof: Cloudflare › Turnstile › "matterofplace.com forms" shows Widget Mode "Non-interactive"; the sign-in form's email was delivered at 12:12:53Z on 2026-10-19.
+## P-3719 · edit-impact says nothing in a scratch repository unless the files sit under src, lib, test, tests, app or scripts
+- symptom: 2026-10-19, W6 item 6: a probe repo with `lib.ts` and `use.ts` at its top gave an empty answer from edit-impact after `greet` was renamed; with the same files under `src/` it printed `GONE greet left src/lib.ts but is still imported by: src/use.ts.`. Outside Matter of Place the hook reads only those folders (`load()` in `~/.claude/hooks/edit-impact.mjs`) for the files that import the edited one.
+- rule: a fixture that must make edit-impact speak (the hook-reach probe, `scripts/matter/hook-reach.ts`) keeps its files under `src/`; and a replay that mutates a source file makes the hook print STALE for the entry being replayed while it runs, which is the mutation, not a stale entry: re-run `node ~/.claude/hooks/edit-impact.mjs --changed <worktree>` after the replay has restored the file.
+- proof: `bun scripts/matter/hook-reach.ts probe` → `hook-reach: live run, edit-impact said "edit-impact (fix these before running any test or check): - GONE greet left src/lib.ts ...`, exit 0.
 - added: 2026-10-19
 
-## P-3706 · `git log -L` takes POSIX regular expressions: a `\{` in the range is an interval, not a brace
+## P-4540 · A path stored in a brief is written with `path.join`: on Windows it comes back with backslashes
+- symptom: W8 0f, 2026-10-19: the studio test expected `film: "drafts/01/reel.mp4"` and read `drafts\\01\\reel.mp4` from `brief.json`; the piece read fine on this laptop and would not have anywhere else.
+- cause: `join("drafts", "01", "reel.mp4")` uses the machine's separator, and `brief.json` is a record other tools (Drive copy, a Linux CI, a person) read.
+- rule: a relative path written into a record (`brief.json`, a table, a spec) is built with `posix.join`; `join(folder, stored)` still reads it on every system.
+- proof: `cd app && bunx vitest run --project unit tests/unit/workforce-reel.test.ts` → 31 passed; with `posix.join` put back to `join` in `keepDraft`, the two draft cases print `"film": "drafts\\01\\reel.mp4"` in the diff (2026-10-19).
+- added: 2026-10-19
+
+## P-4541 · A "this is work" assertion that is also true for another reason stays green when its own branch is cut
+- symptom: W8 0f: `expect(reelWork(root)).toBe(true)` after an approval looked like proof that an approved piece is work; the registry entry removing the `approved` branch of `reelWork` printed `WATCHED-FAIL BAD: stayed green`.
+- cause: the approval had also changed the piece's state, so its row was out of step and `reelWork` was true through the sync branch.
+- rule: when a predicate is an OR of causes, bring the other causes to false first (sync the row, then assert), so the assertion can only pass through the branch it names; the watched-fail is what shows it.
+- proof: `cd app && node scripts/watchfail.mjs --registry tests/mutations --only w8-0f-approved-is-work` → `WATCHED-FAIL OK` after the test syncs before asserting; before, `WATCHED-FAIL BAD: stayed green` (2026-10-19).
+- added: 2026-10-19
+
+## P-4542 · `edit-impact` prints STALE for registry entries while a watchfail replay is running: it is the mutation in place
+- symptom: W8 0f: during a loop of `watchfail --only` replays, `edit-impact` after an unrelated command named a different entry as `STALE ... its find occurs 0 times` each time, and the entry was fine afterwards.
+- cause: the hook reads the source file while watchfail has the mutation written into it; the next idle moment the file is restored.
+- rule: do not touch the files a replay covers, and do not trust a STALE note raised while one runs; read it again after the replay's `done` line and `git status --short` shows only your own edits.
+- proof: `git status --short` after the loop listed only the files edited; `grep -n 'status.md' app/scripts/workforce/reel.ts` found the line the STALE note said was gone (2026-10-19).
+- added: 2026-10-19
+
+## G-1480 · `upsert(..., { onConflict })` on a partial unique index is refused by Postgres (42P10), and nothing is written
+- paths: app/scripts/**, app/src/server/**
+- severity: warn
+- symptom: W8 0h fourth review, 2026-10-19: the Editor hand-off and the daemon's `wakeOnEvents` both upserted `agent_runs` with `onConflict: "agent_id,event_id"`. The only matching index, `agent_runs_agent_event`, is `where event_id is not null`. On the stub cluster the statement PostgREST sends answers `there is no unique or exclusion constraint matching the ON CONFLICT specification`; `wakeOnEvents` never read the error, so no run on an event was ever queued by it, and every unit test passed on fakes that accept any `onConflict`.
+- cause: Postgres infers a partial unique index for `ON CONFLICT (cols)` only when the statement names the index's predicate (`ON CONFLICT (cols) WHERE ...`), and supabase-js has no way to send one.
+- rule: a write that must skip duplicates of a partial unique index goes through a service-role SQL function whose `on conflict` names the predicate (`queue_event_runs`); never `upsert` with `onConflict` on such columns, and always read the error of a write. A fake that accepts any `onConflict` proves nothing about it: give the write a db test.
+- proof: on a P-718 stub cluster with the branch's migrations, `cd app && DEV_DB_URL=postgresql://postgres@127.0.0.1:55492/mopw env -u CLOUDFLARE_API_TOKEN node node_modules/vitest/vitest.mjs run --project db tests/db/inbound-mail.db.test.ts -t "queues one Editor run"` → `1 passed`: the case asserts the plain `on conflict (agent_id, event_id)` insert fails with `no unique or exclusion constraint`, beside the function's 1 then 0 (2026-10-19, 13 of 13 for the file).
+- added: 2026-10-19
+
+## P-3709 · A one-line `sed` fix of code leaves the registry entry that names that line stale, and CI's replay finds it 25 minutes later
+- symptom: 2026-10-19, PR 464: a lint fix replaced `[...post.caption].length` with `Array.from(post.caption).length` by `sed`; the db job's replay ended `stale 1` (`w8-10-caption-codepoints: find occurs 0 times`) after 25 minutes.
+- rule: after any edit made by a script or `sed`, run `node ~/.claude/hooks/edit-impact.mjs --changed <worktree>` (seconds, not a CI run) and fix every STALE note in the same commit.
+- proof: `node ~/.claude/hooks/edit-impact.mjs --changed E:/mop-build/finish3` printed the STALE note before the entry was updated and nothing after (2026-10-19).
+- added: 2026-10-19
+
+## P-3720 · The audit's uptime row says ok for a monitor UptimeRobot reads down, and the laptop's ops-health token is stale
+- symptom: 2026-10-25, the sidecar held the ops-health monitor at `status` 9 and `uptime_30d` 0 while `uptime.rows` said `Ops health ok 30 day uptime 0`; the monitor's log showed 503 on 2026-10-24. A probe of the hook with `OPS_HEALTH_TOKEN` from `.env` answered 404 `not found`, which first read as "the hook is gone".
+- cause: `monitorRows` in `workspace/audits/tools/uptime.mjs` turned only status 0 (paused) red, so 8 ("seems down") and 9 ("down") passed. The hook answers 404 to a wrong token by design (`app/src/server/hooks/ops-health.ts`), and the `.env` token no longer matches the one in the monitor's URL.
+- rule: read the monitor's `status` beside its row, never the row alone (PR 469 makes 8 and 9 red). To probe the hook, take the URL from the UptimeRobot API inside one script and print only the status and body; a 404 with the `.env` token means a stale token, a 503 means a failing health check.
+- proof: from the tree root with PR 469, monitorRows fed the 2026-10-25 sidecar monitors → `red  Ops health  monitor reads down (status 9)`, on main → `ok`; the token comparison script printed `token matches .env: false` and the monitor URL answered `200 ok` at 2026-10-25 09:02 UTC (report `workspace/audits/2026-10-25.md`, A-20261025-01 and 04).
+- added: 2026-10-25
+
+## P-3721 · The audit report lint refuses any number in a table that is not in this week's sidecar, last week's values and a "13 months" header included
+- symptom: 2026-10-25, `node scripts/audit/lint-report.mjs workspace/audits/2026-10-25.md` printed `the number 13 in a table is not in the sidecar: | Event | 13 months, oldest first | Change |`, from the template's own header; the Previous and Delta columns cannot hold last week's numbers for the same reason.
+- cause: `numberProblems` collects numbers from the current sidecar only, and the sidecar carries no previous values.
+- rule: write a header number as a word ("Thirteen months"), and put last week's values in a line under each table naming `data/<previous>.json`; never hide a number in a code span to pass the lint. The fix proposed is deltas in the sidecar (A-20261025-07).
+- proof: the same command → `lint-report: OK workspace/audits/2026-10-25.md` after the header edit (2026-10-25).
+- added: 2026-10-25
+
+## P-3722 · An unmerged report pull request leaves the next audit with no previous sidecar
+- symptom: 2026-10-25, `front.previous` was null although the 2026-10-17 run wrote a sidecar; PR 451's checker fix was also missing, so the SEO checkers needed `MOP_ENV=local` in the run's environment again.
+- cause: `previousSidecar` in `run-all.mjs` reads `workspace/audits/data/` of the checkout, and `data/2026-10-17.json` lives only on `audit/2026-10-17-report` (PR 453, open).
+- rule: before writing the report, read the previous report and sidecar from the newest `audit/*-report` branch with `git show origin/<branch>:<path>` when `main` has none, and name the branch in the report's "Previous report" line.
+- proof: `git ls-files workspace/audits/data` on origin/main → nothing; `git show origin/audit/2026-10-17-report:workspace/audits/data/2026-10-17.json` → the sidecar (2026-10-25).
+- added: 2026-10-25
+
+## P-3723 · New advisories turn every pull request's `check` red at once, and a grep of the log for "error" hides two of three
+- symptom: 2026-10-25, PR 469: `check` failed on `audit:deps`; `gh run view --log-failed | grep -i error` showed only undici (its title says "unhandled error"), while body-parser and zod were also open. Main had not run since 10-19, so nothing had warned.
+- rule: read the audit with `bun audit --audit-level=high <the script's --ignore flags>` from `app/`, not a filtered CI log; for each advisory record the fix's release date against the seven-day rule, and record each waiver in `docs/security.md` "Dependency audit" with what lifts it (`tests/unit/audit-waivers.test.ts` refuses an undocumented `--ignore`).
+- proof: `cd app && bun run audit:deps` exits 0 on fix/undici-waiver and exited 1 listing three advisories before it (2026-10-25).
+- added: 2026-10-25
+
+## P-3724 · The Saturday audit routine starts with none of its credentials, and nothing loads them
+- symptom: 2026-10-17, the routine's `node workspace/audits/tools/run-all.mjs` wrote `sources_configured: []` and 14 keys under `not_measured`; the sidecar held only GitHub usage.
+- cause: the routine session inherits no audit names. The laptop `.env` holds PSI, Google, GA4, Cloudflare analytics, uptime and Sentry names, but `app/scripts/load-env.mjs --profile dev` exports only five of them; `SITE_URL`, `AUDIT_AGENT_KEY`, `CF_ZONE_ID` and `BING_WEBMASTER_API_KEY` are in no env file, and the collectors read `CF_ACCOUNT_ID` where `.env` says `CLOUDFLARE_ACCOUNT_ID`.
+- rule: run `run-all.mjs --check-credentials` first. When names are missing, hand the `.env` audit names to the same scheduled command (never `--manual`, values never printed) with `SITE_URL=https://matterofplace.com` and `CF_ACCOUNT_ID` taken from `CLOUDFLARE_ACCOUNT_ID`, and list what is still missing under `## Not measured`. Without `AUDIT_AGENT_KEY` the schedule switch cannot be read, so "skipped, disabled" can never print.
+- proof: `node workspace/audits/tools/run-all.mjs --check-credentials` in the routine's shell prints `missing` for all 12 names and exits 1 (2026-10-17); report `workspace/audits/2026-10-17.md`, finding A-20261017-01.
+- added: 2026-10-17
+
+## P-3725 · The audit's SEO checkers crash on import, and the crash lines read as failed checks
+- symptom: 2026-10-17, `seo.failed` in the sidecar held 13 lines of a stack trace (`Invalid environment: RATE_LIMIT_SALT Required` at `app/src/server/lib/env.ts:79`), counted as 13 failed SEO checks. With only the salt set, the checker refused on `SUPABASE_PUBLISHABLE_KEY`, `RESEND_WEBHOOK_SECRET`, `TURNSTILE_SECRET` and `SENTRY_DSN`.
+- cause: `check-seo.ts` reaches server modules that parse the Worker's environment on load; `env.ts` defaults `MOP_ENV` to production, and `crawl.mjs` ran the checkers with the bare shell environment. CI never saw it: its seo steps run beside a `.dev.vars` that holds those names.
+- rule: the checkers run with `MOP_ENV=local` and a throwaway salt (`crawl.mjs`, PR 451). A `failed` list whose lines are a stack trace is a crashed tool, not findings: read the text of every failure before ranking it.
+- proof: `cd app && env -u MOP_ENV -u RATE_LIMIT_SALT bun run scripts/check-seo.ts https://matterofplace.com` → `error: Invalid environment: RATE_LIMIT_SALT Required`; `MOP_ENV=local RATE_LIMIT_SALT=audit-checker-only bun run scripts/check-seo.ts https://matterofplace.com` → 9 `ok` lines, exit 0 (2026-10-17).
+- added: 2026-10-17
+
+## P-3726 · The Actions minutes gauge reads LIMIT on a public repository, where standard runners are not billed
+- symptom: 2026-10-17, `usage.actions_minutes` printed 16518 of 2000 minutes, 825.9 percent, status LIMIT.
+- cause: `workspace/audits/tools/collectors/github.mjs` sums run minutes against the private-repository allowance in `limits.json`, whatever the repository's visibility, and the repository is public.
+- rule: read `gh repo view --json visibility` before treating `actions_minutes` as a limit; while it answers `PUBLIC` the line is information, not an alarm (finding A-20261017-03 proposes the collector change; `limits.json` is mirrored by `gauges.ts` and pinned by `app/tests/unit/audit/usage.test.ts`).
+- proof: `gh repo view --json visibility` → `{"visibility":"PUBLIC"}` (2026-10-17).
+- added: 2026-10-17
+
+## P-3727 · A records branch that waits a week takes bank numbers main has since used, and the bank's merge driver keeps one side
+- symptom: 2026-10-25, PR 454 (banked P-3696 to P-3698 on 10-17) conflicted with main, which took the same three numbers for other entries on 10-19; gate-loop reported "unresolved conflict in GOTCHAS.md", and the driver's working copy held 454's entries and had dropped main's three.
+- rule: resolve by taking main's `GOTCHAS.md` whole and appending the branch's added entries renumbered past main's highest (`git diff <merge-base> HEAD -- GOTCHAS.md`, script `E:/mop-build/.tmp/resolve-454.mjs`); renumber every citation of the old numbers in the same commit (`git grep -n "P-<n>" origin/main`), then `node workspace/05-plans/check-gotchas.mjs`.
+- proof: after the resolution `git diff origin/main --stat -- GOTCHAS.md` showed only the 21 added lines, and `check-gotchas: OK` (2026-10-25); merged as PR 454 (c1b1f8f5).
+- added: 2026-10-25
+
+## P-3728 · A skill run from memory skips the skill's own rules (plan before --go, owner answers, approvals, its fix mode)
+- symptom: 2026-10-25, after a compaction the orchestrator ran the SEO skill without re-reading its stage files: --go without showing the plan, intake and seeds answered for the owner, authority started on guessed competitors, findings pasted to Matter instead of the refactor mode. Operator: "you haven't followed the rules of the skill".
+- rule: read the stage file of every skill step before running it (stages/<mode>.md, else SKILL.md); owner-only answers and approvals are asked as picks.
+- proof: `node --test ~/.claude/hooks/skill-stage-guard.test.mjs` (5 pass, watched red); live: running a skill script unread is refused by the hook.
+- enforced-by: ~/.claude/hooks/skill-stage-guard.mjs
+- added: 2026-10-25
+
+## P-3729 · A session started from this one with wt/Start-Process inherits CLAUDE_CODE_CHILD_SESSION: no transcript, not reachable
+- symptom: 2026-10-25, the Fable 5.1 session launched for the skill overhaul showed "Transcript saving is off - inherited CLAUDE_CODE_CHILD_SESSION marker" and never appeared in ListAgents; the first launches also put the task on the command line, which the operator counts as a child launch.
+- rule: start a full session only through a launcher file that clears CLAUDE_CODE_CHILD_SESSION, CLAUDECODE, CLAUDE_CODE_SESSION_ID, CLAUDE_CODE_MESSAGING_TOKEN (and the other CLAUDE_* markers) and runs claude with no prompt; wait for it in ListAgents; send the task as a message.
+- proof: `node --test ~/.claude/hooks/clean-launch-guard.test.mjs` (4 pass, watched red); the clean launcher's session appeared in ListAgents as skills-work-f8 within 20 s.
+- enforced-by: ~/.claude/hooks/clean-launch-guard.mjs
+- added: 2026-10-25
+
+## P-3730 · `git log -L` takes POSIX regular expressions: a `\{` in the range is an interval, not a brace
 - symptom: 2026-10-19, dating one section of `strings.ts` for the sitemap, `git log -L '/^  privacy: \{/,/^  \},/:app/src/lib/strings.ts'` answered `fatal: -L parameter ... starting at line 1: Unmatched \{`; and `git log -L` prints a patch unless `-s` is given.
 - rule: write a literal brace as `[{]` and `[}]` in a `-L` range, add `--format=%ct -s`, read the newest stamp (`scripts/gen-page-dates.ts`); a shallow clone makes every date the clone's day, so the script keeps the committed file when `git rev-parse --is-shallow-repository` is not `false`.
 - proof: `git log -L '/^  privacy: [{]/,/^  [}],/:app/src/lib/strings.ts' --format=%cs -s` → `2026-10-08`; `bunx vitest run --project unit tests/unit/page-dates.test.ts` passes, registry `W8-search.json` w8-12b-section-range watched red.

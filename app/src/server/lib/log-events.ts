@@ -36,6 +36,9 @@ export const LogEvent = [
   "password_limited",
   "password_audit_failed",
   "auth_send_failed",
+  // W6 item 7 review: the client link was queued with no Worker `waitUntil` on the request, so the enqueue after the
+  // answer may be cut off (unproven under Cloudflare; the dev server has none and logs it too).
+  "wait_until_missing",
   "jwks_fetch_failed",
   "confirm_secret_missing",
   "alert_report_failed",
@@ -50,6 +53,7 @@ export const LogEvent = [
   "decision_jobs_unread",
   // B7 step 14: the role write of a new auth account failed, and the account was deleted again (or not).
   "team_account_rolled_back",
+  "team_invite_partial",
   // B14 invariant 8: a buffered flush of the unknown-path log failed and its rows were dropped.
   "not_found_flush_failed",
 ] as const;

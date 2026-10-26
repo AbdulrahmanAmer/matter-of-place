@@ -15,7 +15,7 @@ import { parseArgs } from "node:util";
  *   fetchImpl: Fetch,
  *   sleep: (ms: number) => Promise<void>,
  *   now: () => Date,
- *   run: (command: string, args: string[], cwd: string) => Ran,
+ *   run: (command: string, args: string[], cwd: string, env?: Record<string, string | undefined>) => Ran,
  * }} Context everything a collector touches outside itself, so a test can stand in for each part
  */
 
@@ -126,10 +126,11 @@ export async function getJson(fetchImpl, url, init, timeoutMs) {
  * @param {string} command
  * @param {string[]} args
  * @param {string} cwd
+ * @param {Record<string, string | undefined>} [env] the child's whole environment; the parent's when absent
  * @returns {Ran}
  */
-function spawnRun(command, args, cwd) {
-  const result = spawnSync(command, args, { cwd, encoding: "utf8", timeout: 300_000 });
+function spawnRun(command, args, cwd, env) {
+  const result = spawnSync(command, args, { cwd, encoding: "utf8", timeout: 300_000, env });
   if (result.error !== undefined) throw result.error;
   return { status: result.status ?? 1, stdout: `${result.stdout}${result.stderr}` };
 }

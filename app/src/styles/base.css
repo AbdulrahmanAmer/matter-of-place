@@ -118,6 +118,7 @@ summary::-webkit-details-marker {
 .market-card,
 .page-intro,
 .not-found,
+.thanks,
 .site-footer,
 .site-header-overlay {
   --focus-ring: var(--background);

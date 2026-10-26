@@ -101,6 +101,12 @@ begin
   -- W4: a reply read from the mailbox (written only by email_reply_record in production).
   insert into public.email_replies (provider_id, from_email, received_at)
   values ('test-rls-' || v_user, 'test-rls-' || v_user || '@example.test', now());
+  -- W8 0h: a message read from the mailbox (written only by inbound_mail_record in production).
+  insert into public.inbound_mail (provider_id, folder, received_at, source)
+  values ('test-rls-' || v_user, 'Inbox', now(), 'email_inbound');
+  -- W8 0f: a piece of the studio folder (written only by studio_piece_put in production).
+  insert into public.studio_pieces (id, title, owner_slug, state, folder)
+  values (gen_random_uuid(), 'test-rls', 'social', 'draft', 'test-rls-' || v_user);
   insert into public.email_suppressions (email, reason) values ('test-rls-' || v_user || '@example.test', 'manual');
   insert into public.email_events (provider_event_id, type, at) values ('test-rls-' || v_user, 'email.sent', now());
   insert into public.newsletter_issues (number, status)
@@ -127,6 +133,13 @@ begin
   select id, 'test-rls-' || v_user, 'test-rls task' from public.agents where slug = 'chief';
   insert into public.vendor_usage (line, used, measured_at) values ('sentry_errors', 1, now())
   on conflict (line) do nothing;
+  -- W8 item 10: a proposed post, one channel and one revision sent back (written only by its functions in production).
+  insert into public.proposed_posts (title, proposer_kind, proposer_agent, status, rejection_note)
+  values ('test-rls', 'agent', 'chief', 'rejected', 'test-rls');
+  insert into public.proposed_post_channels (post_id, revision, channel, format, caption, media)
+  select id, 1, 'x', 'single', 'test-rls', '{}'::jsonb from public.proposed_posts where title = 'test-rls';
+  insert into public.proposed_post_revisions (post_id, revision, reason, note, asked_by_kind, snapshot)
+  select id, 1, 'rejected', 'test-rls', 'human', '{}'::jsonb from public.proposed_posts where title = 'test-rls';
 end
 $$`;
 

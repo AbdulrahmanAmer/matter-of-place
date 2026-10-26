@@ -5,13 +5,12 @@ import { confirmAccountLinkFn } from "../../lib/account.functions";
 import { FormError } from "../forms/form-notice";
 
 /**
- * The token the email link carried, in its fragment (`#token_hash=`) or the query of an older link, taken out of the
- * address at once: no script, report or copied address of this page ever holds it. Null when the address has none.
+ * The token the email link carried, in its fragment (`#token_hash=`), taken out of the address at once: no script,
+ * report or copied address of this page ever holds it. Null when the address has none. A token in the query is not
+ * read: every client link is built with the fragment, and a query reaches the Worker and the edge logs.
  */
 function takeLinkToken(location: Location, history: History): string | null {
-  const token =
-    new URLSearchParams(location.hash.replace(/^#/, "")).get("token_hash") ??
-    new URLSearchParams(location.search).get("token_hash");
+  const token = new URLSearchParams(location.hash.replace(/^#/, "")).get("token_hash");
   if (token === null) return null;
   history.replaceState(history.state, "", location.pathname);
   return token;
