@@ -8905,3 +8905,15 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `node --test ~/.claude/hooks/clean-launch-guard.test.mjs` (4 pass, watched red); the clean launcher's session appeared in ListAgents as skills-work-f8 within 20 s.
 - enforced-by: ~/.claude/hooks/clean-launch-guard.mjs
 - added: 2026-10-25
+
+## P-3730 · Bing related keywords are mostly off-topic: research targets are junk until filtered for the business
+- symptom: 2026-10-26, the skill's research step turned Bing related terms into 80 clusters, all of them unrelated to selective property media (celebrity homes, rentals, generic house plans); targets.json passed its validator anyway.
+- rule: never trust targets.json straight from research; filter every Bing term against the business definition's topic and property words (and a block list), log every dropped term, and read the surviving clusters before planning.
+- proof: site-checks/matterofplace.com/.pewp/research/bing.json shows droppedOffTopic 1601; targets.json 24 clusters PASS targets-valid after the filter and clean-targets.
+- added: 2026-10-26
+
+## P-3731 · A mod pane drawn in the terminal refuses Text size and weight props: the pane opens empty
+- symptom: 2026-10-26, the seo-checklist mod's /seo said the pane opened, but it showed empty in this terminal-drawn (Remote Control) session; the engine refused the tree because Text carried size and weight.
+- rule: resolve elements with $.ui.resolve(e) and use only the props that surface's Text declares (no size, no weight on terminal); run claude plugin validate after every mod edit.
+- proof: claude plugin validate C:/Users/DELL/.claude/dev-mods/<session>/seo-checklist passes; /seo reports isPlaced and the checklist draws in the terminal.
+- added: 2026-10-26
