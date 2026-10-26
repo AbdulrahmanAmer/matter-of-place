@@ -16,8 +16,8 @@ export const modernistHomesForSaleCalifornia: SeoPageContent = {
     {
       heading: "Why work with Matter of Place in California",
       body: [
-        "Matter of Place is an editorial platform, not a brokerage. California has a long and well documented modernist tradition, and its houses are read closely by people who care about architecture. A feature here is written for those readers. It is not an advertisement and it does not promise a result.",
-        "An owner or a listing agent submits a house, or we find it. We read it against our editorial standard and, if it is selected, research it, write its story and choose the photographs. Specifications come from the listing; the history of the house comes from our research and from the record.",
+        "Matter of Place is an editorial platform, not a brokerage. California has a long and well documented modernist tradition, and its houses are read closely by people who care about architecture. A feature here is written for those readers. The owner or agent pays for it, but only after the house has been selected, and payment does not decide selection. It promises no result.",
+        "A house reaches us from its owner or listing agent, or we find it. If it is selected, we research it, write the story and choose the photographs, with specifications from the listing and the history from the record.",
         { h3: "What we read a house for" },
         {
           list: [
@@ -34,38 +34,39 @@ export const modernistHomesForSaleCalifornia: SeoPageContent = {
     {
       heading: "How we help in California",
       body: [
-        "The path is the same for every property.",
+        "Every California house follows the same six stages.",
         {
           steps: [
             "Submission: the owner or the listing agent sends the house with a few photographs and what is known of its history.",
             "Editorial review: we read it against the standard. If it is not selected, nothing is charged, and the answer is not a verdict on the home.",
-            "Acceptance: the plan is agreed. Payment does not decide selection.",
+            "Acceptance: the house is confirmed as selected. Payment plays no part in that decision.",
+            "Exposure: the owner or agent chooses the plan that suits the house.",
             "Publication: the house gets its own page, an edited narrative and photographs chosen for it.",
             "Distribution: a place in the California collection, a social carousel and, where the plan includes it, the newsletter.",
           ],
         },
-        "The agent or brokerage is credited by name, and inquiries are routed to them directly. The plans and what each one adds are on the [Property Exposure](/exposure) page. We do not promise leads, buyers or a sale.",
-        { h3: "A century of building" },
-        "California's modernist houses span more than a century, from the plain white houses of the early twentieth century to the glass and steel pavilions of the 1950s and 1960s. A house from the first half of that century is read in the same way as one from the middle of it: by its record and by what it has kept.",
+        "The agent or brokerage is credited by name, and inquiries go to them. The [Property Exposure](/exposure) page lists the plans and what each adds. We promise no leads, buyers or sale.",
+        { h3: "Across the twentieth century" },
+        "California's modernist houses span much of the twentieth century, from the plain white houses of its early decades to the glass and steel pavilions of the 1950s and 1960s. A house from the first half of the century is read in the same way as one from the middle of it: by its record and by what it has kept.",
         { h3: "What owners and agents should bring" },
         {
           list: [
             "The architect or builder, if known, with drawings, permits and early photographs.",
             "A list of changes since the house was built, with dates and permits where they exist.",
-            "Any designation: a listing on the National Register of Historic Places, a local landmark, or a contract under the Mills Act, which a California city may offer to the owner of a designated historic home.",
+            "Any designation: a listing on the National Register of Historic Places, a local landmark, or a contract under the Mills Act, which a California city or county may offer to the owner of a designated historic home.",
             "The record of work on the roof, glass, heating, wiring and plumbing, and any seismic strengthening.",
-            "Federal law requires sellers of homes built before 1978 to disclose what they know about lead-based paint, and California adds its own disclosure rules.",
+            "For a house built before 1978, federal law requires disclosure of known lead-based paint, and California adds its own disclosure forms.",
           ],
         },
       ],
     },
     {
-      heading: "California market and neighbourhood facts",
+      heading: "California market and neighborhood facts",
       body: [
         "We publish no median price, no days on market and no neighborhood statistic on this page. A figure without a dated source would mislead, and the market moves. For current numbers, ask the representative named on a property or a local broker. What we can describe is where the modern house took root in the state.",
         {
           list: [
-            "Los Angeles: the home of Richard Neutra and Rudolph Schindler, of John Lautner and of the Case Study House Program, which Arts & Architecture magazine began in 1945. Hillside neighborhoods such as Silver Lake and the Hollywood Hills hold much of this work.",
+            "Los Angeles: the home of Richard Neutra and Rudolph Schindler, of John Lautner and of the Case Study House Program, begun in 1945 by Arts & Architecture magazine. Hillside neighborhoods such as Silver Lake and the Hollywood Hills hold much of this work.",
             "Palm Springs and the desert: the modern houses of the 1950s and 1960s, by Albert Frey, Donald Wexler and Richard Neutra among others, built for sun, shade and a dry climate.",
             "San Francisco Bay Area: the post-war tract houses of the developer Joseph Eichler, and the Bay Region manner of William Wurster, which set modern forms in wood and a mild climate.",
             "San Diego: the early modernist houses of Irving Gill, with their plain walls and their lack of ornament.",
@@ -78,7 +79,7 @@ export const modernistHomesForSaleCalifornia: SeoPageContent = {
     {
       heading: "What it costs",
       body: [
-        "Submission is free and we reply either way. A feature has a plan, and the plans and what each adds are set out on the [Property Exposure](/exposure) page. Payment follows acceptance, and a property that is not accepted is not charged.",
+        "Sending a house in is free, and we reply either way. A feature has a plan, and the plans and what each adds are set out on the [Property Exposure](/exposure) page. A plan is paid for after acceptance, and a property that is not accepted is not charged.",
         "We do not set, and have no part in, the price of a house. Price is not a measure of merit here, and paying does not guarantee that a home is featured.",
       ],
     },
@@ -86,7 +87,7 @@ export const modernistHomesForSaleCalifornia: SeoPageContent = {
   faq: [
     {
       q: "What are modernist homes for sale in California?",
-      a: "Existing houses designed in the modernist tradition in California, from the early twentieth century through the post-war decades, with plain forms, open plans, honest materials and a close tie to the site. Matter of Place does not list houses for sale on this page. It explains the kind and presents selected homes as editorial features.",
+      a: "Existing houses designed in the modernist tradition in California, from the early twentieth century through the post-war decades, with plain forms, open plans, honest materials and a close tie to the site. No house is listed for sale here; the page explains the kind, and selected houses appear as editorial features.",
     },
     {
       q: "Is modernist the same as mid-century modern?",
@@ -94,7 +95,7 @@ export const modernistHomesForSaleCalifornia: SeoPageContent = {
     },
     {
       q: "Does Matter of Place sell modernist homes in California?",
-      a: "No. We are not a brokerage and we represent no one in a sale. Every property credits its representative, and inquiries go to them directly.",
+      a: "No. We are not a brokerage. Any sale of a California modernist house runs through its own agent, whom the page credits and to whom inquiries are sent.",
     },
     {
       q: "Do you publish prices, market data or neighborhood statistics?",
@@ -102,15 +103,15 @@ export const modernistHomesForSaleCalifornia: SeoPageContent = {
     },
     {
       q: "Does paying guarantee that a home is featured?",
-      a: "No. Every property is subject to the Matter of Place editorial standard. A property that is not accepted is not charged.",
+      a: "No. A house has to meet the editorial standard before any plan is chosen, and one that is not accepted is not charged.",
     },
     {
       q: "Which states do you cover?",
-      a: "California, New York and Florida only, and only existing residential property.",
+      a: "California, New York and Florida, and only property that already exists.",
     },
   ],
   related: [
-    { to: "/", anchor: "matter place" },
+    { to: "/", anchor: "matter of place" },
     {
       to: "/hudson-valley-stone-houses-for-sale",
       anchor: "hudson valley stone houses for sale",
@@ -127,7 +128,7 @@ export const modernistHomesForSaleCalifornia: SeoPageContent = {
   ],
   cta: {
     heading: "Talk to Matter of Place",
-    text: "If you own or represent a modernist home in California, submit it for review. Submission is free and we reply either way. If you are reading for the pleasure of it, Place Notes sends selected properties and stories.",
+    text: "Owners and agents of a modernist house in California can submit it for review without charge, and an answer always comes. Place Notes is there for readers who would rather follow along.",
     primary: "submit",
     secondary: "notes",
   },

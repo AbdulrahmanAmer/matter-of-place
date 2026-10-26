@@ -32,11 +32,11 @@ export const sponsoredRealEstateListing: SeoPageContent = {
       body: [
         "Four things change how you should treat a sponsored listing.",
         { h3: "Disclosure" },
-        "A reader who cannot tell that a position was paid for is being misled about it. In the United States, the Federal Trade Commission has published guidance on native advertising, meaning paid content that resembles the publisher's own, and its core point is that the paid nature should be clear to the reader. A platform label, a banner or a line at the top of the page that reads plainly as paid does this. A small grey caption does not.",
+        "A reader who cannot tell that a position was paid for is being misled about it. In the United States, the Federal Trade Commission has published guidance on native advertising, meaning paid content that resembles the publisher's own, and the idea behind it is that paid content should be recognizable as paid. A platform label, a banner or a line at the top of the page that reads plainly as paid does this. A small grey caption does not.",
         { h3: "What the money buys" },
         "Some sponsored products buy only position and nothing else. Others buy production as well, such as writing and photography, and distribution on top of that. Ask for a list of what is made, where it appears and for how long. A fee for placement is not a fee for a story.",
         { h3: "Advertising rules" },
-        "A sponsored listing is still an advertisement for a home. The federal Fair Housing Act bars advertising that states a preference or limitation based on a protected characteristic, and state licensing rules and the local listing service set rules for agents on how a listing may be advertised. These apply to the wording of a paid placement as much as to any other advertisement. Your broker or attorney can confirm what applies.",
+        "A sponsored listing is still an advertisement for a home. The federal Fair Housing Act forbids advertising that expresses a preference or limitation based on a protected characteristic, and state licensing rules and the local listing service govern how agents may advertise a listing. These apply to the wording of a paid placement as much as to any other advertisement. Your broker or attorney can confirm what applies.",
         { h3: "Selection" },
         "On most portals, anyone who pays is shown. In an editorial publication, the publisher chooses first. The two read differently to a reader, and a sponsored placement should not be mistaken for a selection.",
       ],
@@ -56,7 +56,7 @@ export const sponsoredRealEstateListing: SeoPageContent = {
             "Set a limit, review at a fixed point and stop if the placement is not doing what you named in step one.",
           ],
         },
-        "Matter of Place's features are not sponsored listings in the portal sense. A home is submitted for free and read against our editorial standard, which includes architecture, design, originality, materiality, setting, history, craft and sense of place. Price is not on the list. If the home is accepted, the owner or agent chooses one of our plans for exposure; if it is not, nothing is charged. Payment does not override selection. The owner or agent pays for the exposure, and the plans and their prices are public on the [Property Exposure](/exposure) page. The plans are described in our guide to [luxury real estate marketing packages](/guides/luxury-real-estate-marketing-packages), and our page on [editorial real estate marketing](/guides/editorial-real-estate-marketing) sets editorial coverage beside advertising.",
+        "A Matter of Place feature is paid for, so in the plain sense it is sponsored content, but it is not a sponsored listing in the portal sense. A home is submitted for free and read against our editorial standard, which includes setting, design, architecture, originality, materiality, history, craft and sense of place. Price does not appear on it. If the home is accepted, the owner or agent chooses one of our plans for exposure; if it is not, nothing is charged. Payment does not override selection. The owner or agent pays for the exposure, and the plans and their prices are public on the [Property Exposure](/exposure) page. How a paid feature is shown to readers is a fair question to put to us, as to any publisher. The plans are described in our guide to [luxury real estate marketing packages](/guides/luxury-real-estate-marketing-packages), and our page on [editorial real estate marketing](/guides/editorial-real-estate-marketing) sets editorial coverage beside advertising.",
       ],
     },
     {
@@ -83,11 +83,11 @@ export const sponsoredRealEstateListing: SeoPageContent = {
     },
     {
       q: "Must a sponsored listing be labeled?",
-      a: "It should be clear to the reader that the position was paid for. The Federal Trade Commission has published guidance on native advertising that says so, and platforms add their own labels. Ask the seller of the placement how it will be shown.",
+      a: "Paid content should be recognizable as paid, and the Federal Trade Commission has published guidance on native advertising to that effect. Platforms add their own labels. Ask the seller of the placement how it will be shown.",
     },
     {
       q: "Is a Matter of Place feature a sponsored listing?",
-      a: "No, not in the portal sense. Homes are selected first against an editorial standard that does not include price, and the plans apply only after acceptance. Payment does not override selection. We are not a listing portal, and we do not rank homes by payment.",
+      a: "It is paid for, so in the plain sense it is sponsored content. The difference is the order: a home is selected first against an editorial standard that does not include price, the owner or agent pays only after acceptance, and payment does not decide selection. We are not a listing portal, and we do not rank homes by payment.",
     },
     {
       q: "Do I pay to be considered by Matter of Place?",
@@ -95,7 +95,7 @@ export const sponsoredRealEstateListing: SeoPageContent = {
     },
     {
       q: "Will a sponsored listing bring buyers?",
-      a: "Nobody can say in advance. A placement can show a home to more people. It cannot promise leads, buyers or a sale, and Matter of Place does not.",
+      a: "Nobody can say in advance. A placement can show a home to more people. It makes no promise of leads, buyers or a sale, and neither does Matter of Place.",
     },
     {
       q: "Does a fair housing rule apply to a paid placement?",
@@ -120,7 +120,7 @@ export const sponsoredRealEstateListing: SeoPageContent = {
   ],
   cta: {
     heading: "Next step",
-    text: "If a question here is yours, send it and we will answer it. If you own or represent a home in California, New York or Florida, you can also submit it for review.",
+    text: "If a point about paid placements is unclear, send it and we will answer it. You can also submit a home in California, New York or Florida for review, whether you own it or represent it.",
     primary: "contact",
     secondary: "submit",
   },

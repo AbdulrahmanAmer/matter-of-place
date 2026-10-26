@@ -11,14 +11,14 @@ export const howMuchDoesItCostToAdvertiseALuxuryListing: SeoPageContent = {
   description:
     "How much does it cost to advertise a luxury listing? What sets the spend, how to budget in order, and what Matter of Place charges, in plain words.",
   eyebrow: "GUIDE",
-  lede: "How much it costs to advertise a luxury listing depends on what is bought, for how long, and who pays. There is no single figure, and we will not invent one. This guide explains what makes up the spend, the order in which to budget, and the questions to ask before you agree to anything. It also states what Matter of Place charges, because that is the one price we can stand behind. We are an editorial platform, not a brokerage, and we promise no leads, buyers or sales.",
+  lede: "How much it costs to advertise a luxury listing depends on what is bought, for how long, and who pays. There is no single figure, and we will not invent one. This guide explains what makes up the spend, the order in which to budget, and the questions to ask before you agree to anything. It also states what Matter of Place charges, because those are the prices we publish. We are an editorial platform, not a brokerage, and we promise no leads, buyers or sales.",
   sections: [
     {
       heading: "The short answer",
       body: [
         "The spend on a luxury listing is the sum of a few separate purchases, and each has its own price and its own purpose. Some are one-off, such as photography. Some run for a period, such as paid media. Some are a fee for placement, such as a feature or a listing upgrade.",
         "We do not quote market averages or other companies' prices. They change by city and by season, and a figure without a source misleads. The reliable way to learn what a plan costs is to ask for written quotes, line by line, for the property you actually have.",
-        "The prices of Matter of Place are published on the [Property Exposure](/exposure) page. At the time of writing they are:",
+        "The prices of Matter of Place are published on the [Property Exposure](/exposure) page, and the figures there are the current ones. These are the published plans at the time of writing, so check that page before you decide:",
         {
           list: [
             "The Feature, $295: a dedicated editorial page for the property, an edited narrative, curated images, a social carousel and attribution to the agent or brokerage.",
@@ -87,11 +87,11 @@ export const howMuchDoesItCostToAdvertiseALuxuryListing: SeoPageContent = {
     },
     {
       q: "What does Matter of Place charge?",
-      a: "At the time of writing, The Feature is $295, The Reach is $695, The Campaign is $1,495 and Five Features is $1,250. Programmatic media is separate and starts at $250. The current prices are on the Property Exposure page.",
+      a: "At the time of writing, The Feature is $295, The Reach is $695, The Campaign is $1,495 and Five Features is $1,250. Programmatic media is separate and starts at $250. The Property Exposure page always carries the current prices, so check it before you decide.",
     },
     {
       q: "Do I pay to submit a property?",
-      a: "No. Submission is free, and exposure products apply only after a property is accepted. If it is not accepted, nothing is charged.",
+      a: "No. Sending a property in costs nothing. A plan is bought only after acceptance, and a property that is declined is not charged.",
     },
     {
       q: "Does paying decide whether a home is featured?",
@@ -111,7 +111,7 @@ export const howMuchDoesItCostToAdvertiseALuxuryListing: SeoPageContent = {
       to: "/guides/where-to-advertise-luxury-listings",
       anchor: "where to advertise luxury listings",
     },
-    { to: "/", anchor: "matter place" },
+    { to: "/", anchor: "matter of place" },
     {
       to: "/guides/how-to-market-a-luxury-listing",
       anchor: "promote a luxury listing",
@@ -123,7 +123,7 @@ export const howMuchDoesItCostToAdvertiseALuxuryListing: SeoPageContent = {
   ],
   cta: {
     heading: "Next step",
-    text: "If a question here is yours, send it and we will answer it. If you own or represent an existing home in California, New York or Florida, you can also submit it for review.",
+    text: "If you want a cost question answered before you set a budget, send it and we will reply. Owners and agents with an existing home in California, New York or Florida can also submit it for review.",
     primary: "contact",
     secondary: "submit",
   },

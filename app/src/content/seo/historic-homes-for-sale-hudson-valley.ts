@@ -11,29 +11,29 @@ export const historicHomesForSaleHudsonValley: SeoPageContent = {
   description:
     "What historic means for a Hudson Valley house, what owners and buyers should know, and how Matter of Place features historic homes in New York.",
   eyebrow: "HISTORIC HOMES · HUDSON VALLEY",
-  lede: "The words historic homes for sale Hudson Valley describe existing houses in the river counties of New York whose age, builder or past gives them a place in the story of the region. Some are listed on the National Register of Historic Places, some stand in a local historic district, and some carry a documented history with no formal listing. This page is a guide to that kind of house: what the words mean here, what owners and buyers should know, and how Matter of Place presents such a home.",
+  lede: "Historic homes for sale in the Hudson Valley are existing houses in the river counties of New York with an age, a builder or a past that gives them a place in the story of the region. Some carry a National Register listing, some stand in a local historic district, and others have a well documented past and no designation at all. The guide covers what historic means here, what owners and buyers should know before a sale, and the way Matter of Place presents such a home.",
   sections: [
     {
       heading: "Why work with Matter of Place in Hudson Valley",
       body: [
-        "Matter of Place is an editorial platform for exceptional existing homes in California, New York and Florida. The Hudson Valley is part of New York, one of the three. We are not a brokerage. We list no house on this page, and we represent no one in a sale.",
+        "Matter of Place is an editorial platform for existing homes in California, New York and Florida, and the Hudson Valley sits in the second of those states. We are a publisher and not a brokerage, so no house is listed here and no one is represented in a sale.",
         "The region suits an editorial reading because its houses carry layers. Stone houses from the colonial period stand near farmhouses of the nineteenth century, town houses of the Federal and Greek Revival years, and villas built in the picturesque styles for families who chose the river for its view. A single street can hold three centuries of building, and the record of who built what, and why, is often still in a town archive or a historical society.",
-        "We read a house against one standard. History sits beside architecture, materiality, craft and setting. Price is not on the list, and a modest farmhouse with a clear past can deserve more attention than a larger house with none.",
+        "Every house is read against a single standard in which history counts alongside architecture, materials, craft and setting. Price does not enter it, and a modest farmhouse with a clear past can deserve more attention than a larger house with none.",
         { h3: "What historic can mean in New York" },
         {
           list: [
-            "National Register of Historic Places: the federal list of places worth preserving, kept by the National Park Service. In New York the state historic preservation office handles nominations. A listing recognizes a property. On its own it does not restrict what a private owner does with private funds.",
-            "Local landmark or historic district: a designation made by a city, a village or a town. It often brings review of exterior changes, and the rules differ from one municipality to the next.",
-            "A documented history without a listing: a house with a known builder, family or event that carries no formal designation. A house can be historic in this sense and stand outside every register.",
+            "National Register of Historic Places: a federal list run by the National Park Service, with New York nominations passing through the state historic preservation office. A listing honors a property; by itself it places no limit on what a private owner does with private funds.",
+            "Local landmark or historic district: a status granted by a city, a village or a town. Changes to the outside of the house are often reviewed, and each municipality writes its own rules.",
+            "A documented history without a listing: a known builder, family or event, and no formal status. Such a house is historic in fact while sitting outside every register.",
           ],
         },
-        "Our guide to [national register historic homes for sale](/historic-homes-for-sale) sets out these terms for all three states.",
+        "Our guide to [historic homes for sale](/historic-homes-for-sale) sets out these terms for all three states.",
       ],
     },
     {
       heading: "How we help in Hudson Valley",
       body: [
-        "A historic home reaches us because an owner or a listing agent submits it, or because we find it. Every property follows the same path.",
+        "An owner or listing agent sends us a historic house in the Hudson Valley, or one of our editors finds it, and each follows the same six stages.",
         {
           steps: [
             "Submission: you send the property and its story.",
@@ -44,7 +44,7 @@ export const historicHomesForSaleHudsonValley: SeoPageContent = {
             "Distribution: the story travels through owned and paid channels.",
           ],
         },
-        "If the house is selected, we research it, write its story and choose the photographs. Specifications come from the listing; history comes from our research. The result is an editorial page for the house, a social carousel, a place in the New York collection, and the agent or brokerage credited by name with inquiries routed to them directly. It is not an advertisement.",
+        "A selected house is researched and written up, and we choose its photographs. The result is a page for the house, a social carousel, a place in the New York collection, and the agent or brokerage credited by name, with inquiries routed to them. The owner or agent pays for the plan they choose, but only after the house has been accepted, and payment does not decide selection.",
         { h3: "What owners and agents can prepare" },
         {
           list: [
@@ -54,59 +54,56 @@ export const historicHomesForSaleHudsonValley: SeoPageContent = {
             "The photographs: you confirm that you have the right to share them.",
           ],
         },
-        "Buyers can use the same list as questions. Federal law also requires sellers of homes built before 1978 to disclose what they know about lead-based paint, and New York adds its own disclosure rules. Our guide on [how to sell a historic home](/guides/how-to-sell-a-historic-home) sets out the order of work.",
-        "For readers, Place Notes sends selected properties and stories when there is something worth sending. Reading about a house here is not an offer, and an inquiry goes to the representative named on the property.",
+        "Buyers can turn the same list into questions. For a house built before 1978, a seller must disclose what is known about lead-based paint under federal law, and New York sets further disclosure rules of its own. For the order of work, read our guide on [how to sell a historic home](/guides/how-to-sell-a-historic-home).",
+        "Readers who want to follow along can join Place Notes, which writes only when there is something worth sending. A house described there is not an offer; any inquiry goes to the representative the property names.",
       ],
     },
     {
-      heading: "Hudson Valley market and neighbourhood facts",
+      heading: "Hudson Valley market and neighborhood facts",
       body: [
-        "We quote no median price and no days on market on this page. We hold no figure for the region that we can source and date, and a number without a source would tell a reader less than silence. A local agent can give current figures for a town, and county records show what a particular parcel sold for in the past.",
-        "What we can say is about the place. The Hudson Valley follows the Hudson River north from the New York City area toward Albany. Definitions of the region vary, and this page does not draw a border. It is usually taken to include river counties such as Dutchess, Ulster, Columbia, Orange and Greene, with towns and villages such as Hudson, Kingston, Beacon, Newburgh, Rhinebeck, Cold Spring and New Paltz.",
-        "Some of these places keep their early buildings in view. Kingston has a historic Stockade district with stone houses from the colonial period, and New Paltz has Huguenot Street, a row of preserved stone houses from the late seventeenth and eighteenth centuries. Both show how long houses have stood in this region and how much of that history is kept on record.",
+        "No median price or days-on-market figure appears here, because we hold none for the region that we could source and date. For current numbers on a town, ask a local agent; for what a particular parcel once sold for, read the county records.",
+        "What we can say is about the place. The region follows the Hudson River north from the New York City area toward Albany, and this page does not draw its border. It is usually taken to include river counties such as Dutchess, Ulster, Columbia, Orange and Greene, with towns and villages such as Hudson, Kingston, Beacon, Newburgh, Rhinebeck, Cold Spring and New Paltz.",
+        "Some of these places keep their early buildings in view. The Stockade district of Kingston holds stone houses of the colonial period, and Huguenot Street in New Paltz keeps a row of preserved stone houses from the early eighteenth century. Both show how long houses have stood in this region and how much of that history is on record.",
         "Setting matters as much as age. A house on a river bluff, on a farm road below the Catskills or on a village street is read differently, and we write each one for where it stands.",
       ],
     },
     {
       heading: "What it costs",
       body: [
-        "Submission is free, and we reply either way. A no is not a verdict on the home.",
-        "Exposure products apply only after a property is accepted, and you choose among them then. The plans and what each one adds are on the [Property Exposure](/exposure) page. Paid media budgets are separate from the editorial product fees.",
-        "Payment does not decide selection. Every property is read against the [Editorial Standard](/editorial-standard), and if a property is not accepted, nothing is charged. We do not promise leads, buyers or a sale.",
+        "Sending a house in costs nothing, and every submission gets an answer. A no is no verdict on the house.",
+        "A plan is chosen, and paid for, only once a house has been accepted. The [Property Exposure](/exposure) page lists the plans and what each adds, and paid media budgets are kept apart from the editorial fees.",
+        "Paying never decides selection: each Hudson Valley house is read against the [Editorial Standard](/editorial-standard), and one that is declined costs nothing. We promise no leads, buyers or sale.",
       ],
     },
   ],
   faq: [
     {
       q: "What are historic homes for sale in the Hudson Valley?",
-      a: "Existing houses in the river counties of New York whose age, builder or past gives them a recorded place in the story of their town, whether or not they carry a formal listing. Matter of Place lists no house for sale on this page. It explains the kind and presents selected homes as editorial features.",
+      a: "Existing houses in the river counties of New York that have earned a recorded place in the story of their town through age, builder or past, listed or not. Nothing here is offered for sale; the page explains the kind, and the houses we choose appear as editorial features.",
     },
     {
       q: "Does Matter of Place sell historic homes in the Hudson Valley?",
-      a: "No. We are not a brokerage and we represent no one in a sale. Every property credits its representative, and inquiries go to them directly.",
+      a: "No. We are not a brokerage, and a historic house in the valley is sold only by its own agent. Each page credits that agent, and inquiries go to them.",
     },
     {
       q: "How do I submit a historic Hudson Valley home?",
-      a: "Use the Submit a Property form. Send the address, the story of the house and what you know of its record. Submission is free, every property is reviewed before anything else happens, and we reply either way.",
+      a: "Use the Submit a Property form and include the address, the story of the house and its record, as far as you know it. It costs nothing, the review comes before everything else, and an answer follows either way.",
     },
     {
       q: "Does a National Register listing limit what an owner can do?",
-      a: "On its own, no. A listing recognizes a property and does not restrict what a private owner does with private funds. A local designation on the same house may ask for review of exterior changes, so ask which designations apply.",
+      a: "Not by itself. A National Register listing recognizes a property without restricting a private owner who uses private funds. A local designation on the same house may ask for review of changes to the outside, so ask which designations apply.",
     },
     {
       q: "Does paying guarantee that a home is featured?",
-      a: "No. Every property is subject to the Matter of Place editorial standard. A property that is not accepted is not charged.",
+      a: "No. The editorial standard decides, and a plan is paid for only after a house passes it. A house that is not accepted is not charged.",
     },
     {
       q: "Do you cover places outside New York?",
-      a: "California, New York and Florida only, and only existing residential property.",
+      a: "Not at present. We cover California, New York and Florida, and only existing residential property.",
     },
   ],
   related: [
-    {
-      to: "/historic-homes-for-sale",
-      anchor: "national register historic homes for sale",
-    },
+    { to: "/historic-homes-for-sale", anchor: "historic homes for sale" },
     {
       to: "/architect-designed-homes-for-sale",
       anchor: "houses for sale by famous architects",
@@ -118,7 +115,7 @@ export const historicHomesForSaleHudsonValley: SeoPageContent = {
   ],
   cta: {
     heading: "Talk to Matter of Place",
-    text: "If you own or represent a historic home in the Hudson Valley, submit it for review. Submission is free and we reply either way. If you are reading for the pleasure of it, Place Notes sends selected properties and stories.",
+    text: "If you own or represent a historic house in the Hudson Valley, you can submit it for review at no cost, and we will answer whatever the outcome. Readers can follow selected houses through Place Notes.",
     primary: "submit",
     secondary: "notes",
   },

@@ -11,7 +11,7 @@ export const whereToAdvertiseLuxuryListings: SeoPageContent = {
   description:
     "Where to advertise luxury listings: start where buyers' agents look, add a place that suits the home, then paid media aimed at the likeliest buyer.",
   eyebrow: "GUIDE",
-  lede: "Where to advertise luxury listings depends on who is most likely to buy, and the answer usually has three layers. The base is where buyers' agents already look: the multiple listing service where it is used, the brokerage's own site and the agent's network. The second layer is a place that suits the home, such as an editorial feature or a private invitation list. The third is targeted paid media. Matter of Place is an editorial platform for existing homes in California, New York and Florida, not a brokerage, and no channel here promises leads, buyers or sales.",
+  lede: "Where to advertise luxury listings depends on who is most likely to buy, and the answer usually has three layers. The base is where buyers' agents already look: the multiple listing service where it is used, the brokerage's own site and the agent's network. The second layer is a place that suits the home, such as an editorial feature or a private invitation list. The third is targeted paid media. Matter of Place is an editorial platform that covers existing homes in California, New York and Florida; it is not a brokerage, and no channel here promises leads, buyers or sales.",
   sections: [
     {
       heading: "The short answer",
@@ -36,7 +36,7 @@ export const whereToAdvertiseLuxuryListings: SeoPageContent = {
         { h3: "The likely buyer" },
         "A buyer from the same city is reached through local agents and local press. A buyer relocating from another state is reached through agents there and through publications read nationally. A second-home buyer is reached where they spend their leisure time. Name the likeliest buyer before you choose a channel.",
         { h3: "The story of the house" },
-        "A home with a named architect, a long history or an unusual setting has a story that publications about design, architecture and place can use. A home whose appeal is its size and views is better served by strong photography in the base channels and a paid campaign.",
+        "A home by a named architect, with a long history or an unusual setting, has a story that publications about design, architecture and place can use. A home whose appeal is its size and views is better served by strong photography in the base channels and a paid campaign.",
         { h3: "Discretion" },
         "Some owners want very little exposure. A private listing, an invitation list or a limited campaign are legitimate choices, and they remove some channels from the plan. Decide early what may be shown: the address, the interiors, the owner's name.",
         { h3: "Budget and timing" },
@@ -53,7 +53,7 @@ export const whereToAdvertiseLuxuryListings: SeoPageContent = {
             "Describe the likeliest buyer in a paragraph: where they live, how they search and who advises them.",
             "Make the material first. Photography that shows the architecture, accurate floor plans and a plain, sourced description serve every channel.",
             "Set the base. Agree with the listing agent what goes on the listing service and the brokerage site, and when.",
-            "Choose one place that suits the home. For many houses that is an editorial feature. A submission to Matter of Place is free, we reply either way, and a home we do not accept is not charged. Owners and agents can [submit a property](/submit) for review. Our plans are set out in the guide to [luxury real estate marketing packages](/guides/luxury-real-estate-marketing-packages).",
+            "Choose one place that suits the home. For many houses that is an editorial feature. A submission to Matter of Place is free, we reply either way, and a home we do not accept is not charged. Owners and agents can [submit a property](/submit) for review. For a selected home, some plans also add paid media planning and audience targeting, with a programmatic media budget as an option; the [Property Exposure](/exposure) page lists them, and the guide to [luxury real estate marketing packages](/guides/luxury-real-estate-marketing-packages) sets out the plans.",
             "Use the agent's own channels. A newsletter to past clients and a private invitation to buyers' agents often reach people a public ad does not.",
             "If budget allows, add paid media with a narrow aim, such as retargeting people who have already visited the listing page. Keep the audience to what the platform's housing rules permit.",
             "Decide what you will track: where each inquiry came from, which buyers' agents visited, which pages were read. Do not expect any of it to be guaranteed.",
@@ -95,11 +95,11 @@ export const whereToAdvertiseLuxuryListings: SeoPageContent = {
     },
     {
       q: "Can Matter of Place advertise my listing?",
-      a: "We feature selected existing homes in California, New York and Florida. Submission is free and nothing is charged for a home we do not accept. We are not a brokerage, and we cannot advertise a listing on your behalf.",
+      a: "We feature selected existing homes in California, New York and Florida. Submission is free and nothing is charged for a home we do not accept. We are not a brokerage and we do not take listings. For a selected home, some plans add paid media planning and audience targeting, and a programmatic media budget can be added; see the Property Exposure page.",
     },
     {
       q: "Does a feature or an advertisement guarantee interest or a sale?",
-      a: "No. Either can show a home to more people. Neither can promise leads, buyers or a sale, and Matter of Place does not.",
+      a: "No. Either can show a home to more people. Neither can promise leads, buyers or a sale; Matter of Place makes no such promise either.",
     },
     {
       q: "How much should I spend?",
@@ -111,7 +111,7 @@ export const whereToAdvertiseLuxuryListings: SeoPageContent = {
       to: "/guides/how-much-does-it-cost-to-advertise-a-luxury-listing",
       anchor: "how much does it cost to advertise a luxury listing",
     },
-    { to: "/", anchor: "matter place" },
+    { to: "/", anchor: "matter of place" },
     { to: "/guides/real-estate-marketing", anchor: "real estate marketing" },
     {
       to: "/guides/is-a-sponsored-real-estate-feature-worth-it",
@@ -128,7 +128,7 @@ export const whereToAdvertiseLuxuryListings: SeoPageContent = {
   ],
   cta: {
     heading: "Next step",
-    text: "If a question here is yours, send it and we will answer it. If you own or represent a home in California, New York or Florida, you can also submit it for review.",
+    text: "If you are still choosing channels and have a question, send it and we will answer it. Whoever owns or represents a home in California, New York or Florida may submit it for review too.",
     primary: "contact",
     secondary: "submit",
   },

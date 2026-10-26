@@ -33,7 +33,7 @@ export const editorialRealEstateMarketing: SeoPageContent = {
       heading: "What changes the answer",
       body: [
         { h3: "The home" },
-        "Editorial work needs something to say. A house with a recorded architect, a notable renovation, an unusual site or a documented past gives a writer material. A house that is simply well kept is better served by a clear listing and good photographs. Price is not the test: a thoughtful two million dollar house may deserve more attention than a generic twenty million dollar one.",
+        "Editorial work needs something to say. A house with a recorded architect, a notable renovation, an unusual site or a documented past gives a writer material. A house that is simply well kept is better served by a clear listing and good photographs. Price is not the test: a modest house with a documented past can give an editor more to work with than a large one with none.",
         { h3: "The publisher" },
         "An editorial page is only worth what its publisher is worth. Look at how a publication chooses what it shows, whether it labels paid arrangements, and who reads it. Our [Editorial Standard](/editorial-standard) is the list we use: architecture, design, originality, materiality, setting, history, craft and sense of place.",
         { h3: "The balance with advertising" },
@@ -57,7 +57,7 @@ export const editorialRealEstateMarketing: SeoPageContent = {
           ],
         },
         { h3: "Where Matter of Place fits" },
-        "Matter of Place is an editorial platform for exceptional existing residential property. We find a home or it is sent to us, we research it, write the story and choose the photographs. Few make it. Submission is free, and if you want to see what plans exist after a property is accepted, the [Property Exposure](/exposure) page lists them. For marketing sold as a bundle at one price, see [luxury real estate marketing packages](/guides/luxury-real-estate-marketing-packages); for questions to ask of any paid placement, see [is a sponsored real estate feature worth it](/guides/is-a-sponsored-real-estate-feature-worth-it).",
+        "Matter of Place is an editorial platform for exceptional existing residential property. We find a home or it is sent to us, we research it, write the story and choose the photographs. Few make it. Submission is free. The owner or agent pays for a plan once a property is accepted, and payment does not decide selection; the [Property Exposure](/exposure) page lists the plans. For marketing sold as a bundle at one price, see [luxury real estate marketing packages](/guides/luxury-real-estate-marketing-packages); for questions to ask of any paid placement, see [is a sponsored real estate feature worth it](/guides/is-a-sponsored-real-estate-feature-worth-it).",
       ],
     },
     {
@@ -96,11 +96,11 @@ export const editorialRealEstateMarketing: SeoPageContent = {
     },
     {
       q: "Is Matter of Place a brokerage?",
-      a: "No. We represent no one in a sale. Every property credits its representative, and inquiries go to them directly.",
+      a: "No. We act for neither seller nor buyer. The page for each property credits its representative, who receives the inquiries.",
     },
     {
       q: "Where does Matter of Place work?",
-      a: "California, New York and Florida only, and only existing residential property. We do not currently cover new developments.",
+      a: "California, New York and Florida. We cover existing residential property and not new developments.",
     },
   ],
   related: [
@@ -121,7 +121,7 @@ export const editorialRealEstateMarketing: SeoPageContent = {
   ],
   cta: {
     heading: "Next step",
-    text: "If a question here is yours, send it and we will answer it. If you own or represent an existing home in California, New York or Florida, you can also submit it for review.",
+    text: "Questions about presenting a home editorially are welcome; send one and we will reply. Owners and agents can submit an existing California, New York or Florida home for review as well.",
     primary: "contact",
     secondary: "submit",
   },

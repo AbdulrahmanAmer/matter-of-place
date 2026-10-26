@@ -62,7 +62,7 @@ export const howToMarketALuxuryListing: SeoPageContent = {
           ],
         },
         { h3: "Where Matter of Place fits" },
-        "We present selected existing homes in California, New York and Florida as editorial pages. Submission is free and we reply either way. If a property is selected, you choose a plan on the [Property Exposure](/exposure) page; if it is not, nothing is charged, and payment does not override selection. Packages sold as one price are discussed in [luxury real estate marketing packages](/guides/luxury-real-estate-marketing-packages).",
+        "Matter of Place features selected existing homes in California, New York and Florida, each as an editorial page of its own. Submission is free and we reply either way. Once a property is selected you pick a plan on the [Property Exposure](/exposure) page; a property that is not selected costs nothing, and payment does not override selection. Packages sold as one price are discussed in [luxury real estate marketing packages](/guides/luxury-real-estate-marketing-packages).",
       ],
     },
     {
@@ -98,11 +98,11 @@ export const howToMarketALuxuryListing: SeoPageContent = {
     },
     {
       q: "Is a sponsored feature worth it?",
-      a: "It can be for a home with a real story, placed before readers who look for it. It is not a substitute for sound pricing and photography, and it cannot promise a sale.",
+      a: "Sometimes: when the home has a real story and the readers are the kind who look for it. It does not replace sound pricing and photography, and it cannot promise a sale.",
     },
     {
       q: "Will Matter of Place sell my listing?",
-      a: "No. We are not a brokerage and represent no one in a sale. We can consider the home for an editorial feature, and every property credits its representative.",
+      a: "No. We are not a brokerage and cannot sell a listing for you. We can consider the home for an editorial feature, and its page names your agent.",
     },
     {
       q: "Do you promise leads or buyers?",
@@ -127,7 +127,7 @@ export const howToMarketALuxuryListing: SeoPageContent = {
   ],
   cta: {
     heading: "Next step",
-    text: "If a question here is yours, send it and we will answer it. If you own or represent an existing home in California, New York or Florida, you can also submit it for review.",
+    text: "If you are weighing how to market a listing and want a second view, send your question and we will answer it. If the home is existing and sits in California, New York or Florida, it can also be submitted for review.",
     primary: "contact",
     secondary: "submit",
   },

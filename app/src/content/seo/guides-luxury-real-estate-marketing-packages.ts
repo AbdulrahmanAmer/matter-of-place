@@ -41,7 +41,7 @@ export const luxuryRealEstateMarketingPackages: SeoPageContent = {
         { h3: "Whether selection is part of it" },
         "Most packages are sold to anyone who pays. An editorial publication chooses first. That difference changes what a reader makes of the result, and it is the difference between advertising and editorial coverage. Our page on [editorial real estate marketing](/guides/editorial-real-estate-marketing) explains it.",
         { h3: "Matter of Place's plans" },
-        "Matter of Place is an editorial platform. A home is submitted for free and read against our editorial standard, which does not include price. If it is accepted, the owner or agent chooses a plan. If it is not accepted, nothing is charged, and with Five Features a declined property does not use a credit. Payment does not override selection. The plans, as they appear in the site's code, are these.",
+        "Matter of Place is an editorial platform. A home is sent in for free and read against our editorial standard, which leaves price out. If it is accepted, the owner or agent chooses a plan. If it is not accepted, nothing is charged, and with Five Features a declined property does not use a credit. Payment does not override selection. The plans, as listed on Property Exposure, are these.",
         {
           list: [
             "The Feature, for editorial presence: a dedicated property page, an edited narrative, architecture, design and location context, curated image sequencing, a social carousel, agent or brokerage attribution, direct inquiry routing, a permanent address that search engines can index, and placement in the California, New York or Florida collection.",
@@ -101,7 +101,7 @@ export const luxuryRealEstateMarketingPackages: SeoPageContent = {
     },
     {
       q: "Does paying decide whether my home is featured?",
-      a: "No. Every property is read against the same editorial standard, and payment does not override selection.",
+      a: "No. A property is read against the editorial standard first, and no payment can alter the result.",
     },
     {
       q: "Is paid media included in the plans?",
@@ -126,7 +126,7 @@ export const luxuryRealEstateMarketingPackages: SeoPageContent = {
   ],
   cta: {
     heading: "Next step",
-    text: "If a question here is yours, send it and we will answer it. If you own or represent a home in California, New York or Florida, you can also submit it for review.",
+    text: "If a package question is yours, send it and we will answer it. Owners and agents in California, New York or Florida can also put a home forward for review.",
     primary: "contact",
     secondary: "submit",
   },

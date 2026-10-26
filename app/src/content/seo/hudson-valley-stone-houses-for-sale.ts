@@ -11,14 +11,14 @@ export const hudsonValleyStoneHousesForSale: SeoPageContent = {
   description:
     "What a Hudson Valley stone house is, what owners and buyers should ask about the masonry, and how Matter of Place features stone houses in New York.",
   eyebrow: "STONE HOUSES · HUDSON VALLEY",
-  lede: "Hudson Valley stone houses for sale are existing houses in the river counties of New York whose walls are laid in local stone: fieldstone, limestone or cut blocks, many of them standing since the colonial period. Stone sets these houses apart. Thick walls, small deep windows and the colour of the masonry tell a reader how and when a house was made. This page is a guide to that kind of house: what to look at, what owners and buyers should ask, and how Matter of Place presents one.",
+  lede: "Hudson Valley stone houses for sale are existing houses in the river counties of New York whose walls are laid in local stone: fieldstone, limestone or cut blocks, many of them standing since the colonial period. Stone sets these houses apart. Thick walls, small deep windows and the color of the masonry tell a reader how and when a house was made. Below are the things to look at in the walls, the questions owners and buyers should put, and the way Matter of Place presents a stone house.",
   sections: [
     {
       heading: "Why work with Matter of Place in Hudson Valley",
       body: [
-        "Matter of Place is an editorial platform for exceptional existing homes in California, New York and Florida. The Hudson Valley is part of New York, one of the three. We are not a brokerage. We list no house on this page, and we represent no one in a sale.",
+        "Matter of Place is an editorial platform. The Hudson Valley lies in New York, one of the three states we cover, and we are a publisher and not a brokerage: no house is listed on this page and no one is represented in a sale.",
         "A stone house is a good subject for an editor because the material carries the story. The stone came from the ground nearby, the walls were laid by hand, and the marks of that work are still visible: the size of the courses, the width of a window reveal, the change in the wall where a later owner added a wing. Dutch and Huguenot settlers built in stone along the river and its tributaries, and later builders kept the tradition going or revived it.",
-        "We read every house against one standard: architecture, design, originality, materiality, setting, history, craft and sense of place. Stone speaks to materiality and craft directly. Price is not on the list.",
+        "Each house is weighed on the same terms, among them materiality and craft, which stone speaks to directly, along with architecture, design, originality, setting, history and sense of place. Price is not one of the terms.",
         { h3: "Kinds of stone house a reader may meet" },
         {
           list: [
@@ -32,8 +32,8 @@ export const hudsonValleyStoneHousesForSale: SeoPageContent = {
     {
       heading: "How we help in Hudson Valley",
       body: [
-        "A stone house reaches us because an owner or a listing agent submits it, or because we find it. The path is the same for every property: submission, editorial review, acceptance, exposure, publication and distribution.",
-        "If the house is selected, we research it, write its story and choose the photographs. Specifications come from the listing; history comes from our research. The result is a page for the house with a permanent address, a social carousel, a place in the New York collection and the agent or brokerage credited by name. Inquiries go to the representative directly.",
+        "An owner or listing agent can send us a stone house, or we may find one. Whatever its age, it goes through the same six stages: submission, editorial review, acceptance, exposure, publication and distribution.",
+        "A selected stone house is researched and written up by us, with photographs we choose and specifications from the listing. The result is a page at a permanent address, a social carousel, a place in the New York collection and a credit to the agent or brokerage, who receives the inquiries. The plan is paid for after acceptance, and payment does not decide selection.",
         { h3: "What owners and agents can prepare" },
         {
           list: [
@@ -52,39 +52,39 @@ export const hudsonValleyStoneHousesForSale: SeoPageContent = {
             "Who looked at the house. An inspector who knows old masonry will see what a general checklist does not.",
           ],
         },
-        "Federal law requires sellers of homes built before 1978 to disclose what they know about lead-based paint, and New York adds its own disclosure rules. Our guide to [national register historic homes for sale](/historic-homes-for-sale) explains the designations a stone house may carry.",
+        "A stone house built before 1978 carries the federal duty to disclose known lead-based paint, and New York adds disclosure rules of its own. Our guide to [historic homes for sale](/historic-homes-for-sale) explains the designations a stone house may carry.",
       ],
     },
     {
-      heading: "Hudson Valley market and neighbourhood facts",
+      heading: "Hudson Valley market and neighborhood facts",
       body: [
-        "We quote no median price, no count of stone houses and no days on market here. We hold no figure for the region that we can source and date, and an unsourced number is worse than none. A local agent can give current figures for a town, and county records show what a given parcel has sold for.",
-        "What we can say concerns the place. The Hudson Valley follows the Hudson River north from the New York City area toward Albany, and definitions of the region vary. River counties such as Dutchess, Ulster, Columbia, Orange and Greene are usually included, and Ulster County is well known for its early stone houses.",
-        "Two places show the tradition in public view. Kingston has a historic Stockade district with stone houses from the colonial period, and New Paltz has Huguenot Street, a row of preserved stone houses from the late seventeenth and eighteenth centuries. A house of this kind that stands apart, on a farm road or above a creek, is read differently, and we write each one for where it stands.",
-        "The same reading applies in the other two states: see our notes on [modern homes for sale south florida](/modern-homes-for-sale-south-florida) and [modernist homes for sale california](/modernist-homes-for-sale-california).",
+        "We give no median price, no tally of stone houses and no days on market. A regional number without a dated source would only mislead, so ask a local agent for the figures of a town and read the county records for the sale history of a parcel.",
+        "The valley runs north along the Hudson River from the edge of the New York City area toward Albany; where it begins and ends is argued, and we draw no line. Ulster County is well known for its early stone houses, and Dutchess, Columbia, Orange and Greene are often counted with it.",
+        "The tradition is on public view in two places. Huguenot Street in New Paltz keeps stone houses from the early eighteenth century, and the Stockade district of Kingston keeps stone buildings of the colonial years. A stone house that stands apart, on a farm road or above a creek, is read differently, so its page is written around its setting.",
+        "The other two states get the same reading: see [modern homes for sale south florida](/modern-homes-for-sale-south-florida) and [modernist homes for sale california](/modernist-homes-for-sale-california).",
       ],
     },
     {
       heading: "What it costs",
       body: [
-        "Submission is free, and we reply either way. A no is not a verdict on the home.",
-        "Exposure products apply only after a property is accepted. The plans and what each one adds are on the [Property Exposure](/exposure) page. Paid media budgets are separate from the editorial product fees.",
-        "Payment does not decide selection. If a property is not accepted, nothing is charged. We do not promise leads, buyers or a sale.",
+        "There is no charge to submit a stone house, and we write back either way. A decline says nothing against the house.",
+        "Plans apply only after acceptance. Their contents are on the [Property Exposure](/exposure) page, and paid media budgets are billed apart from the plan fees.",
+        "Selection never depends on payment, and a stone house that is not accepted is not charged. No plan promises leads, buyers or a sale.",
       ],
     },
   ],
   faq: [
     {
       q: "What are Hudson Valley stone houses for sale?",
-      a: "Existing houses in the river counties of New York built or faced in local stone, many from the colonial period and some much later. Matter of Place lists no house for sale on this page. It explains the kind and presents selected homes as editorial features.",
+      a: "Existing houses in the river counties of New York built or faced in local stone, many from the colonial period and some much later. Stone houses are not for sale through this page. It explains the kind, and the ones we select appear as editorial features.",
     },
     {
       q: "Does Matter of Place sell stone houses?",
-      a: "No. We are not a brokerage and we represent no one in a sale. Every property credits its representative, and inquiries go to them directly.",
+      a: "No. We publish and do not broker, so a stone house is sold, if at all, by its own agent. Its page names that agent, and inquiries go to them.",
     },
     {
       q: "How do I submit a stone house?",
-      a: "Use the Submit a Property form. Send the address, the story of the house and what you know of its walls and its record. Submission is free, and we reply either way.",
+      a: "Complete the Submit a Property form with the address, the story of the house and what you know of its walls and its record. It costs nothing, and we reply either way.",
     },
     {
       q: "Does a stone house need special care?",
@@ -92,11 +92,11 @@ export const hudsonValleyStoneHousesForSale: SeoPageContent = {
     },
     {
       q: "Does paying guarantee that a home is featured?",
-      a: "No. Every property is subject to the Matter of Place editorial standard. A property that is not accepted is not charged.",
+      a: "No. A stone house is read against the editorial standard first, and a house that is not accepted is not charged.",
     },
   ],
   related: [
-    { to: "/", anchor: "matter place" },
+    { to: "/", anchor: "matter of place" },
     {
       to: "/modern-homes-for-sale-south-florida",
       anchor: "modern homes for sale south florida",
@@ -105,10 +105,7 @@ export const hudsonValleyStoneHousesForSale: SeoPageContent = {
       to: "/modernist-homes-for-sale-california",
       anchor: "modernist homes for sale california",
     },
-    {
-      to: "/historic-homes-for-sale",
-      anchor: "national register historic homes for sale",
-    },
+    { to: "/historic-homes-for-sale", anchor: "historic homes for sale" },
     {
       to: "/architect-designed-homes-for-sale",
       anchor: "houses for sale by famous architects",
@@ -116,7 +113,7 @@ export const hudsonValleyStoneHousesForSale: SeoPageContent = {
   ],
   cta: {
     heading: "Talk to Matter of Place",
-    text: "If you own or represent a stone house in the Hudson Valley, submit it for review. Submission is free and we reply either way. If you are reading for the pleasure of it, Place Notes sends selected properties and stories.",
+    text: "If you own or represent a stone house in the Hudson Valley, send it to us for review. It costs nothing to submit, and the answer comes either way. Readers can join Place Notes for selected properties and stories.",
     primary: "submit",
     secondary: "notes",
   },

@@ -11,14 +11,14 @@ export const architectDesignedHomesForSale: SeoPageContent = {
   description:
     "What architect designed homes are, how to read their record, and how Matter of Place features them in California, New York and Florida.",
   eyebrow: "ARCHITECT DESIGNED HOMES",
-  lede: "Architect designed homes for sale are existing houses drawn by a named architect for a client, as against a house built from a stock plan. Some are by famous architects, some by regional practitioners whose work is well documented, and some by an architect known in one town. This page is a guide to that kind of home in California, New York and Florida: what the words mean, what owners and buyers should know, and how Matter of Place presents such a house.",
+  lede: "Architect designed homes for sale are existing houses drawn by a named architect for a client, as against a house built from a stock plan. Some are by famous architects, some by regional practitioners whose work is well documented, and some by an architect known in one town. The guide below covers what the terms mean, what an owner or buyer should ask about the record, and how Matter of Place presents such a house in California, New York and Florida.",
   sections: [
     {
       heading: "How it works",
       body: [
-        "Matter of Place is an editorial platform, not a brokerage. We do not list houses on this page and we do not represent anyone in a sale. An architect designed home reaches us because an owner or a listing agent submits it, or because we find it. We read it against our editorial standard, where architecture, materiality, craft, setting and history sit together.",
-        "If the house is selected, we research it, write its story and choose the photographs. Specifications come from the listing; the story of the house comes from our research and from the record. If the house is not selected, nothing is charged, and the answer is not a verdict on the home.",
-        "The path is the same for every property: submission, editorial review, acceptance, publication and distribution.",
+        "Matter of Place is an editorial platform. We sell no house and represent no one in a sale, so nothing on this page is a listing. A house drawn by an architect comes to us from its owner or listing agent, or we find it, and our editors read it first for the design itself: the idea, the materials, the craft and the way it sits on its land.",
+        "When a house is selected we research the commission, write the story and pick the photographs, taking the specifications from the listing and the story from the record. When it is not selected there is no charge, and the answer is no verdict on the home.",
+        "Seen as a sequence, the path for an architect designed house is submission, editorial review, acceptance, exposure, publication and distribution. Exposure, the fourth step, is where the owner or agent chooses a plan.",
         { h3: "Designed, significant, famous" },
         {
           list: [
@@ -33,7 +33,7 @@ export const architectDesignedHomesForSale: SeoPageContent = {
           list: [
             "Owners: gather the record before anything else. The architect's drawings, the contract, permits, correspondence and early photographs make the attribution something a reader can check. Architects' papers are often held in university or museum collections, and a letter to the archive is a good first step.",
             "Buyers: ask who designed the house and how that is known. Ask which designation applies, if any, and what it asks of an owner. Ask for the record of work on the roof, the structure, the heating, the wiring and the plumbing, and for what has been changed from the original plan.",
-            "Both: federal law requires sellers of homes built before 1978 to disclose what they know about lead-based paint, and each state adds its own disclosure rules.",
+            "Both: a house built before 1978 comes with the federal duty to disclose known lead-based paint, and each state adds disclosure rules too.",
           ],
         },
       ],
@@ -41,34 +41,34 @@ export const architectDesignedHomesForSale: SeoPageContent = {
     {
       heading: "What you get",
       body: [
-        "For an owner or an agent, a Matter of Place feature is an editorial page for the house, written for readers who care about how a home was made and by whom. It is not an advertisement and it does not promise a result.",
+        "An architect designed house is presented as an editorial page for readers interested in who drew a home and how. Its owner or agent pays for the feature after selection, and that payment plays no part in the choice.",
         {
           list: [
-            "A dedicated page for the property with a permanent address that search engines can index.",
-            "An edited narrative: the house, its architect, its architecture and its setting.",
-            "Photographs chosen and sequenced for the house.",
-            "A social carousel made from the feature.",
-            "The agent or brokerage credited by name, with inquiries routed to them directly.",
-            "A place in the California, New York or Florida collection.",
+            "A permanent page for the house that search engines can index.",
+            "An edited narrative about the architect, the commission, the architecture and the setting.",
+            "Photographs chosen and sequenced to show the design.",
+            "A social carousel drawn from the feature.",
+            "Credit to the agent or brokerage, with inquiries passed to them directly.",
+            "A place in the collection for its state.",
           ],
         },
-        "The plans and what each one adds are on the [Property Exposure](/exposure) page. Payment does not decide selection, and we do not promise leads, buyers or a sale.",
-        "For readers: Place Notes sends selected properties and stories when there is something worth sending. Reading about a house here is not an offer, and an inquiry goes to the representative named on the property. The [design focused homes for sale newsletter](/design-focused-homes-for-sale-newsletter) page tells more.",
+        "The [Property Exposure](/exposure) page lists each plan and what it adds. A plan is chosen after acceptance, never before, and none of them promises leads, buyers or a sale.",
+        "Place Notes, our newsletter, is open to readers who like this kind of house, and it goes out when there is something worth sending. A page here is not an offer, and an inquiry goes to the representative it names. The [design focused homes for sale newsletter](/design-focused-homes-for-sale-newsletter) page tells more.",
       ],
     },
     {
       heading: "Proof: reviews and results",
       body: [
-        "There are no client reviews on this page, and none will be written for it. We make no claim about leads, buyers or sales. What we can show is how a home is chosen.",
-        "Every property is read against the same list: architecture, design, originality, materiality, setting, history, craft and sense of place. Price is not on the list, and neither is a famous name. A thoughtful house by a little known architect may deserve more attention than a generic one with a famous signature.",
-        "The full standard is set out on the [Editorial Standard](/editorial-standard) page.",
+        "No client reviews are published here and none will be written. The pages make no claim on leads, buyers or sales. The thing we can show is how an architect designed house is chosen.",
+        "The standard is the same for every house, and it asks about design, architecture, originality, materiality, setting, history, craft and sense of place. A famous name does not count toward it, and neither does price. A thoughtful house by a little known architect may deserve more attention than a generic one with a famous signature.",
+        "Read the whole standard on the [Editorial Standard](/editorial-standard) page.",
       ],
     },
   ],
   faq: [
     {
       q: "What are architect designed homes for sale?",
-      a: "Existing houses drawn by a named architect for a client, as against houses built from stock plans. Matter of Place does not list houses for sale on this page. It explains the kind and presents selected homes as editorial features.",
+      a: "Existing houses drawn by a named architect for a client, as against houses built from stock plans. None is listed for sale here. The page sets out what the term means, and houses we select are written up as editorial features.",
     },
     {
       q: "What are architecturally significant homes for sale?",
@@ -76,7 +76,7 @@ export const architectDesignedHomesForSale: SeoPageContent = {
     },
     {
       q: "How do I find houses for sale by famous architects?",
-      a: "Start with the record. An architect's published list of works, a state or local survey of historic places and a university archive show where a house stands and how its attribution is known. Matter of Place does not list houses for sale on this page; a selected home is presented as a feature, and inquiries go to its representative.",
+      a: "Start with the record. An architect's published list of works, a state or local survey of historic places and a university archive show where a house stands and how its attribution is known. We list no house for sale. A house we select is presented as a feature, and inquiries go to its representative.",
     },
     {
       q: "Does a famous architect make a better house?",
@@ -84,15 +84,15 @@ export const architectDesignedHomesForSale: SeoPageContent = {
     },
     {
       q: "Does Matter of Place sell architect designed homes?",
-      a: "No. We are not a brokerage and we represent no one in a sale. Every property credits its representative, and inquiries go to them directly.",
+      a: "No. We are not a brokerage; if an architect designed house is on the market, its own agent handles the sale, and the page directs inquiries there.",
     },
     {
       q: "Does paying guarantee that a home is featured?",
-      a: "No. Every property is subject to the Matter of Place editorial standard. A property that is not accepted is not charged.",
+      a: "No. The editorial standard comes first. A house is read against it before any plan is discussed, and one that is not accepted is not charged.",
     },
     {
       q: "Which states do you cover?",
-      a: "California, New York and Florida only, and only existing residential property.",
+      a: "California, New York and Florida, and existing houses only.",
     },
   ],
   related: [
@@ -110,7 +110,7 @@ export const architectDesignedHomesForSale: SeoPageContent = {
   ],
   cta: {
     heading: "Get started",
-    text: "If you own or represent an architect designed home in California, New York or Florida, submit it for review. Submission is free and we reply either way. If you are reading for the pleasure of it, Place Notes sends selected properties and stories.",
+    text: "If you own or represent a house drawn by an architect in California, New York or Florida, you can submit it for review. Submission costs nothing and we answer every one. Readers who would rather follow along can join Place Notes.",
     primary: "submit",
     secondary: "notes",
   },

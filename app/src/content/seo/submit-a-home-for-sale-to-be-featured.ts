@@ -16,7 +16,7 @@ export const submitAHomeForSaleToBeFeatured: SeoPageContent = {
     {
       heading: "How it works",
       body: [
-        "Matter of Place is an editorial platform, not a brokerage. We feature selected existing homes in California, New York and Florida, and a property is submitted as work is submitted to a publication. These are the stages every property follows.",
+        "Matter of Place is an editorial platform and no brokerage. It features selected existing homes in California, New York and Florida, and a property is sent in much as work is sent to a magazine. Every property moves through the same stages.",
         {
           steps: [
             "Submission: you send the property and its story through the form.",
@@ -40,32 +40,32 @@ export const submitAHomeForSaleToBeFeatured: SeoPageContent = {
         },
         "Before you send it, gather the record: deeds, drawings, permits, earlier photographs and anything that shows who made the house and when. Specifications come from the listing; history comes from our research, so the more you can show, the more accurate the page will be.",
         { h3: "What we look for" },
-        "A reason to stop: a named architect, a considered interior, a house true to its place. We read each home for architecture, design, originality, materiality, setting, history, craft and sense of place. Price is not on the list. Not every property in California, New York or Florida qualifies, and we do not cover new developments.",
+        "A reason to stop: a named architect, a considered interior, a house true to its place. We read each home for setting, craft, history, design, architecture, originality, materiality and sense of place. Price does not enter into it. Not every property in California, New York or Florida qualifies, and we do not cover new developments.",
       ],
     },
     {
       heading: "What you get",
       body: [
-        "A submission gets a reply. If the home is selected, a Matter of Place feature is an editorial page for the house, written for readers who care about where a home stands and how it was made. It is not an advertisement and it does not promise a result.",
+        "A submission gets a reply. If the home is selected, the result is an editorial page about the house and the ground it stands on, written for a reader who wants more than a listing. The owner or agent pays for a feature, but only after the home is selected; payment does not decide selection, and a feature promises no result.",
         {
           list: [
-            "A dedicated page for the property with a permanent address that search engines can index.",
-            "An edited narrative: the house, its history, its architecture and its setting.",
-            "Photographs chosen and sequenced for the house.",
+            "A dedicated page for the property, at a permanent address that search engines can index.",
+            "An edited narrative covering the house, its story, its architecture and its setting.",
+            "Photographs chosen and sequenced for the home.",
             "A social carousel made from the feature.",
-            "The agent or brokerage credited by name, with inquiries routed to them directly.",
+            "The agent or brokerage is named, and inquiries are routed to them.",
             "A place in the California, New York or Florida collection.",
           ],
         },
         "Larger plans carry the story further through Place Notes, our newsletter, through more social distribution and through paid media planning. The plans and what each one adds are on the [Property Exposure](/exposure) page. Paid media budgets are separate from the editorial product fees, and sensitive details of a property can be handled discreetly where appropriate.",
-        "Payment does not decide selection. We do not promise leads, buyers or a sale, and a decline is not a verdict on the home.",
+        "We promise no leads, buyers or sale, and a decline is not a verdict on the home.",
       ],
     },
     {
       heading: "Proof: reviews and results",
       body: [
-        "There are no client reviews on this page, and none will be written for it. We make no claim about leads, buyers or sales, and we quote no count of homes featured because we have no figure here that we can source and date. What we can show is how a home is chosen.",
-        "Every property is read against the same list. A thoughtful two million dollar house may deserve more attention than a generic twenty million dollar one. The full standard is set out on the [Editorial Standard](/editorial-standard) page.",
+        "No reviews from clients are shown on this page, and none will be written. It makes no claim about leads, buyers or sales, and it gives no count of homes featured, since we hold no figure we could source and date. What we can show is how a home is chosen.",
+        "Every property is read against the same eight qualities, and price is not one of them. The [Editorial Standard](/editorial-standard) page sets them out.",
         "Examples of what the standard looks for are in our collections on [homes with history for sale](/historic-homes-for-sale), [mid century modern homes](/mid-century-modern-homes) and [architecturally significant homes for sale](/architect-designed-homes-for-sale).",
       ],
     },
@@ -89,7 +89,7 @@ export const submitAHomeForSaleToBeFeatured: SeoPageContent = {
     },
     {
       q: "Does Matter of Place sell homes or represent sellers?",
-      a: "No. We are not a brokerage and we represent no one in a sale. Every property credits its representative, and inquiries go to them directly.",
+      a: "No. We are not a brokerage and we act for neither seller nor buyer. Each property credits the representative who handles it, and inquiries go to that person.",
     },
     {
       q: "Where must the home be?",
@@ -101,7 +101,7 @@ export const submitAHomeForSaleToBeFeatured: SeoPageContent = {
     },
   ],
   related: [
-    { to: "/", anchor: "matter place" },
+    { to: "/", anchor: "matter of place" },
     { to: "/mid-century-modern-homes", anchor: "mid century modern homes" },
     { to: "/historic-homes-for-sale", anchor: "homes with history for sale" },
     {
@@ -115,7 +115,7 @@ export const submitAHomeForSaleToBeFeatured: SeoPageContent = {
   ],
   cta: {
     heading: "Get started",
-    text: "If you own or represent a home in California, New York or Florida, submit it for review. Submission is free and we reply either way. If you would rather read first, Place Notes sends selected properties and stories.",
+    text: "Use the Submit a Property form to put forward a home in California, New York or Florida, as owner or agent; it costs nothing and we reply to every submission. If you would rather read first, Place Notes sends selected properties and stories.",
     primary: "submit",
     secondary: "notes",
   },

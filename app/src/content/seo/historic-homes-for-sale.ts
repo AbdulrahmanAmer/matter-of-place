@@ -11,19 +11,19 @@ export const historicHomesForSale: SeoPageContent = {
   description:
     "What makes a home historic, what owners and buyers should know, and how Matter of Place features historic homes in California, New York and Florida.",
   eyebrow: "HISTORIC HOMES",
-  lede: "Historic homes for sale are existing houses whose age, builder or past gives them a place in the story of their town or their country. Some are listed on the National Register of Historic Places, some stand in a local historic district, and some carry a documented history with no formal listing at all. This page is a guide to that kind of home in California, New York and Florida: what the words mean, what owners and buyers should know, and how Matter of Place presents such a house.",
+  lede: "Historic homes for sale are existing houses whose age, builder or past gives them a place in the story of their town or their country. Some are listed on the National Register of Historic Places, some stand in a local historic district, and some carry a documented history with no formal listing at all. Read on for what the terms mean in California, New York and Florida, what owners and buyers should know, and the way Matter of Place presents a historic house.",
   sections: [
     {
       heading: "How it works",
       body: [
-        "Matter of Place is an editorial platform, not a brokerage. We do not list houses on this page and we do not represent anyone in a sale. A historic home reaches us because an owner or a listing agent submits it, or because we find it. We read it against our editorial standard, where history sits beside architecture, materiality, craft and setting.",
-        "If the house is selected, we research it, write its story and choose the photographs. Specifications come from the listing; history comes from our research. If the house is not selected, nothing is charged, and the answer is not a verdict on the home.",
-        "The path is the same for every property: submission, editorial review, acceptance, publication and distribution.",
+        "Matter of Place is an editorial platform, and no house described here can be bought through us. We act for no seller and no buyer. A historic house arrives when its owner or listing agent sends it in, or when our editors come across it, and we read it for its past first, then for the architecture, materials, craft and setting that carry that past.",
+        "A selected house is researched and written up by us, and we choose its photographs. The listing supplies the specifications and our research supplies the history. A house we do not select is not charged for, and that answer says nothing against the home itself.",
+        "In order, a historic house goes through submission, editorial review, acceptance, exposure, publication and distribution. Exposure is the step where the owner or agent picks a plan, and it comes only after acceptance.",
         { h3: "What historic can mean" },
         {
           list: [
             "National Register of Historic Places: the federal list of places worth preserving, kept by the National Park Service. A listing recognizes a property. On its own it does not restrict what a private owner does with private funds.",
-            "Local landmark or historic district: a designation made by a city or a county. It often brings review of exterior changes, and the rules differ from one place to the next.",
+            "Local landmark or historic district: a designation made by a city or a county. It often means review of changes to the outside, and the rules differ from one place to the next.",
             "A documented history without a listing: a house with a known architect, family or event that carries no formal designation. A house can be historic in this sense and stand outside every register.",
           ],
         },
@@ -31,8 +31,8 @@ export const historicHomesForSale: SeoPageContent = {
         {
           list: [
             "Owners: gather the record before anything else. Deeds, permits, drawings, surveys, earlier photographs and any letter of designation make a history something a reader can check.",
-            "Buyers: ask which designation applies and what it asks of an owner before the house is chosen. Ask for the record of work on the roof, wiring, plumbing and heating.",
-            "Both: federal law requires sellers of homes built before 1978 to disclose what they know about lead-based paint, and each state adds its own disclosure rules. Our guide on [how to sell a historic home](/guides/how-to-sell-a-historic-home) sets out the order of work.",
+            "Buyers: find out which designation applies and what it would ask of you before the house is chosen. Ask for the record of work on the roof, wiring, plumbing and heating.",
+            "Both: for a house built before 1978, federal law makes the seller disclose known lead-based paint, and every state adds disclosure rules of its own. Our guide on [how to sell a historic home](/guides/how-to-sell-a-historic-home) sets out the order of work.",
           ],
         },
       ],
@@ -40,25 +40,25 @@ export const historicHomesForSale: SeoPageContent = {
     {
       heading: "What you get",
       body: [
-        "For an owner or an agent, a Matter of Place feature is an editorial page for the house, written for readers who care about where a home stands and how it was made. It is not an advertisement and it does not promise a result.",
+        "A feature on a historic house is an editorial page for readers who care about where a home stands and what its past was. The owner or agent pays for a feature, and only after the house has been selected.",
         {
           list: [
-            "A dedicated page for the property with a permanent address that search engines can index.",
-            "An edited narrative: the house, its history, its architecture and its setting.",
-            "Photographs chosen and sequenced for the house.",
+            "A page of its own for the house, at a permanent address that search engines can index.",
+            "An edited narrative that puts the history first, then the architecture and the setting.",
+            "Photographs chosen and sequenced to show what has survived of the original house.",
             "A social carousel made from the feature.",
-            "The agent or brokerage credited by name, with inquiries routed to them directly.",
+            "Credit to the agent or brokerage by name, with inquiries sent straight to them.",
             "A place in the California, New York or Florida collection.",
           ],
         },
-        "The plans and what each one adds are on the [Property Exposure](/exposure) page. Payment does not decide selection, and we do not promise leads, buyers or a sale.",
-        "For readers: Place Notes sends selected properties and stories when there is something worth sending. Reading about a house here is not an offer, and an inquiry goes to the representative named on the property.",
+        "Each plan and what it adds is listed on the [Property Exposure](/exposure) page. Paying for a plan never decides selection, and no plan promises leads, buyers or a sale.",
+        "Readers can follow selected houses through Place Notes, which goes out only when a house or story merits it. A house described in a note is not an offer, and inquiries go to the representative named on its page.",
       ],
     },
     {
       heading: "Proof: reviews and results",
       body: [
-        "There are no client reviews on this page, and none will be written for it. We make no claim about leads, buyers or sales. What we can show is how a home is chosen.",
+        "This page carries no client reviews and no results, because none exist for it and we would not write them. Leads, buyers and sales are not claimed anywhere on it. What we can show is how a historic house is chosen.",
         "Every property is read against the same list: architecture, design, originality, materiality, setting, history, craft and sense of place. Price is not on the list. A thoughtful two million dollar house may deserve more attention than a generic twenty million dollar one.",
         "The full standard is set out on the [Editorial Standard](/editorial-standard) page.",
       ],
@@ -67,7 +67,7 @@ export const historicHomesForSale: SeoPageContent = {
   faq: [
     {
       q: "What are historic homes for sale?",
-      a: "Existing houses whose age, architecture or past gives them a recorded place in the story of their town, whether or not they carry a formal listing. Matter of Place does not list houses for sale on this page. It explains the kind and presents selected homes as editorial features.",
+      a: "Existing houses whose age, architecture or past gives them a recorded place in the story of their town, whether or not they carry a formal listing. Nothing on this page is for sale. It describes the kind, and the houses we select are shown as editorial features.",
     },
     {
       q: "What do homes with history for sale have in common?",
@@ -79,15 +79,15 @@ export const historicHomesForSale: SeoPageContent = {
     },
     {
       q: "Does Matter of Place sell historic homes?",
-      a: "No. We are not a brokerage and we represent no one in a sale. Every property credits its representative, and inquiries go to them directly.",
+      a: "No. We are not a brokerage and act for no one in a sale. Each historic house credits its own representative, and inquiries go to that person.",
     },
     {
       q: "Does paying guarantee that a home is featured?",
-      a: "No. Every property is subject to the Matter of Place editorial standard. A property that is not accepted is not charged.",
+      a: "No. A historic house has to meet the editorial standard before a plan is even discussed, and one that is declined is not charged.",
     },
     {
       q: "Which states do you cover?",
-      a: "California, New York and Florida only, and only existing residential property.",
+      a: "California, New York and Florida, and only houses that already exist.",
     },
   ],
   related: [

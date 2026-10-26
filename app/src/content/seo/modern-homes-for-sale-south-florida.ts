@@ -11,14 +11,14 @@ export const modernHomesForSaleSouthFlorida: SeoPageContent = {
   description:
     "What a modern house in South Florida is, what owners and buyers should ask about climate and water, and how Matter of Place features such homes.",
   eyebrow: "MODERN HOMES · SOUTH FLORIDA",
-  lede: "Modern homes for sale South Florida covers existing houses in and around Miami, Fort Lauderdale and Palm Beach that were drawn in the language of modern architecture: flat or low roofs, deep shade, long openings to garden and water, and materials chosen for the climate. Some date from the postwar decades, when architects worked out a modern way of living in the tropics, and some are recent. This page is a guide to that kind of house: what to look at, what owners and buyers should ask, and how Matter of Place presents one.",
+  lede: "Modern homes for sale in South Florida are existing houses in and around Miami, Fort Lauderdale and Palm Beach that were drawn in the language of modern architecture: flat or low roofs, deep shade, long openings to garden and water, and materials chosen for the climate. Some date from the postwar decades, when architects worked out a modern way of living in the tropics, and some are recent. Below are the things to look at, the questions about climate and water that owners and buyers should raise, and the way Matter of Place presents such a house.",
   sections: [
     {
       heading: "Why work with Matter of Place in South Florida",
       body: [
-        "Matter of Place is an editorial platform for exceptional existing homes in California, New York and Florida. South Florida is part of Florida, one of the three. We are not a brokerage. We list no house on this page, and we represent no one in a sale.",
+        "Matter of Place is an editorial platform that covers California, New York and Florida, and South Florida falls within Florida. We do not act as a brokerage, so no house is listed on this page and we represent no one in a sale.",
         "Modern architecture in South Florida was shaped by heat, light, storms and water. Architects used overhangs and screens to cast shade, concrete and terrazzo to stay cool, and open plans to let air pass. The postwar style of Miami and Miami Beach is often called Miami Modern, or MiMo, and it sits beside the work of designers who built private houses in a plainer, more domestic key. A modern house here is read as a response to a place, and that is how we write about it.",
-        "We read every house against one standard: architecture, design, originality, materiality, setting, history, craft and sense of place. A modern house can be new enough to have no history and still meet it, if the design is considered and true to its site. Price is not on the list. A modest house with a clear idea can deserve more attention than a larger one with none.",
+        "A single standard applies to every house we consider: sense of place, architecture, design, originality, materiality, setting, history and craft. A modern house can be too new to have a history and still meet it, if the design is considered and true to its site. Price plays no part. A modest house with a clear idea can deserve more attention than a larger one with none.",
         { h3: "What modern can mean here" },
         {
           list: [
@@ -32,8 +32,8 @@ export const modernHomesForSaleSouthFlorida: SeoPageContent = {
     {
       heading: "How we help in South Florida",
       body: [
-        "A modern house reaches us because an owner or a listing agent submits it, or because we find it. The path is the same for every property: submission, editorial review, acceptance, exposure, publication and distribution.",
-        "If the house is selected, we research it, write its story and choose the photographs. Specifications come from the listing; history comes from our research. The result is an editorial page for the house with a permanent address, a social carousel, a place in the Florida collection and the agent or brokerage credited by name. Inquiries go to the representative directly.",
+        "A modern house reaches us from its owner or listing agent, or our editors find it. From there it moves through submission, editorial review, acceptance, exposure, publication and distribution, in that order.",
+        "When a house is selected we research it, write the story and pick the photographs, with the listing supplying the specifications. The result is a page of its own at a permanent address, a social carousel, a place in the Florida collection and a credit to the agent or brokerage. The owner or agent pays for the plan after acceptance, and payment has no part in selection.",
         { h3: "What owners and agents can prepare" },
         {
           list: [
@@ -47,45 +47,45 @@ export const modernHomesForSaleSouthFlorida: SeoPageContent = {
         {
           list: [
             "The flood zone and the flood history of the lot, and how the lowest floor stands against it.",
-            "The roof, the windows and the doors: their age and what protects them in a storm. Miami-Dade and Broward counties apply their own high-velocity hurricane zone rules to roofs and openings, so ask what approvals the openings carry.",
+            "The roof, the windows and the doors: their age and what protects them in a storm. The Florida Building Code's High-Velocity Hurricane Zone provisions apply in Miami-Dade and Broward, so ask what approvals the roof and the openings carry.",
             "Salt air and moisture: how the metal, the concrete and the finishes have held up.",
             "Insurance: how the house has been insured and what the insurer asked of it.",
             "Original features: terrazzo, jalousie windows, screen block and built-ins, and whether they survive or were replaced.",
           ],
         },
-        "Federal law requires sellers of homes built before 1978 to disclose what they know about lead-based paint, and Florida adds its own disclosure rules.",
+        "Sellers of homes built before 1978 must disclose known lead-based paint under federal law, and Florida requires further disclosures of its own.",
       ],
     },
     {
-      heading: "South Florida market and neighbourhood facts",
+      heading: "South Florida market and neighborhood facts",
       body: [
-        "We quote no median price and no days on market here. We hold no figure for the region that we can source and date, and a number without a source would tell a reader less than silence. A local agent can give current figures for a neighbourhood, and county records show what a given parcel has sold for.",
-        "What we can say concerns the place. South Florida usually means the counties of Miami-Dade, Broward and Palm Beach, along the Atlantic coast and the Intracoastal Waterway. Its modern houses stand on barrier islands, on canals and bays, in older city neighbourhoods and in quieter streets inland, and each setting asks a different thing of a house.",
-        "A house on a canal is read through its water and its dock. A house in an older neighbourhood is read through its street and its trees. A house by the ocean is read through its wind and its light. We write each one for where it stands.",
-        "The same reading applies in the other two states: see [hudson valley stone houses for sale](/hudson-valley-stone-houses-for-sale) in New York and [modernist homes for sale california](/modernist-homes-for-sale-california). For houses that carry a formal designation, our guide to [national register historic homes for sale](/historic-homes-for-sale) explains the terms.",
+        "We quote no median price or days on market for South Florida, since we hold no regional figure that we can source and date. A local agent can give current numbers for a neighborhood, and county records show the sale history of a given parcel.",
+        "What we can say concerns the place. South Florida usually means the counties of Miami-Dade, Broward and Palm Beach, along the Atlantic coast and the Intracoastal Waterway. Its modern houses stand on barrier islands, on canals and bays, in older city neighborhoods and in quieter streets inland, and each setting asks a different thing of a house.",
+        "A house on a canal is read through its water and its dock. A house in an older neighborhood is read through its street and its trees. A house by the ocean is read through its wind and its light. Each page is written around its setting.",
+        "Houses in the other two states are read the same way: see [hudson valley stone houses for sale](/hudson-valley-stone-houses-for-sale) in New York and [modernist homes for sale california](/modernist-homes-for-sale-california). For houses that carry a formal designation, our guide to [historic homes for sale](/historic-homes-for-sale) explains the terms.",
       ],
     },
     {
       heading: "What it costs",
       body: [
-        "Submission is free, and we reply either way. A no is not a verdict on the home.",
-        "Exposure products apply only after a property is accepted. The plans and what each one adds are on the [Property Exposure](/exposure) page. Paid media budgets are separate from the editorial product fees.",
-        "Payment does not decide selection. If a property is not accepted, nothing is charged. We do not promise leads, buyers or a sale.",
+        "Submitting costs nothing, and we answer each submission. A decline is not a judgment on the house.",
+        "Plans come into play only after a house is accepted. The [Property Exposure](/exposure) page shows what each one adds, and media spend for paid campaigns is budgeted separately from the plan fees.",
+        "Payment has no say in selection, and a house that is not accepted is not charged. We make no promise of leads, buyers or a sale.",
       ],
     },
   ],
   faq: [
     {
       q: "What are modern homes for sale in South Florida?",
-      a: "Existing houses in South Florida designed in the language of modern architecture, from the postwar decades to the present. Matter of Place lists no house for sale on this page. It explains the kind and presents selected homes as editorial features.",
+      a: "Existing houses in South Florida designed in the language of modern architecture, from the postwar decades to the present. No house is offered for sale on this page; it explains the kind, and the houses we select appear as editorial features.",
     },
     {
       q: "Does Matter of Place sell modern homes in South Florida?",
-      a: "No. We are not a brokerage and we represent no one in a sale. Every property credits its representative, and inquiries go to them directly.",
+      a: "No. We are not a brokerage, so a sale of a South Florida house goes through its own agent, who is credited on the page and receives the inquiries.",
     },
     {
       q: "How do I submit a modern home in South Florida?",
-      a: "Use the Submit a Property form. Send the address, the story of the house and what you know of its architect and its changes. Submission is free, and we reply either way.",
+      a: "Complete the Submit a Property form with the address, what you know of the architect and the changes made, and the story of the house. It costs nothing, and we reply either way.",
     },
     {
       q: "Do you feature new developments?",
@@ -93,7 +93,7 @@ export const modernHomesForSaleSouthFlorida: SeoPageContent = {
     },
     {
       q: "Does paying guarantee that a home is featured?",
-      a: "No. Every property is subject to the Matter of Place editorial standard. A property that is not accepted is not charged.",
+      a: "No. A modern house still has to meet the editorial standard, and one that is not accepted is not charged.",
     },
   ],
   related: [
@@ -107,14 +107,11 @@ export const modernHomesForSaleSouthFlorida: SeoPageContent = {
       anchor: "modernist homes for sale california",
     },
     { to: "/mid-century-modern-homes", anchor: "mid century modern house" },
-    {
-      to: "/historic-homes-for-sale",
-      anchor: "national register historic homes for sale",
-    },
+    { to: "/historic-homes-for-sale", anchor: "historic homes for sale" },
   ],
   cta: {
     heading: "Talk to Matter of Place",
-    text: "If you own or represent a modern home in South Florida, submit it for review. Submission is free and we reply either way. If you are reading for the pleasure of it, Place Notes sends selected properties and stories.",
+    text: "If you own or represent a modern house in South Florida, submitting it costs nothing and we answer either way. For reading, Place Notes carries selected houses and stories.",
     primary: "submit",
     secondary: "notes",
   },

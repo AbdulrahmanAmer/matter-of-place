@@ -103,7 +103,7 @@ export const houseOfTheDay: SeoPageContent = {
     },
   ],
   related: [
-    { to: "/", anchor: "matter place" },
+    { to: "/", anchor: "matter of place" },
     { to: "/guides/real-estate-marketing", anchor: "real estate marketing" },
     {
       to: "/guides/is-a-sponsored-real-estate-feature-worth-it",
@@ -116,7 +116,7 @@ export const houseOfTheDay: SeoPageContent = {
   ],
   cta: {
     heading: "Next step",
-    text: "If a question here is yours, send it and we will answer it. If you own or represent an existing home in California, New York or Florida, you can also submit it for review.",
+    text: "If you would like a view on preparing a home for a publication's editors, send a question and we will answer it. A home in California, New York or Florida that you own or represent can also be submitted for review.",
     primary: "contact",
     secondary: "submit",
   },

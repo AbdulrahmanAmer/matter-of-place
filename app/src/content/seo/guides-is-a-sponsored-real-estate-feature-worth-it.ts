@@ -35,9 +35,9 @@ export const isASponsoredRealEstateFeatureWorthIt: SeoPageContent = {
         { h3: "Whether it is selected or only bought" },
         "Some placements accept any payment. Others read each home against a standard first. A feature that anyone can buy tells readers little about the home, and readers know it. Ask how a property is chosen, and what happens if it is declined.",
         { h3: "Whether it is labeled" },
-        "Paid content should be clearly identified as such to the reader. The Federal Trade Commission expects advertising that looks like editorial to be recognizable as advertising. A publication that hides the arrangement puts your name next to a risk.",
+        "Paid content should be recognizable as paid. The Federal Trade Commission's guidance on native advertising rests on that idea, and a publication that hides the arrangement puts your name next to a risk. Ask how a paid feature is shown to readers, ours included.",
         { h3: "The audience" },
-        "A small, attentive readership can matter more than a large, indifferent one. Ask who reads the publication and in which states. Matter of Place covers California, New York and Florida, and only existing residential property.",
+        "A small, attentive readership can matter more than a large, indifferent one. Ask who reads the publication and in which states. For the record, ours is California, New York and Florida, and existing residential property only.",
         { h3: "What is left when it ends" },
         "A permanent, indexable page with a stable address keeps working after the campaign. A post that scrolls away does not. Ask which one you receive.",
         { h3: "The home" },
@@ -59,7 +59,7 @@ export const isASponsoredRealEstateFeatureWorthIt: SeoPageContent = {
           ],
         },
         { h3: "What Matter of Place does" },
-        "Submission to Matter of Place is free. We read each property against a published standard of architecture, design, originality, materiality, setting, history, craft and sense of place. Price is not on the list. If a property is selected, you choose a plan from the [Property Exposure](/exposure) page; if it is not, nothing is charged, and payment never overrides selection. Every property credits its representative, and inquiries go to them directly.",
+        "Submission to Matter of Place is free. We read each property against a published standard of design, architecture, originality, materiality, setting, history, craft and sense of place. Price plays no part in it. If a property is selected, you choose a plan from the [Property Exposure](/exposure) page; if it is not, nothing is charged, and payment never overrides selection. A feature here is paid content in the plain sense: the difference is that the choice comes before the payment. Every property credits its representative, and inquiries go to them directly.",
         "Related reading: [editorial real estate marketing](/guides/editorial-real-estate-marketing) explains how editorial presentation differs from advertising, [house of the day](/guides/house-of-the-day) looks at the recurring daily spotlight, and [sponsored real estate listing](/guides/sponsored-real-estate-listing) covers paid listings. If a home is ready, you can [submit a home for sale to be featured](/submit-a-home-for-sale-to-be-featured).",
       ],
     },
@@ -91,7 +91,7 @@ export const isASponsoredRealEstateFeatureWorthIt: SeoPageContent = {
     },
     {
       q: "Does paying get a home into Matter of Place?",
-      a: "No. Each property is read against the same standard, and payment does not override selection. If a property is not accepted, nothing is charged.",
+      a: "No. The same standard is applied to every property first, and payment cannot change the result. A property that is declined is not charged.",
     },
     {
       q: "What does a Matter of Place feature include?",
@@ -125,7 +125,7 @@ export const isASponsoredRealEstateFeatureWorthIt: SeoPageContent = {
   ],
   cta: {
     heading: "Next step",
-    text: "If a question here is yours, send it and we will answer it. If you own or represent an existing home in California, New York or Florida, you can also submit it for review.",
+    text: "If you are weighing a paid feature and want a plain answer on ours, send your question. Owners and agents of existing homes in California, New York or Florida may also submit one for review.",
     primary: "contact",
     secondary: "submit",
   },

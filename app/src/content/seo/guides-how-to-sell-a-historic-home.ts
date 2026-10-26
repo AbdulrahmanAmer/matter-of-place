@@ -34,9 +34,9 @@ export const howToSellAHistoricHome: SeoPageContent = {
         { h3: "The kind of protection" },
         "A listing on the National Register of Historic Places recognizes a property and, on its own, does not restrict what a private owner does with private funds. A local designation, such as a landmark or a house inside a historic district, often brings review of exterior changes, and the rules differ from one city or county to the next. Our guide to [historic homes for sale](/historic-homes-for-sale) explains the terms in more detail.",
         { h3: "What is attached to the deed" },
-        "A preservation or facade easement can bind every later owner. So can a preservation contract with a city or county; California's Mills Act contracts are an example. Ask for the documents and read them before the house goes to market, because a buyer's attorney will.",
+        "A preservation or facade easement can bind every later owner. So can a preservation contract with a city or county; California's Mills Act contracts, which a city or county may offer, are an example. Ask for the documents and read them before the house goes to market, because a buyer's attorney will.",
         { h3: "The state" },
-        "Disclosure rules differ. California sellers complete a Transfer Disclosure Statement. New York sellers either complete a Property Condition Disclosure Statement or give the buyer a credit in its place. In Florida, a seller must tell the buyer about known facts that materially affect the value of the home and are not readily observable. For a home built before 1978, federal law also requires disclosure of what the seller knows about lead-based paint. Confirm the current rules with your attorney, since they change.",
+        "Disclosure rules differ. California sellers complete a Transfer Disclosure Statement. New York sellers complete a Property Condition Disclosure Statement. In Florida, a seller must tell the buyer about known facts that materially affect the value of the home and are not readily observable. For a home built before 1978, federal law also requires disclosure of what the seller knows about lead-based paint. Confirm the current rules with your attorney, since they change.",
       ],
     },
     {
@@ -50,7 +50,7 @@ export const howToSellAHistoricHome: SeoPageContent = {
             "Prepare the disclosures with your attorney, in the form your state asks for.",
             "Choose a representative who has handled houses of this kind. Ask to see examples, and ask how they will explain the designation to a buyer.",
             "Write the history with its sources. Say who built the house, when it changed and what is original, and say so only where you can show it.",
-            "Present the house to readers who look for this kind of home. Owners and agents in California, New York and Florida can [submit a property](/submit) to Matter of Place for review. We reply either way, and a no is not a verdict on the home.",
+            "Present the house to readers who look for this kind of home. If you own or represent one in California, New York or Florida, you can [submit a property](/submit) to Matter of Place; the answer comes either way, and a no says nothing against the house.",
           ],
         },
       ],
@@ -90,24 +90,21 @@ export const howToSellAHistoricHome: SeoPageContent = {
     },
     {
       q: "Will Matter of Place sell my historic home?",
-      a: "No. We are not a brokerage and represent no one in a sale. We can consider the home for an editorial feature, and every property credits its representative.",
+      a: "No. We are not a brokerage and cannot act for you in the sale. We can consider the house for an editorial feature, in which case its page credits your agent.",
     },
     {
       q: "Does a feature guarantee interest or a sale?",
-      a: "No. A feature gives the house an editorial page and a place in front of readers. We guarantee no leads, buyers or sales.",
+      a: "No. A feature gives a historic house a page of its own and an audience of readers, and nothing more is promised: no leads, buyers or sales are guaranteed.",
     },
   ],
   related: [
-    { to: "/", anchor: "matter place" },
+    { to: "/", anchor: "matter of place" },
     { to: "/guides/real-estate-marketing", anchor: "real estate marketing" },
     {
       to: "/guides/is-a-sponsored-real-estate-feature-worth-it",
       anchor: "is a sponsored real estate feature worth it",
     },
-    {
-      to: "/historic-homes-for-sale",
-      anchor: "national register historic homes for sale",
-    },
+    { to: "/historic-homes-for-sale", anchor: "historic homes for sale" },
     {
       to: "/historic-homes-for-sale-hudson-valley",
       anchor: "historic homes for sale hudson valley",
@@ -119,7 +116,7 @@ export const howToSellAHistoricHome: SeoPageContent = {
   ],
   cta: {
     heading: "Next step",
-    text: "If a question here is yours, send it and we will answer it. If you own or represent a historic home in California, New York or Florida, you can also submit it for review.",
+    text: "If you have a question about selling a historic home, send it and we will answer it. Owners and agents of historic houses in California, New York or Florida may also send one in for review.",
     primary: "contact",
     secondary: "submit",
   },

@@ -11,7 +11,7 @@ export const realEstateMarketing: SeoPageContent = {
   description:
     "Real estate marketing in plain words: what a home needs before it is shown, the order of the work, the usual mistakes and where editorial fits.",
   eyebrow: "GUIDE",
-  lede: "Real estate marketing is the work of making a home understood by the people who might want it: an accurate price, honest photographs, a clear description, and a way to reach readers who look for that kind of home. It starts with the property, not the channel. Matter of Place is an editorial platform, not a brokerage, so this guide covers what we have seen work, in what order, and where an editorial feature fits. It promises no leads, buyers or sales, because no marketing can.",
+  lede: "Real estate marketing is the work of making a home understood by the people who might want it: an accurate price, honest photographs, a clear description, and a way to reach readers who look for that kind of home. It starts with the property, not the channel. Matter of Place is an editorial platform, not a brokerage, so this guide covers the usual order of work and where an editorial feature fits. It promises no leads, buyers or sales, because no marketing can.",
   sections: [
     {
       heading: "The short answer",
@@ -59,7 +59,7 @@ export const realEstateMarketing: SeoPageContent = {
           ],
         },
         { h3: "Where Matter of Place fits" },
-        "Matter of Place presents selected existing homes in California, New York and Florida as editorial pages, written and illustrated for readers who care about architecture, craft and place. A property is chosen against a published standard and not by price; a thoughtful two million dollar house may deserve more attention than a generic twenty million dollar one. You can read the standard on the [Editorial Standard](/editorial-standard) page.",
+        "Matter of Place presents selected existing homes in California, New York and Florida as editorial pages, written and illustrated for readers who care about architecture, craft and place. A property is chosen against a published standard and not by price; a modest house with a documented story may be chosen ahead of a far larger house with none. You can read the standard on the [Editorial Standard](/editorial-standard) page.",
         "We are one part of the reach, never the whole plan. A feature does not replace the listing, the agent or the photography, and we guarantee no leads, buyers or sales. The question of whether paid editorial placement suits a given home is the subject of [is a sponsored real estate feature worth it](/guides/is-a-sponsored-real-estate-feature-worth-it). For the daily editorial spotlight some publications run, read [house of the day](/guides/house-of-the-day).",
       ],
     },
@@ -95,7 +95,7 @@ export const realEstateMarketing: SeoPageContent = {
     },
     {
       q: "Is Matter of Place a brokerage?",
-      a: "No. We represent no one in a sale and list no home for sale. We consider homes for editorial features, and every property credits its representative.",
+      a: "No. We list no home for sale and act for no seller or buyer. We consider homes for editorial features, and each page credits the property's representative.",
     },
     {
       q: "Can Matter of Place promise leads or a sale?",
@@ -103,7 +103,7 @@ export const realEstateMarketing: SeoPageContent = {
     },
     {
       q: "Where does Matter of Place work?",
-      a: "California, New York and Florida only, and only existing residential property.",
+      a: "California, New York and Florida, covering existing residential property only.",
     },
   ],
   related: [
@@ -132,7 +132,7 @@ export const realEstateMarketing: SeoPageContent = {
   ],
   cta: {
     heading: "Next step",
-    text: "If a question here is yours, send it and we will answer it. If you own or represent an existing home in California, New York or Florida, you can also submit it for review.",
+    text: "A marketing question is welcome here: send it and we will answer. Owners and agents can also submit an existing home in California, New York or Florida for review.",
     primary: "contact",
     secondary: "submit",
   },

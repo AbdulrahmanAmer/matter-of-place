@@ -16,7 +16,7 @@ export const designFocusedHomesForSaleNewsletter: SeoPageContent = {
     {
       heading: "How it works",
       body: [
-        "Matter of Place is an editorial platform, not a brokerage. Place Notes is its newsletter, and it draws on the same work as the site: a home is submitted by an owner or a listing agent, or found by us, and we read it against our editorial standard. The few that are accepted are researched, written and photographed for the site, and some of them reach a note.",
+        "Place Notes is the newsletter of Matter of Place, an editorial platform that is not a brokerage. It draws on the work of the site: owners and listing agents submit homes, or our editors find them, and each is read against the editorial standard. The few accepted are researched and written for the site, and some of those reach a note.",
         {
           steps: [
             "You enter your email address on the Place Notes page.",
@@ -29,9 +29,9 @@ export const designFocusedHomesForSaleNewsletter: SeoPageContent = {
         { h3: "How a home is chosen" },
         {
           list: [
-            "Every property is read against the same list: architecture, design, originality, materiality, setting, history, craft and sense of place.",
-            "Price is not on the list. A thoughtful two million dollar house may deserve more attention than a generic twenty million dollar one.",
-            "Payment does not decide selection. A home that is not accepted is not charged and does not appear.",
+            "A home is read for design, architecture, materiality, originality, setting, history, craft and sense of place, the same eight for every property.",
+            "Price is not one of them, and a modest house with a clear idea can open a note ahead of a far larger one.",
+            "Paying does not decide selection. A home that is not accepted is not charged and does not appear.",
           ],
         },
       ],
@@ -47,7 +47,7 @@ export const designFocusedHomesForSaleNewsletter: SeoPageContent = {
             "The representative named on every property, so that an inquiry goes to that person directly. We never sell or share your details.",
           ],
         },
-        "Reading about a house in a note is not an offer. Some of the houses we write about are for sale, and the page for each one names who represents it.",
+        "Reading about a house in a note is not an offer. The page for each property names who represents it.",
         "For an agent or an owner, newsletter inclusion is part of The Reach, one of the plans on the [Property Exposure](/exposure) page. A property enters a note only after it has been accepted, and including it does not promise leads, buyers or a sale.",
       ],
     },
@@ -55,7 +55,7 @@ export const designFocusedHomesForSaleNewsletter: SeoPageContent = {
       heading: "Proof: reviews and results",
       body: [
         "There are no reader reviews on this page, and none will be written for it. We quote no subscriber count, open rate or result, because we have no figure here that we can source and date. We make no claim about leads, buyers or sales.",
-        "What we can show is how a home is chosen. The standard is the same for every property, and it is set out on the [Editorial Standard](/editorial-standard) page. For the houses themselves, see the collections on [national register historic homes for sale](/historic-homes-for-sale) and on the [mid century modern house](/mid-century-modern-homes).",
+        "What we can show is how a home is chosen. The standard is the same for every property, and it is set out on the [Editorial Standard](/editorial-standard) page. For the houses themselves, see the collections on [historic homes for sale](/historic-homes-for-sale) and on the [mid century modern house](/mid-century-modern-homes).",
       ],
     },
   ],
@@ -78,20 +78,17 @@ export const designFocusedHomesForSaleNewsletter: SeoPageContent = {
     },
     {
       q: "Can I put my property in Place Notes?",
-      a: "Submit it for review. If it is accepted, newsletter inclusion is part of The Reach. Payment does not override selection, and a property that is not accepted is not charged.",
+      a: "Submit it for review. If it is accepted, newsletter inclusion is part of The Reach, which the owner or agent pays for at that point. A property that is not accepted is not charged.",
     },
     {
       q: "Which places does Place Notes cover?",
-      a: "California, New York and Florida only, and only existing residential property.",
+      a: "California, New York and Florida, and only homes that already exist.",
     },
   ],
   related: [
-    { to: "/", anchor: "matter place" },
+    { to: "/", anchor: "matter of place" },
     { to: "/mid-century-modern-homes", anchor: "mid century modern house" },
-    {
-      to: "/historic-homes-for-sale",
-      anchor: "national register historic homes for sale",
-    },
+    { to: "/historic-homes-for-sale", anchor: "historic homes for sale" },
     {
       to: "/architect-designed-homes-for-sale",
       anchor: "houses for sale by famous architects",
@@ -103,7 +100,7 @@ export const designFocusedHomesForSaleNewsletter: SeoPageContent = {
   ],
   cta: {
     heading: "Get started",
-    text: "Enter your email address on the Place Notes page, confirm it, and a note reaches you when there is something worth reading. If you own or represent a home in California, New York or Florida, you can also submit it for review.",
+    text: "Enter your email address on the Place Notes page, confirm it, and a note reaches you when there is something worth reading. A home in California, New York or Florida can be put forward for review by whoever owns or represents it.",
     primary: "notes",
     secondary: "submit",
   },

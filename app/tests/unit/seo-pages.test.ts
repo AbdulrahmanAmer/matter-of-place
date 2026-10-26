@@ -89,7 +89,7 @@ function outlineProblems(page: SeoPageContent): string[] {
       !same([
         `Why work with Matter of Place in ${place}`,
         `How we help in ${place}`,
-        `${place} market and neighbourhood facts`,
+        `${place} market and neighborhood facts`,
         "What it costs",
       ])
     )
@@ -201,10 +201,10 @@ describe("the registry of search pages", () => {
         "design focused homes for sale newsletter",
       ],
       "/guides/how-to-sell-a-historic-home": [
-        "matter place",
+        "matter of place",
         "real estate marketing",
         "is a sponsored real estate feature worth it",
-        "national register historic homes for sale",
+        "historic homes for sale",
         "historic homes for sale hudson valley",
         "how to sell an architecturally significant home",
       ],

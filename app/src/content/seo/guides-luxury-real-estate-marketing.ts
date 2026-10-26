@@ -11,7 +11,7 @@ export const luxuryRealEstateMarketing: SeoPageContent = {
   description:
     "Luxury real estate marketing, plainly: know the property and its buyer, build a true record, choose few channels well and review what each one does.",
   eyebrow: "GUIDE",
-  lede: "Luxury real estate marketing is the work of presenting a high-priced home to the small number of people who might buy it, with care for the house and for the owner's privacy. It starts with a true account of the property, adds photography and writing that match it, and reaches the right readers through a few chosen channels rather than every channel. Matter of Place is an editorial platform, not a brokerage, so this guide sets out the order of work and where an editorial feature fits; it promises no leads, buyers or sales.",
+  lede: "Luxury real estate marketing is the work of presenting a high-priced home to the small number of people who might buy it, with care for the house and for the owner's privacy. It starts with a true account of the property, adds photography and writing that match it, and reaches the right readers through a few chosen channels rather than every channel. Matter of Place is an editorial platform and no brokerage, so this guide gives the order of work and shows where an editorial feature belongs. It makes no promise of leads, buyers or sales.",
   sections: [
     {
       heading: "The short answer",
@@ -33,7 +33,7 @@ export const luxuryRealEstateMarketing: SeoPageContent = {
       body: [
         "Five things change the plan.",
         { h3: "The property" },
-        "A house with a named architect, a long history or an unusual setting has a story to tell, and the plan should lead with it. A house whose appeal is its size or its views needs different material. Starting from the price tells you nothing about which is which.",
+        "Where the house has a named architect, a long history or an unusual setting, the plan should lead with that story. A house whose appeal is its size or its views needs different material. Starting from the price tells you nothing about which is which.",
         { h3: "The buyer" },
         "A neighbor trading up looks in different places from someone relocating, or someone buying a second home. Decide who is most likely to buy and reach that person directly, instead of everyone at once.",
         { h3: "Discretion" },
@@ -41,7 +41,7 @@ export const luxuryRealEstateMarketing: SeoPageContent = {
         { h3: "The representative" },
         "In most sales the listing agent or brokerage carries the marketing, and the contract with them sets what they will do and what the owner may add. Read it, and agree who pays for what before extra work begins.",
         { h3: "The rules" },
-        "Advertising a home is regulated. The federal Fair Housing Act bars advertising that states a preference or limitation based on a protected characteristic, and state licensing rules and the local multiple listing service set further requirements on how agents advertise. Your broker or attorney can confirm what applies.",
+        "Advertising a home is regulated. Under the federal Fair Housing Act an advertisement may not state a preference or limit based on a protected characteristic, and state licensing law and the local listing service add requirements for agents. Your broker or attorney can confirm what applies.",
       ],
     },
     {
@@ -54,7 +54,7 @@ export const luxuryRealEstateMarketing: SeoPageContent = {
             "Commission the material. Photography by someone who shoots architecture, accurate floor plans, and where useful a short film or aerial images. Make it once, and keep the rights agreed in writing.",
             "Write the account. A calm, specific description with sources reads as more luxurious than adjectives do.",
             "Start with the base: the multiple listing service entry where the agent uses one, the brokerage's own site and the agent's direct network. This is where buyer's agents look.",
-            "Add a place that suits the house. For some homes that is an editorial feature in a publication that readers of that kind of home trust; for others it is a private invitation list or a targeted campaign. Our guide on [where to advertise luxury listings](/guides/where-to-advertise-luxury-listings) sets out the options.",
+            "Add a place that suits the house. For some homes that is an editorial feature in a publication that readers of that kind of home trust; for others it is a private invitation list or a targeted campaign. The guide to [where to advertise luxury listings](/guides/where-to-advertise-luxury-listings) walks through the choices.",
             "Consider the cost of each channel before you commit. The page on [luxury real estate marketing packages](/guides/luxury-real-estate-marketing-packages) shows what to ask a provider and how Matter of Place describes its own plans.",
             "Review at fixed points. Look at which inquiries came from where, ask the buyer's agents what they saw, and drop what is not working.",
           ],
@@ -99,11 +99,11 @@ export const luxuryRealEstateMarketing: SeoPageContent = {
     },
     {
       q: "Does paying Matter of Place decide whether a home is featured?",
-      a: "No. Every property is read against the same editorial standard, and payment does not override selection. Submission is free, and nothing is charged for a home that is not accepted.",
+      a: "No. One editorial standard is applied to every property, and payment cannot change the outcome. Sending a home in is free, and a home that is declined is not charged.",
     },
     {
       q: "Is Matter of Place a brokerage?",
-      a: "No. We represent no one in a sale. Every property credits its representative, and inquiries go to them directly.",
+      a: "No. We act for no seller or buyer. Each property page credits the representative, and inquiries are routed to that person.",
     },
   ],
   related: [
@@ -128,7 +128,7 @@ export const luxuryRealEstateMarketing: SeoPageContent = {
   ],
   cta: {
     heading: "Next step",
-    text: "If a question here is yours, send it and we will answer it. If you own or represent a home in California, New York or Florida, you can also submit it for review.",
+    text: "If you want to talk through a luxury listing before you plan it, send a question and we will answer it. Its owner or agent can submit a home in California, New York or Florida for review as well.",
     primary: "contact",
     secondary: "submit",
   },
