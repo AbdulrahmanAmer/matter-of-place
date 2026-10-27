@@ -9246,3 +9246,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: clean a mail fixture header by header: every value the runner does not read is `[redacted]`, `List-Unsubscribe` and `List-Unsubscribe-Post` always (`isBulk` needs only the header to exist), and every link in header or body is cut to its host. The test "carries no unsubscribe link or token in any mail fixture" refuses one. A link already pushed stays in history (never rewritten); say so.
 - proof: `cd app && bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t "carries no unsubscribe link or token"` → passes; registry `w8-0h7-fixture-unsubscribe` turns it red.
 - added: 2026-10-27
+
+## P-4648 · Two branches took the same next bank number, and the merge of GOTCHAS.md dropped one entry without markers
+- symptom: 2026-10-27, W8 item 1 round 4 merged with main: both sides had added `## P-4645` (main: the gitleaks stall; the branch: the hung studio pass). `git status` said `UU GOTCHAS.md`, yet the file held no `<<<<<<<` lines and main's P-4645 with its hit-again line was simply gone. The merge, backgrounded after a 120 s timeout, also left `.git/worktrees/od-w8-1b/index.lock` behind with no git process running, and the commit refused until it was removed.
+- cause: each builder picks "the next number" from its own branch; a merge resolution that keeps one side's block of a numbered heading loses the other.
+- rule: after merging main into a branch, compare `grep -c "^## P-" GOTCHAS.md` with the sum of new headings on both sides (`git diff --stat` is not enough) and renumber the branch's entry to the next free number, updating every reference (`git grep -n P-<old>`). A lock with no `git` process (`Get-Process git`) is stale: remove it, then commit.
+- proof: `git show origin/main:GOTCHAS.md | grep -c "^## P-4645"` → 1 (gitleaks); on cff2df82 `grep -n "^## P-464[5-7]" GOTCHAS.md` → P-4645 gitleaks, P-4646, P-4647 the studio pass.
+- added: 2026-10-27
+
+## P-4649 · A reviewer's critical claim about the runtime was taken from the spec; a 30-second repro refuted it
+- symptom: 2026-10-27, review rv23 of W8 item 1 round 4 FAILED it as critical: a static import back into `reel.ts` (still in its top-level await) "deadlocks the same way" as the dynamic one, citing ECMAScript evaluation; its shell was denied, so it was not measured.
+- cause: module-cycle behaviour differs by runtime and by edge kind; a reviewer without a shell argues from the spec.
+- rule: before a builder is sent to fix a critical claim about runtime behaviour, measure it in a scratch folder (two files, `timeout 30 bun a.ts`); send only what holds, and write the measurement into the brief so the builder does not re-argue it.
+- proof: `.tmp/cycle-repro` on bun 1.4.3: `b.ts` with `import { x } from "./a.ts"` → all lines, exit 0; `b.ts` with `await import("./a.ts")` inside `f()` → `timeout 30` exit 124.
+- added: 2026-10-27

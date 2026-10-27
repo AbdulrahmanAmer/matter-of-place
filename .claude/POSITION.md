@@ -2472,3 +2472,14 @@ registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3
   body (kept empty by the person-only check, see H144 (3)); decoding Zoho's HTML-escaped listing subjects before
   storage (`&quot;` is stored as written). UNPROVEN: the 19 entries replayed and the scripts typecheck and lint (no local
   CI; CI judges); the first live Zoho report after merge. Bank: P-015, P-1800, P-4501, P-4502 hit again.
+
+- 2026-10-27 11:42 +0300: Matter (live). Merged since the last block: PR 502 (W8 0j meeting fix), 503 (records 8 and 9),
+  504 (0h gaps, 72882e44), 505 (records 0h, d3dc44dc). Ticked: 0h, and 0i in this records PR (the probe on the real CLI
+  with 25 refusals and the Drive write; Julian's own FAIL review of the Fairfield TEST photographs, 07:18:25 UTC; Maya's
+  render, run 0af2c094). BLOCKED: the Office card seen in a browser (browser tools refused in this mode; unblocks when a
+  session with a browser or the operator opens /admin > Office). W8 item 1: round 4 (ffb621bd, hung pass, fonts,
+  error lines) reviewed FAIL; its critical claim (a static import back deadlocks) measured false on bun 1.4.3 (exit 0
+  vs 124 for the dynamic one, P-4649); round 5 builder (Opus) running on overdrive/w8-1-post-render for the single-pass
+  guard, the watchdog, the log-open catch and the guard through a third module. 262 hung `reel.ts --pass` processes
+  ended by hand (all older than 10 minutes); the runner starts one a minute until round 5 is live. W8 3 waits on a real
+  listing. Bank: P-4647 (renumbered from the branch's P-4645), P-4648, P-4649.
