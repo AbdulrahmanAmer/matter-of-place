@@ -9389,3 +9389,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: no goal line while a background task of his started under an hour ago is open (its end wakes the session, and that wake turn covers the goal); after each goal turn that did no work (no Edit, Write, Agent, Task, task started or merge; a status read is not work) the gap doubles, ten minutes to an hour; a person's line or a finished task starts the pace over; an error result is not counted.
 - proof: `cd app && bunx vitest run --project unit tests/unit/matter-autonomy.test.ts` (registry ma-d-*); live: `select count(*) from agent_messages where thread='matter' and author_name='Matter' and created_at > now() - interval '2 hours'` after the merge.
 - added: 2026-10-27
+
+## P-4690 · A new advisory on a package three levels down fails `audit:deps` in every open pull request at once
+- symptom: 2026-10-28 ~00:50 +0300, PR 519 (W7 item 8): all 5,803 tests, typecheck, lint and knip passed, and the check job still failed at its last step, `bun run audit:deps`: undici `>=7.0.0 <7.30.1` (through jsdom, wrangler > miniflare and nitro > env-runner > miniflare) with three high advisories published that week (GHSA-4w7w-5xrc-9h26, GHSA-2m5v-pch6-74hx, GHSA-qrxm-fqhp-jwvm).
+- cause: the audit reads advisories at run time, so a release that was clean yesterday fails today; the package is transitive, so no branch's own change can fix it.
+- rule: fix it once, in its own small pull request from main, with an `overrides` pin to the fixed version (supply-chain rules: at least 7 days old unless it is the security fix, install with `--ignore-scripts`, `bun audit` and `osv-scanner scan source --lockfile bun.lock` before pushing); then merge main into every open branch. Never ignore a high advisory to get one PR through.
+- proof: `cd app && bun audit --audit-level=high --ignore=GHSA-jmr9-qjv8-65gv --ignore=GHSA-7pqw-9j4j-h8q3 --ignore=GHSA-xjj6-f33q-929c --ignore=GHSA-27r3-jxmh-p828 --ignore=GHSA-mrhx-c7xc-m3w5` → `No vulnerabilities found (checked 881 packages ...)` with `"undici": "7.30.1"` in `overrides` (7.30.1 published 2026-10-15).
+- added: 2026-10-28
