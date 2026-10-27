@@ -3770,6 +3770,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - hit again: 2026-10-05, B13 c1 log: the Costs line of `workspace/05-plans/logs/B13.md` kept the raw U+2028 character the tools had made from the escape; write "U+2028" in words in prose and check a file with `cat -A <file> | grep -c "M-bM-^@M-("` (prints 0; the pattern is how `cat -A` shows U+2028).
 - hit again: 2026-10-05, B13 c1 review: the reviewer hit the same family while checking the file for U+2028 (see the hit-again line of P-008): the escape typed in a command is the raw character by the time node reads it. Check a file with `cat -A <file> | grep -c "M-bM-^@M-("` (prints 0), which holds no escape.
 - hit again: 2026-10-05, B13 step 4: the Write tool turned the escaped combining-mark range of a Postgres regex in `archive_facets.sql` (backslash, u, 0300 to 036f) into the raw characters, and the same text sent through a Bash heredoc did it again; `cat -A` showed `M-` bytes. A node script file that builds the backslash with `String.fromCharCode(92)` put the escape back.
+- hit again: 2026-10-27, W8 0h gaps round: an Edit of `app/scripts/workforce/mail.ts` wrote the invisible-character class of `plainText` as raw U+00AD, U+034F and the rest, and a Write of a registry script did the same to a `find`; a non-ASCII scan caught both, and a script file that builds the backslash with `String.fromCharCode(92)` put the escapes back. Proof: `grep -c 'u034f' app/scripts/workforce/mail.ts` → `1`.
 
 ## P-1801 · An SSR harness test in this repo fails `tsc` on `router.update` and `setQueryData`, and `vitest/expect-expect` refuses an assertion helper
 - symptom: B13 g1's first `bun run check` failed in `tests/unit/csp-inline.test.ts`: `router.update({ history })` was refused because `update` takes the whole options object, `setQueryData(propertyQuery(slug).queryKey, data)` was refused because the key from `queryOptions` is a tagged key, and `vitest/expect-expect` reported a test with no assertion because the `expect` calls sat in a helper.
@@ -8737,6 +8738,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: one access token per process: a probe batches every call into one run, never a loop of single-call scripts; the runner refreshes once per check (every five minutes).
 - proof: `grep -n "one token serves a whole check" app/scripts/workforce/mail.ts` → the comment above `accessToken`.
 - added: 2026-10-16
+- hit again: 2026-10-27, W8 0h gaps round: a loop of seven one-message capture scripts got five refusals after the second; one script fetching every message on one token worked (and `mail.ts --replay` refreshes once per message, so replay a few at a time).
 
 ## P-4502 · Zoho's header order differs by message: its `Authentication-Results` is not always after its own `Received`
 - symptom: W8 0h's first rule (trust the first `Authentication-Results` only after Zoho's `Received: ... by mx.zohomail.com`) held for the Search Console notice and refused Google's own DMARC and TLS reports, where Zoho writes `Delivered-To, Received-SPF, Authentication-Results, ARC-*, Return-Path, Received` in that order.
@@ -8744,6 +8746,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - hit again: 2026-10-16, W8 0h review: the first-in-block rule alone let a verdict forged inside the trace block win; the fixtures it was proved on had their header lines allow-listed (P-4507), so no test met a real trace block. Fixed with the one-verdict count.
 - proof: `cd app && bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts` passes on the real headers; `node scripts/watchfail.mjs --registry tests/mutations --only w8-0h-auth-one-verdict` → `WATCHED-FAIL OK` (red: `treats a forged Zoho verdict inside the trace block as unauthenticated`).
 - added: 2026-10-16
+- hit again: 2026-10-27, W8 0h gaps round: Zoho's own DMARC reports (`noreply-dmarc@zoho.com`) are delivered inside Zoho and carry no `Authentication-Results` at all, only Zoho's one ARC set i=1, so the one-verdict rule held every one as a stranger's for ten days; read a sender's real header before writing its rule (`zohoReport`, ruling H144). Proof: `cd app && bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t "Zoho's own DMARC"` passes.
 
 ## P-4503 · The retention job never purged `email_replies`: a policy row and an allow-list key are not enough
 - symptom: W8 0h, asked to purge inbound mail "like email_replies": `retention_policies` had its row since W4 and `retention_delete_rows` its `when`, but `ROW_KEYS_AFTER_EMAIL` in `src/server/jobs/system/retention.ts` did not list it, so no reply was ever deleted.
@@ -9227,4 +9230,19 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the toolkit line tells a colleague which renderers it may ask for, never the spec they read (`localSchema` in `scripts/lib/shoot.mjs`: `property` with id, slug, title, city, state, market, price, currency, beds, baths, interiorSqFt, yearBuilt, type; `images` of {path, alt, orientation}; `slides` of {kind: cover|photo|facts|close, image}).
 - rule: a colleague holding a renderer is shown its spec shape in the toolkit line (one source: the schema, not a copy); a failed render's thread line names the schema error, not only the exit code.
 - proof: the social thread 2026-10-26 22:02:13 (exit 1 on v2) and 22:09:35 ("Rendered ... 6 files" on v3).
+- added: 2026-10-27
+
+## P-4645 · `gitleaks detect --no-git --source .` from the worktree root scans node_modules and stalls the laptop; a killed scan can leave gitleaks hanging
+- symptom: 2026-10-27, W8 0h gaps round: `gitleaks detect --redact --config app/scripts/harden/gitleaks.toml --no-git --source .` ran past two minutes; stopping its task left two gitleaks processes running, and afterwards even `gitleaks version` (shim and scoop binary) timed out at 30 s with exit 124.
+- cause: `--no-git --source .` walks every file, `app/node_modules` included; the stopped background task did not kill its child processes.
+- rule: scan only what the commit changes: copy `git diff --cached --name-only` into an empty scratch folder and point `--no-git --source` at it, or use the brief's git-mode command; if a scan is stopped, kill its `gitleaks` processes (`powershell Get-Process gitleaks | Stop-Process`). When gitleaks itself hangs, say BLOCKED and grep the staged diff for key shapes; CI's scan judges.
+- proof: `timeout 30 gitleaks version; echo $?` → `124` on the stalled laptop (2026-10-27 02:55 +0300).
+- added: 2026-10-27
+- hit again: 2026-10-27, W8 0h gaps round 2: even on a scratch folder of the 11 staged files, `gitleaks detect --no-git --source <folder>` printed nothing for 300 s and was ended by `timeout`; `Get-Process` stalled with it. The staged diff was grepped for key shapes instead, and CI's scan judges.
+
+## P-4646 · A mail fixture cleaned in its body only kept live unsubscribe links in its headers, in a public repository
+- symptom: 2026-10-27, W8 0h gaps round 2: the fresh review found the full `List-Unsubscribe` value of the Search Console notice (a `c.gle` link for our property) and of Supabase's final notice (a customer.io mailto token and an email.supabase.com unsubscribe link) in the pushed fixtures; anyone could take admin@ off the notices the mail pass watches. The test comment said "links cut to their host", which was true of the bodies only.
+- cause: the round cut links in the body and redacted the header values it thought sensitive by name (signatures, ids), and never walked the headers one by one.
+- rule: clean a mail fixture header by header: every value the runner does not read is `[redacted]`, `List-Unsubscribe` and `List-Unsubscribe-Post` always (`isBulk` needs only the header to exist), and every link in header or body is cut to its host. The test "carries no unsubscribe link or token in any mail fixture" refuses one. A link already pushed stays in history (never rewritten); say so.
+- proof: `cd app && bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t "carries no unsubscribe link or token"` → passes; registry `w8-0h7-fixture-unsubscribe` turns it red.
 - added: 2026-10-27

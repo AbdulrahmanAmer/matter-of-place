@@ -119,6 +119,7 @@ export function inboundRecord(message: InboundMessage): Recorded {
     folderName: message.folder.name,
     header: message.header,
     from: message.from,
+    subject: message.subject,
     content: message.content,
   });
   const alias = aliasOf(message.header);

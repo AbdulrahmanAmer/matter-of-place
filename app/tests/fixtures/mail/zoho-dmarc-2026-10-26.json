@@ -1,0 +1,24 @@
+{
+  "folder": {
+    "folderId": "8580671000000008008",
+    "folderName": "Inbox",
+    "folderType": "Inbox"
+  },
+  "message": {
+    "messageId": "1792984428118141200",
+    "folderId": "8580671000000008008",
+    "receivedTime": "1792984428114",
+    "fromAddress": "noreply-dmarc@zoho.com",
+    "sender": "noreply-dmarc@zoho.com",
+    "subject": "Report domain: notify.matterofplace.com Submitter: zohomail.com Report-ID: 7641a373-b09a-4a00-a17b-704eeee71576"
+  },
+  "header": "Delivered-To: admin@matterofplace.com\r\nARC-Seal: i=1; a=rsa-sha256; t=1792984427; cv=none; \r\n\td=zohomail.com; s=zohoarc; \r\n\tb=[signature]\r\nARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=zohomail.com; s=zohoarc; \r\n\tt=1792984427; h=Content-Type:Date:Date:From:From:MIME-Version:Message-ID:Subject:Subject:To:To:Message-Id:Reply-To:Cc; \r\n\tbh=[hash]; \r\n\tb=[signature]\r\nARC-Authentication-Results: i=1; mx.zohomail.com;\r\n\tdkim=pass  header.i=zoho.com;\r\n\tspf=pass  smtp.mailfrom=noreply-dmarc@zoho.com;\r\n\tdmarc=pass header.from=<noreply-dmarc@zoho.com>\r\nDKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; t=1792984427;\r\n\ts=zm2022; d=zoho.com; i=noreply-dmarc@zoho.com;\r\n\th=Date:Date:From:From:To:To:Message-Id:Message-Id:Subject:Subject:MIME-Version:Content-Type:Reply-To:Cc;\r\n\tbh=[hash];\r\n\tb=[signature]\r\nReturn-Path: <noreply-dmarc@zoho.com>\r\nReceived: from mail.zoho.com by mx.zohomail.com\r\n\twith SMTP id 1792984425611201.72127365726533; Sun, 25 Oct 2026 20:13:45 -0700 (PDT)\r\nDate: Sun, 25 Oct 2026 20:13:45 -0700\r\nFrom: noreply-dmarc@zoho.com\r\nTo: admin@matterofplace.com\r\nMessage-Id: [redacted]\r\nSubject: Report domain: notify.matterofplace.com Submitter: zohomail.com\r\n Report-ID: 7641a373-b09a-4a00-a17b-704eeee71576\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; \r\n\tboundary=\"----=_Part_1877211_1846899344.1792984425609\"\r\nUser-Agent: [redacted]\r\nX-Mailer: [redacted]\r\nX-Zoho-Virus-Status: [redacted]\r\nX-Zoho-AV-Stamp: [redacted]\r\nX-ZohoMail-Owner: [redacted]",
+  "content": "<div>This is an automated DMARC aggregate report from zohomail\r\n\r\n</div>",
+  "attachments": [
+    {
+      "attachmentId": "140122772281970040",
+      "attachmentName": "zohomail.com!notify.matterofplace.com!1792738800!1792825200.xml.gz",
+      "base64": "H4sIAAAAAAAA/51UTXPbIBC951d4fJeQ/BE5HUJ66i9oz5o1WllMEFBAcdJfX7BkS7KdTltdDPvePnbfgunLeysXb2id0Op5mafZcoGK60qow/Pyx/dvyW65cB5UBVIrfF4qvXxhD7RGrPbAX9nDInx0EGAhn5LzpocsGm192aKHCjz00ROi7aFU0CL7pRvdgpAp1y0ll/DIxIgypYOW/EiqFiz/GpP6hB6dsN+9hZJr5YH7Uqhas8Z7474Qcjwe03MiiWmkQWkIVK0ITSunJZKTfGK0FPwjbXwrwwm3iuNxQ4OiYsXjJod1sU722RMkG8iyBPJinxTZBsNX5NvikZKRP2oEZ7C0oA6Trk/AHg8i2Fo8rYr1bpcFd/vInIWqOnF2q+0qcuJ+FCfX6pca5kOhfc+l6fZSuAZnBcYBqTACL+qPtAXv0eraSODYD2EgjBlQvYqWWUr6xQRwpj7F4+8YNuxnB6FILxRSYiaIm0NuihnuWR5bjosxHAaUU3IeU0DvdhZGx7Wdtmn18cpapzvLsRSGbTfpapOleZ7m23Uo4wLME7julI+n94s5ONSBbyC7MJRqDvdOC2e0Ez6+IKVjw9PIHX5014BzgTgzeuJfPRBmjs+cuVNRuCVTN6ioMEygFuF1X4k0CBXasra6/cMNmbImh9yVpdD5prToOumvT/uky548NDps7rj1r/d4dBElcq8tC9rhfQUzz4ErR2/roze+T2uJaul/FPR3DTuuDbI2uh5KPm2u6p0/Q3LrfFTv30l4Upf//d/0r894OgYAAA=="
+    }
+  ]
+}

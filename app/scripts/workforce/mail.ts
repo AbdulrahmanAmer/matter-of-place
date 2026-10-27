@@ -16,6 +16,7 @@ import {
   inboundRecord,
   recordInbound,
   storable,
+  type Recorded,
   type UnreadPart,
 } from "./inbound-mail.ts";
 import { isReportName, MAX_COMPRESSED } from "./mail-reports.ts";
@@ -52,20 +53,56 @@ export function isAutomatic(from: string, subject: string): boolean {
   );
 }
 
-/** The text of an HTML body, line breaks kept. */
+/** The named entities mail HTML uses, decoded; any other named one is left as written. */
+const NAMED: Record<string, string> = {
+  nbsp: " ",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  amp: "&",
+  rsquo: "’",
+  lsquo: "‘",
+  rdquo: "”",
+  ldquo: "“",
+  ndash: "–",
+  mdash: "—",
+  hellip: "…",
+  bull: "•",
+  middot: "·",
+  copy: "©",
+  reg: "®",
+  trade: "™",
+  zwnj: "",
+  zwj: "",
+  shy: "",
+};
+
+/** One entity's character; a code point past Unicode's range is dropped, never thrown on. */
+function entity(name: string): string {
+  const code = /^#x([0-9a-f]{1,6})$/i.exec(name)?.[1] ?? /^#(\d{1,7})$/.exec(name)?.[1];
+  if (code === undefined) return NAMED[name.toLowerCase()] ?? `&${name};`;
+  const point = name.startsWith("#x") || name.startsWith("#X") ? parseInt(code, 16) : Number(code);
+  return point > 0x10ffff ? "" : String.fromCodePoint(point);
+}
+
+/**
+ * The text of an HTML body, line breaks kept: tags out, every numeric entity and the named ones mail uses decoded, and
+ * the invisible characters a preheader is padded with dropped (W8 0h, 2026-10-27: Supabase's HTML-only notice).
+ */
 export function plainText(html: string): string {
   return html
     .replace(/<(style|script)[\s\S]*?<\/\1>/gi, "")
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/(p|div|li|tr|h[1-6]|blockquote)>/gi, "\n")
     .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&amp;/g, "&")
-    .replace(/[ \t]+/g, " ")
+    .replace(/&(#x[0-9a-f]{1,6}|#\d{1,7}|[a-z]{2,8});/gi, (_match, name: string) => entity(name))
+    .replace(
+      // the combining marks stand alone, outside the class (a class may not hold a combining character)
+      /\u034f|\u17b4|\u17b5|[\u00ad\u061c\u115f\u1160\u180e\u200b-\u200f\u2060-\u2064\ufeff]/g,
+      "",
+    )
+    .replace(/[ \t\u00a0\u2000-\u200a\u202f\u205f\u3000]+/g, " ")
     .replace(/ *\n */g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
@@ -96,8 +133,7 @@ interface Names {
   ZOHO_REFRESH_TOKEN: string;
 }
 
-function zohoNames(): Names | null {
-  const file = resolve(import.meta.dir, "../../../.env");
+function zohoNames(file = resolve(import.meta.dir, "../../../.env")): Names | null {
   if (!existsSync(file)) return null;
   const found = new Map<string, string>();
   for (const line of readFileSync(file, "utf8").split(/\r?\n/)) {
@@ -388,6 +424,133 @@ async function attachmentsOf(zoho: Zoho, base: string, wanted: boolean): Promise
   return out;
 }
 
+/** The mailbox's client, account id and folders. */
+async function openMailbox(
+  names: Names,
+  fetch: Fetch,
+): Promise<{ zoho: Zoho; id: string; folders: z.infer<typeof folderSchema>[] }> {
+  const zoho = zohoClient(await accessToken(names, fetch), fetch);
+  const accounts = z.array(accountSchema).parse(await zoho.json("/accounts"));
+  const account =
+    accounts.find((row) => row.primaryEmailAddress === `admin@${OWN_DOMAIN}`) ?? accounts[0];
+  if (account === undefined) throw new Error("mail: the mailbox has no account");
+  const id = String(account.accountId);
+  const folders = z.array(folderSchema).parse(await zoho.json(`/accounts/${id}/folders`));
+  return { zoho, id, folders };
+}
+
+/** Reads one part of a message; a part Zoho will not give is `missing`, and is named unread on the row. */
+type PartReader = <T>(what: UnreadPart, missing: T, read: () => Promise<T>) => Promise<T>;
+
+/**
+ * A message's header, then by what the header makes it, its attachments: report bytes are fetched for every notice
+ * that may wake Matter, whatever its folder; nobody else's attachment is ever opened.
+ */
+async function headerAndAttachments(
+  zoho: Zoho,
+  base: string,
+  row: Listed,
+  folder: z.infer<typeof folderSchema>,
+  name: string,
+  part: PartReader,
+): Promise<{ header: string; attachments: Attachment[] }> {
+  // With no header the message authenticates as no one, so it is a stranger's and is triaged.
+  const header = await part(
+    "the header",
+    "",
+    async () => headerSchema.parse(await zoho.json(`${base}/header?raw=true`)).headerContent,
+  );
+  const has = row.hasAttachment !== undefined && !["0", 0, false].includes(row.hasAttachment);
+  const sorted = sortMessage({
+    folderType: folder.folderType ?? "",
+    folderName: name,
+    from: addressOf(row.fromAddress),
+    subject: row.subject,
+    header,
+    automatic: isAutomatic(row.fromAddress, row.subject),
+  });
+  const wanted = sorted.source === "service_notice" && sorted.state === "escalated";
+  const attachments = has
+    ? await part("the attachment list", [UNREAD_LIST], () => attachmentsOf(zoho, base, wanted))
+    : [];
+  return { header, attachments };
+}
+
+/**
+ * W8 0h (2026-10-27): one message of the mailbox, found by its Zoho id in the folders a check reads and taken through
+ * the same reading (`inboundRecord`), with no write anywhere: no database call, no cursor, no heartbeat. A reply to our
+ * own email is read as inbound mail, as a check reads one whose send it cannot find. From the command line,
+ * `bun scripts/workforce/mail.ts --replay <id>` prints what a check would record, in the runner's fixed words only.
+ */
+export async function replayMessage(
+  providerId: string,
+  deps: { names: () => Names | null; fetch: Fetch } = { names: zohoNames, fetch },
+): Promise<Recorded> {
+  if (!/^\d{1,30}$/.test(providerId)) throw new Error("mail: a Zoho message id is digits");
+  const names = deps.names();
+  if (names === null) throw new Error("mail: the mailbox names are missing");
+  const { zoho, id, folders } = await openMailbox(names, deps.fetch);
+  for (const folder of foldersToRead(folders)) {
+    const folderId = String(folder.folderId);
+    const name = folder.folderName === "" ? (folder.folderType ?? folderId) : folder.folderName;
+    for (let page = 0; page < MAX_PAGES; page += 1) {
+      const list = await listPage(zoho, id, folderId, page, false);
+      const row = list.find((listed) => listed.messageId === providerId);
+      if (row !== undefined) {
+        const base = `/accounts/${id}/folders/${folderId}/messages/${row.messageId}`;
+        const unread: UnreadPart[] = [];
+        const part: PartReader = async (what, missing, read) => {
+          try {
+            return await read();
+          } catch {
+            unread.push(what);
+            return missing;
+          }
+        };
+        const content = await part(
+          "the text",
+          "",
+          async () => contentSchema.parse(await zoho.json(`${base}/content`)).content,
+        );
+        const { header, attachments } = await headerAndAttachments(
+          zoho,
+          base,
+          row,
+          folder,
+          name,
+          part,
+        );
+        return inboundRecord({
+          providerId: row.messageId,
+          folder: { name, type: folder.folderType ?? "" },
+          from: addressOf(row.fromAddress),
+          fromName: row.sender,
+          subject: row.subject,
+          receivedAt: row.received,
+          header,
+          content,
+          attachments,
+          automatic: isAutomatic(row.fromAddress, row.subject),
+          unread,
+        });
+      }
+      if (list.length < PAGE) break;
+    }
+  }
+  throw new Error("mail: no message has that id in a folder a check reads");
+}
+
+/** A replayed message in the runner's fixed words: never a sender, a subject or a body. */
+export function replayLine(recorded: Recorded): string {
+  return [
+    `${recorded.args.p_source} ${recorded.state}`,
+    recorded.args.p_service === "" ? "" : ` (${recorded.args.p_service})`,
+    recorded.args.p_alias === "" ? "" : `, sent to ${recorded.args.p_alias}@`,
+    `: ${recorded.args.p_summary}`,
+    recorded.args.p_line === "" ? "" : " Matter would be woken.",
+  ].join("");
+}
+
 /** What a check did, for the runner's log: counts and folder names only. */
 export type MailCheck = { replies: number; inbound: number; unread: string[] };
 
@@ -429,13 +592,7 @@ export async function checkMail(
   let id: string;
   let folders: z.infer<typeof folderSchema>[];
   try {
-    zoho = zohoClient(await accessToken(names, deps.fetch), deps.fetch);
-    const accounts = z.array(accountSchema).parse(await zoho.json("/accounts"));
-    const account =
-      accounts.find((row) => row.primaryEmailAddress === `admin@${OWN_DOMAIN}`) ?? accounts[0];
-    if (account === undefined) throw new Error("mail: the mailbox has no account");
-    id = String(account.accountId);
-    folders = z.array(folderSchema).parse(await zoho.json(`/accounts/${id}/folders`));
+    ({ zoho, id, folders } = await openMailbox(names, deps.fetch));
   } catch (failure: unknown) {
     await beat(["the mailbox"]);
     throw failure;
@@ -520,7 +677,7 @@ async function oneMessage(
   const from = addressOf(row.fromAddress);
   const automatic = isAutomatic(row.fromAddress, row.subject);
   const unread: UnreadPart[] = listingOnly ? ["the message"] : [];
-  const part = async <T>(what: UnreadPart, missing: T, read: () => Promise<T>): Promise<T> => {
+  const part: PartReader = async (what, missing, read) => {
     if (listingOnly) return missing;
     try {
       return await read();
@@ -555,27 +712,7 @@ async function oneMessage(
       if ((data as string | null) !== null) return "reply";
     }
   }
-  // With no header the message authenticates as no one, so it is a stranger's and is triaged.
-  const header = await part(
-    "the header",
-    "",
-    async () => headerSchema.parse(await zoho.json(`${base}/header?raw=true`)).headerContent,
-  );
-  const has = row.hasAttachment !== undefined && !["0", 0, false].includes(row.hasAttachment);
-  const sorted = sortMessage({
-    folderType: folder.folderType ?? "",
-    folderName: name,
-    from,
-    subject: row.subject,
-    header,
-    automatic,
-  });
-  // Report bytes are fetched for every notice that may wake Matter, whatever its folder; nobody else's attachment is
-  // ever opened.
-  const wanted = sorted.source === "service_notice" && sorted.state === "escalated";
-  const attachments = has
-    ? await part("the attachment list", [UNREAD_LIST], () => attachmentsOf(zoho, base, wanted))
-    : [];
+  const { header, attachments } = await headerAndAttachments(zoho, base, row, folder, name, part);
   const recordOf = (listed: { subject: string; fromName: string }) =>
     inboundRecord({
       providerId: row.messageId,
@@ -605,4 +742,19 @@ async function oneMessage(
       `${new Date().toISOString()} mail: ${recorded.args.p_source} ${recorded.state} in ${name}`,
     );
   return fresh ? "inbound" : "known";
+}
+
+// `bun scripts/workforce/mail.ts --replay <id> [--env <file>]`: one message through the pass, nothing written. `--env`
+// names the workspace `.env` when this tree has none (a worktree).
+if (import.meta.main && process.argv.includes("--replay")) {
+  const after = (flag: string) => {
+    const at = process.argv.indexOf(flag);
+    return at < 0 ? undefined : process.argv[at + 1];
+  };
+  const file = after("--env");
+  const recorded = await replayMessage(after("--replay") ?? "", {
+    names: () => (file === undefined ? zohoNames() : zohoNames(file)),
+    fetch,
+  });
+  console.log(replayLine(recorded));
 }
