@@ -2483,3 +2483,11 @@ registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3
   guard, the watchdog, the log-open catch and the guard through a third module. 262 hung `reel.ts --pass` processes
   ended by hand (all older than 10 minutes); the runner starts one a minute until round 5 is live. W8 3 waits on a real
   listing. Bank: P-4647 (renumbered from the branch's P-4645), P-4648, P-4649.
+
+- 2026-10-27 17:10 +0300: Matter (live). PR 506 merged (W8 0i ticked). W8 10 and 11 live (records PR, boxes stay
+  unticked): Maya filed the Fairfield TEST post on a key's line (post 672d3eb4, 3+3 Drive files uploaded to media,
+  captions 280 and 278), after two refusals caused by her tool line (relative path; request id as property_id, raw FK
+  words), P-4650; Matter's key rejected it (HTTP 200, audit channels.proposed_reject by agent adb39eca). NOT DONE: a
+  person approving a TEST post (operator's sign-in). BLOCKED: the screens seen in a browser (browser tools refused).
+  W8 item 1 round 5 builder relaunched 16:54 after an API SSL error stopped the first run at 12:17. W8 0j waits on
+  today's meeting (14:45 UTC) and tomorrow's. Next builder after item 1: overdrive/w8-10-paths (brief ready).
