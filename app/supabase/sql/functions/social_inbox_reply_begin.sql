@@ -26,8 +26,11 @@ begin
     return jsonb_build_object('state', v_row.reply_state, 'inbox_id', v_row.id, 'since', v_row.updated_at);
   end if;
   -- Round 2: outward social needs a person (workforce_decide refuses any other approval); a reply approved without one
-  -- is refused here too, in fixed words, before any write.
-  if v_approval.decided_by is null then
+  -- is refused here too, in fixed words, before any write. Round 3: a person on record, a human role row not disabled.
+  if v_approval.decided_by is null or not exists (
+    select 1 from public.user_roles r
+    where r.user_id = v_approval.decided_by and r.actor_kind = 'human' and r.disabled_at is null
+  ) then
     return jsonb_build_object(
       'state', 'refuse', 'inbox_id', v_row.id, 'reason', 'No person approved this reply: no write was made.'
     );

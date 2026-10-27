@@ -166,15 +166,15 @@ function PrivacyPage() {
 
         <h2>Where it comes from</h2>
         <p>
-          It comes from you, through the forms on this site, and from your browser, through
-          analytics once you allow them.
+          It comes from you, through the forms on this site and when you comment on our Instagram
+          posts or write to us there, and from your browser, through analytics once you allow them.
         </p>
 
         <h2>How we use it</h2>
         <p>
-          We use it to answer inquiries, review and publish submitted properties, send the messages
-          you ask for, invoice accepted properties, keep the site working and understand which pages
-          are read.
+          We use it to answer inquiries, reply to your comments and messages on Instagram, review
+          and publish submitted properties, send the messages you ask for, invoice accepted
+          properties, keep the site working and understand which pages are read.
         </p>
 
         <h2>Who receives it</h2>
@@ -185,8 +185,9 @@ function PrivacyPage() {
           counts page reads, only after you allow analytics.
         </p>
         <p>
-          An AI writing assistant receives the facts of a property when a caption is drafted. A
-          person reviews every caption before it is used.
+          An AI writing assistant receives the facts of a property when a caption is drafted, and
+          the words of an Instagram comment or message when a reply is drafted. A person reviews
+          every caption and approves every reply before it is used.
         </p>
         <p>
           Meta, X and LinkedIn receive only what we post. {siteConfig.parentCompany} receives the

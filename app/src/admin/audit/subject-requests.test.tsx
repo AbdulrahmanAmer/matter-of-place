@@ -137,6 +137,7 @@ describe("screen 25, data requests", () => {
       contacts: [],
       submissions: [],
       inbound_mail: [],
+      social_inbox: [],
     };
     const requested = serve({
       [`GET ${LIST}`]: { items: [verified], next_cursor: null },
@@ -148,6 +149,8 @@ describe("screen 25, data requests", () => {
       </AdminProviders>,
     );
     fireEvent.click(await screen.findByRole("button", { name: "Export" }));
+    const dialog = await screen.findByRole("dialog", { name: "Export this person's data" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Export" }));
     await waitFor(() => {
       expect(saved).toHaveLength(1);
     });
@@ -155,6 +158,42 @@ describe("screen 25, data requests", () => {
       posts: requested.filter((line) => line.startsWith("POST ")),
       file: JSON.parse(await (saved[0] ?? new Blob()).text()) as unknown,
     }).toEqual({ posts: [`POST ${LIST}/${verified.id}/export {}`], file: bundle });
+  });
+
+  it("Export sends the Instagram handle the person named, so its comments and messages join the file (W8 item 4 round 3)", async () => {
+    Object.assign(URL, { createObjectURL: () => "blob:bundle", revokeObjectURL: () => undefined });
+    const verified = row(2, { verified_at: "2026-09-02T12:00:00+00:00" });
+    const requested = serve({
+      [`GET ${LIST}`]: { items: [verified], next_cursor: null },
+      [`POST ${LIST}/${verified.id}/export`]: {
+        request: { id: verified.id, kind: "access", received_at: verified.received_at },
+        email: verified.email,
+        subscribers: [],
+        inquiries: [],
+        contacts: [],
+        submissions: [],
+        inbound_mail: [],
+        social_inbox: [{ graph_id: "c1" }],
+      },
+    });
+    render(
+      <AdminProviders actions={ADMIN_ACTIONS}>
+        <SubjectRequestsTab />
+      </AdminProviders>,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "Export" }));
+    const dialog = await screen.findByRole("dialog", { name: "Export this person's data" });
+    fireEvent.change(within(dialog).getByLabelText("Instagram handle"), {
+      target: { value: "@reader.one" },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Export" }));
+    const posts = () => requested.filter((line) => line.startsWith("POST "));
+    await waitFor(() => {
+      expect(posts()).toHaveLength(1);
+    });
+    expect(posts()).toEqual([
+      `POST ${LIST}/${verified.id}/export ${JSON.stringify({ instagram_handle: "@reader.one" })}`,
+    ]);
   });
 
   it("Delete sends the Instagram handle the person named, refuses one that is not a handle, and sends none when empty", async () => {

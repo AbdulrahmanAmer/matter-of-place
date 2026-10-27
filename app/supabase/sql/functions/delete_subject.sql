@@ -20,6 +20,7 @@ declare
   v_inbound int;
   v_handle text := lower(nullif(btrim(ltrim(btrim(coalesce(p_instagram_handle, '')), '@')), ''));
   v_social int := 0;
+  v_social_ids uuid[] := '{}';
   v_counts jsonb;
 begin
   -- Invariant 15 (GP-01): a deletion request, once identity is confirmed, anonymises every row the address appears
@@ -93,8 +94,16 @@ begin
   -- W8 item 4 round 2: the Instagram handle the person names (staff enter it on the request) deletes that handle's
   -- comments and messages; deleted, not anonymised, as retention does, since a body quotes the person.
   if v_handle is not null then
-    delete from public.social_inbox s where lower(s.author_handle) = v_handle;
-    get diagnostics v_social = row_count;
+    with gone as (
+      delete from public.social_inbox s where lower(s.author_handle) = v_handle returning s.id
+    )
+    select coalesce(array_agg(gone.id), '{}') into v_social_ids from gone;
+    v_social := cardinality(v_social_ids);
+    -- Round 3: a held line (W8 0d, the runner's `heldLine`) quotes the part of a comment that tried to instruct and
+    -- the triage's words about its author; one tied to a deleted row, by the record it ends with, goes with it.
+    delete from public.agent_messages m
+    where m.author_id = 'triage' and m.author_kind = 'system'
+      and substring(m.body from E'\nRecord: social_comment ([0-9a-f-]{36})\\.$') = any (v_social_ids::text[]);
   end if;
 
   update public.subject_requests r

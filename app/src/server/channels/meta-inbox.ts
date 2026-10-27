@@ -6,10 +6,12 @@ import { call, connect, GraphError, type Session } from "./meta.ts";
 // W8 item 4: Instagram comments and messages through the Meta adapter's session (R32): the same Graph version, Page
 // token and `appsecret_proof` as posting, every answer parsed before it is read (R33), and a reply written only when
 // `liveSideEffects("social")` says so (`call` refuses every POST otherwise, R35). The calls follow the Graph API's
-// documented shapes: `GET /{ig-media-id}/comments`, `GET /{page-id}/conversations?platform=instagram`,
-// `POST /{ig-comment-id}/replies` and `POST /{page-id}/messages`. Only the handle of a person is kept; a message's
-// recipient is read from its conversation when the reply is sent. Graph lists comments, conversations and messages
-// newest first, so a read stops at the first page that reaches the cursor (round 2).
+// documented shapes: `GET /{ig-media-id}/comments`, `GET /{ig-comment-id}/replies`,
+// `GET /{page-id}/conversations?platform=instagram`, `GET /{conversation-id}/messages`, `POST /{ig-comment-id}/replies`
+// and `POST /{page-id}/messages`. Only the handle of a person is kept; a message's recipient is read from its
+// conversation when the reply is sent.
+// Round 3: Graph documents no order for these lists, so every list is read to its end, a page cut short by the read's
+// caps is kept as Graph's `after` cursor (`Pending`, stored with the time cursor) and the next read resumes it first.
 
 /** One comment or message as `social_inbox_record` takes it (a type, so it is `Json` as it stands). */
 type InboxItem = {
@@ -26,25 +28,44 @@ type InboxItem = {
   letters: boolean;
 };
 
+const idField = z.string().min(1);
+
 /**
- * What one read found: the new items and the next cursor. `truncated` is a read that hit a page cap with newer items
- * still unread; its cursor then stays where it was, so no unread item is ever skipped (round 2).
+ * Round 3: one list a read left part way, keyed by the node whose list it is (a post, a comment, our Page, a
+ * conversation): Graph's `after` cursor where it stopped, the time it is read back to and when its read began.
+ */
+const passSchema = z.object({
+  edge: z.enum(["comments", "replies", "conversations", "messages"]),
+  /** A comment's media, or a message's conversation, as `InboxItem.thread_graph_id`. */
+  thread: idField,
+  after: idField,
+  since: z.string().nullable(),
+  started: z.string(),
+});
+export const pendingSchema = z.record(idField, passSchema);
+export type Pending = z.infer<typeof pendingSchema>;
+
+/** A list to read this tick: a pending one from its cursor, a fresh one from its first page. */
+type Pass = Omit<Pending[string], "after"> & { node: string; after: string | undefined };
+
+/**
+ * What one read found: the new items, the next time cursor and the lists it left part way. `truncated` is a read
+ * that hit a cap; the next read resumes each pending list, and the time cursor never passes the start of an open one.
  */
 export interface InboxRead {
   items: InboxItem[];
   newest: string | null;
   truncated: boolean;
+  pending: Pending;
 }
 
-/** A comment page holds at most this many, and at most this many pages are read for one post or of conversations. */
+/** A comment page holds at most this many; one read reads at most this many pages of a list, and calls in all. */
 const PAGE_LIMIT = "50";
 const MAX_PAGES = 4;
+const MAX_CALLS = 100;
 /** Instagram's own limits: a comment of 2,200 characters, a message of 1,000. */
 const REPLY_LIMITS = { comment: 2200, message: 1000 } as const;
-/** Graph's rate-limit codes (meta-errors.ts): the read skips the tick rather than fail (round 2). */
-const RATE_LIMIT_CODES: readonly number[] = [4, 17, 32, 613];
 
-const idField = z.string().min(1);
 const author = z.object({ id: idField, username: z.string().optional() }).passthrough();
 // `next` is present only while another page follows.
 const pageCursor = z
@@ -76,6 +97,17 @@ const commentPageSchema = z
     paging: pageCursor,
   })
   .passthrough();
+const messageShape = z
+  .object({
+    id: idField,
+    message: z.string().default(""),
+    created_time: z.string(),
+    from: author,
+  })
+  .passthrough();
+const messagePageSchema = z
+  .object({ data: z.array(messageShape), paging: pageCursor })
+  .passthrough();
 const conversationListSchema = z
   .object({
     data: z.array(
@@ -83,22 +115,7 @@ const conversationListSchema = z
         .object({
           id: idField,
           updated_time: z.string(),
-          messages: z
-            .object({
-              data: z.array(
-                z
-                  .object({
-                    id: idField,
-                    message: z.string().default(""),
-                    created_time: z.string(),
-                    from: author,
-                  })
-                  .passthrough(),
-              ),
-              paging: pageCursor,
-            })
-            .passthrough()
-            .optional(),
+          messages: messagePageSchema.optional(),
         })
         .passthrough(),
     ),
@@ -112,9 +129,12 @@ const replySchema = z.object({ id: idField }).passthrough();
 const messageSentSchema = z.object({ message_id: idField }).passthrough();
 
 const COMMENT_FIELDS = "id,text,timestamp,username,from,replies{id,text,timestamp,username,from}";
+const REPLY_FIELDS = "id,text,timestamp,username,from";
 const CONVERSATION_FIELDS = "id,updated_time,messages.limit(20){id,message,created_time,from}";
+const MESSAGE_FIELDS = "id,message,created_time,from";
 
 type CommentShape = z.infer<typeof commentShape>;
+type MessageShape = z.infer<typeof messageShape>;
 type Paging = z.infer<typeof pageCursor>;
 
 const timeOf = (iso: string): number => {
@@ -122,13 +142,13 @@ const timeOf = (iso: string): number => {
   return Number.isNaN(time) ? 0 : time;
 };
 
-/** Newer than the cursor (a null cursor reads everything a page holds). */
+/** Newer than the cursor (a null cursor reads everything). */
 const after = (iso: string, since: Date | null): boolean =>
   since === null || timeOf(iso) > since.getTime();
 
-/** A page with another after it whose times are all newer than the cursor: items newer than it are left unread. */
-const cutShort = (paging: Paging, times: readonly string[], since: Date | null): boolean =>
-  paging?.next !== undefined && times.every((time) => after(time, since));
+/** Graph's cursor to the next page, or undefined at a list's end. */
+const nextOf = (paging: Paging): string | undefined =>
+  paging?.next === undefined ? undefined : paging.cursors?.after;
 
 const hasLetter = (text: string): boolean => /\p{L}/u.test(text);
 
@@ -137,27 +157,79 @@ function newestOf(times: readonly string[], since: Date | null): string | null {
   return newest === 0 ? null : new Date(newest).toISOString();
 }
 
-/** The read's answer: a truncated read keeps the old cursor, so the next read covers what this one could not. */
-function readOf(
-  items: InboxItem[],
-  times: readonly string[],
-  since: Date | null,
-  truncated: boolean,
-): InboxRead {
-  return {
-    items,
-    newest: truncated ? (since === null ? null : since.toISOString()) : newestOf(times, since),
-    truncated,
-  };
+/** Graph's rate limit, every error of class `retry_at` (meta-errors.ts): the read job skips this tick (round 3). */
+export function rateLimited(error: unknown): boolean {
+  return error instanceof GraphError && error.detail.class === "retry_at";
 }
 
-/** Graph's rate limit (codes 4, 17, 32, 613): the read job skips this tick with one log line. */
-export function rateLimited(error: unknown): boolean {
-  return (
-    error instanceof GraphError &&
-    error.detail.code !== null &&
-    RATE_LIMIT_CODES.includes(error.detail.code)
-  );
+/** One read in progress: what it found, the calls it made and the lists still to read (nested ones join the end). */
+interface Reading {
+  session: Session;
+  items: InboxItem[];
+  times: string[];
+  calls: number;
+  queue: Pass[];
+}
+
+/** Reads one page of a list; answers Graph's cursor to the next page, or undefined at the list's end. */
+type PageReader = (reading: Reading, pass: Pass) => Promise<string | undefined>;
+
+/** A nested list (a comment's replies, a conversation's messages) left past its first page joins the read once. */
+function nested(reading: Reading, parent: Pass, edge: Pass["edge"], node: string, paging: Paging) {
+  const cursor = nextOf(paging);
+  if (cursor === undefined || reading.queue.some((pass) => pass.node === node)) return;
+  reading.queue.push({ ...parent, edge, node, after: cursor });
+}
+
+/**
+ * Reads the pending lists first, oldest first, then the fresh ones, each at most MAX_PAGES pages and all within
+ * MAX_CALLS. A list cut short is kept with its cursor; a fresh list not begun holds the time cursor where it was. The
+ * time cursor never passes the start of a list read this tick or still open, so nothing written meanwhile is skipped.
+ */
+async function readAll(
+  session: Session,
+  stored: Pending,
+  fresh: Pass[],
+  since: Date | null,
+  readPage: PageReader,
+): Promise<InboxRead> {
+  const resumed = Object.entries(stored)
+    .map(([node, pass]): Pass => ({ ...pass, node }))
+    .sort((a, b) => timeOf(a.started) - timeOf(b.started));
+  const reading: Reading = { session, items: [], times: [], calls: 0, queue: [...resumed] };
+  for (const pass of fresh) if (!(pass.node in stored)) reading.queue.push(pass);
+  const pending: Pending = {};
+  let unread = false;
+  let open = Infinity;
+  for (let index = 0; index < reading.queue.length; index += 1) {
+    const pass = reading.queue[index];
+    if (pass === undefined) break;
+    open = Math.min(open, timeOf(pass.started));
+    let cursor = pass.after;
+    if (reading.calls < MAX_CALLS) {
+      for (let page = 0; page < MAX_PAGES && reading.calls < MAX_CALLS; page += 1) {
+        reading.calls += 1;
+        cursor = await readPage(reading, { ...pass, after: cursor });
+        if (cursor === undefined) break;
+      }
+    } else if (cursor === undefined) unread = true;
+    if (cursor !== undefined) {
+      const { node, ...rest } = pass;
+      pending[node] = { ...rest, after: cursor };
+    }
+  }
+  const newest = newestOf(reading.times, since);
+  const held = since === null ? null : since.toISOString();
+  return {
+    items: reading.items,
+    newest: unread
+      ? held
+      : newest !== null && timeOf(newest) > open
+        ? new Date(open).toISOString()
+        : newest,
+    truncated: unread || Object.keys(pending).length > 0,
+    pending,
+  };
 }
 
 /** A comment someone else wrote, as a row; our own account's comments and replies are never read in. */
@@ -180,137 +252,145 @@ function commentItem(
   };
 }
 
-async function commentsOf(
-  session: Session,
-  mediaId: string,
-  since: Date | null,
-): Promise<{ items: InboxItem[]; times: string[]; truncated: boolean }> {
-  const items: InboxItem[] = [];
-  const times: string[] = [];
-  let truncated = false;
-  let cursor: string | undefined;
-  for (let page = 0; ; page += 1) {
-    const answer = await call(
-      session,
-      "GET",
-      `${mediaId}/comments`,
-      {
-        fields: COMMENT_FIELDS,
-        limit: PAGE_LIMIT,
-        ...(cursor === undefined ? {} : { after: cursor }),
-      },
-      commentPageSchema,
-      "comments",
-    );
-    for (const comment of answer.data) {
-      const replies = comment.replies?.data ?? [];
-      // The replies nested in a comment are one page; more of them, all newer than the cursor, are left unread.
-      if (
-        cutShort(
-          comment.replies?.paging,
-          replies.map((reply) => reply.timestamp),
-          since,
-        )
-      )
-        truncated = true;
-      const thread = [
-        { comment, parent: null },
-        ...replies.map((reply) => ({ comment: reply, parent: comment.id })),
-      ];
-      for (const entry of thread) {
-        times.push(entry.comment.timestamp);
-        if (!after(entry.comment.timestamp, since)) continue;
-        const item = commentItem(session, mediaId, entry.comment, entry.parent);
-        if (item !== null) items.push(item);
-      }
-    }
-    cursor = answer.paging?.cursors?.after;
-    const pageTimes = answer.data.map((comment) => comment.timestamp);
-    if (!cutShort(answer.paging, pageTimes, since) || cursor === undefined) break;
-    if (page + 1 >= MAX_PAGES) {
-      truncated = true;
-      break;
-    }
-  }
-  return { items, times, truncated };
-}
+const sinceOf = (pass: Pass): Date | null => (pass.since === null ? null : new Date(pass.since));
 
-/** The comments on our Instagram posts newer than `since`, each post's pages in turn. */
+/** One page of a post's comments (each with the replies it carries) or of a comment's replies. */
+const commentPage: PageReader = async (reading, pass) => {
+  const answer = await call(
+    reading.session,
+    "GET",
+    `${pass.node}/${pass.edge}`,
+    {
+      fields: pass.edge === "comments" ? COMMENT_FIELDS : REPLY_FIELDS,
+      limit: PAGE_LIMIT,
+      ...(pass.after === undefined ? {} : { after: pass.after }),
+    },
+    commentPageSchema,
+    pass.edge,
+  );
+  const since = sinceOf(pass);
+  for (const comment of answer.data) {
+    const thread = [
+      { comment, parent: pass.edge === "replies" ? pass.node : null },
+      ...(comment.replies?.data ?? []).map((reply) => ({ comment: reply, parent: comment.id })),
+    ];
+    for (const entry of thread) {
+      reading.times.push(entry.comment.timestamp);
+      if (!after(entry.comment.timestamp, since)) continue;
+      const item = commentItem(reading.session, pass.thread, entry.comment, entry.parent);
+      if (item !== null) reading.items.push(item);
+    }
+    nested(reading, pass, "replies", comment.id, comment.replies?.paging);
+  }
+  return nextOf(answer.paging);
+};
+
+/** The comments on our Instagram posts newer than `since`, every post read to its end over one read or more. */
 export async function readComments(
   ctx: StepContext,
   mediaIds: readonly string[],
   since: Date | null,
+  pending: Pending = {},
 ): Promise<InboxRead> {
   const session = await connect(ctx);
-  const items: InboxItem[] = [];
-  const times: string[] = [];
-  let truncated = false;
-  for (const mediaId of mediaIds) {
-    const read = await commentsOf(session, mediaId, since);
-    items.push(...read.items);
-    times.push(...read.times);
-    truncated ||= read.truncated;
-  }
-  return readOf(items, times, since, truncated);
+  // A list of a post no longer read (older than the posts read) is dropped.
+  const stored = Object.fromEntries(
+    Object.entries(pending).filter(([, pass]) => mediaIds.includes(pass.thread)),
+  );
+  const fresh = mediaIds.map((mediaId): Pass => ({
+    edge: "comments",
+    node: mediaId,
+    thread: mediaId,
+    after: undefined,
+    since: since === null ? null : since.toISOString(),
+    started: ctx.now.toISOString(),
+  }));
+  return readAll(session, stored, fresh, since, commentPage);
 }
 
-/** The messages of our Instagram conversations newer than `since`; our own messages are never read in. */
-export async function readMessages(ctx: StepContext, since: Date | null): Promise<InboxRead> {
-  const session = await connect(ctx);
-  const items: InboxItem[] = [];
-  const times: string[] = [];
-  let truncated = false;
-  let cursor: string | undefined;
-  for (let page = 0; ; page += 1) {
+function messageItem(
+  reading: Reading,
+  conversation: string,
+  message: MessageShape,
+  since: Date | null,
+): void {
+  reading.times.push(message.created_time);
+  if (!after(message.created_time, since) || message.from.id === reading.session.igUserId) return;
+  reading.items.push({
+    kind: "message",
+    graph_id: message.id,
+    thread_graph_id: conversation,
+    parent_graph_id: null,
+    author_handle: (message.from.username ?? "").slice(0, 100),
+    body: message.message.slice(0, 4000),
+    received_at: message.created_time,
+    letters: hasLetter(message.message),
+  });
+}
+
+/** One page of our conversations (each with its latest messages) or of one conversation's messages. */
+const conversationPage: PageReader = async (reading, pass) => {
+  const since = sinceOf(pass);
+  const cursor = pass.after === undefined ? {} : { after: pass.after };
+  if (pass.edge === "messages") {
     const answer = await call(
-      session,
+      reading.session,
       "GET",
-      `${session.pageId}/conversations`,
-      {
-        platform: "instagram",
-        fields: CONVERSATION_FIELDS,
-        ...(cursor === undefined ? {} : { after: cursor }),
-      },
-      conversationListSchema,
-      "conversations",
+      `${pass.node}/messages`,
+      { fields: MESSAGE_FIELDS, ...cursor },
+      messagePageSchema,
+      "messages",
     );
-    for (const conversation of answer.data) {
-      times.push(conversation.updated_time);
-      if (!after(conversation.updated_time, since)) continue;
-      const messages = conversation.messages?.data ?? [];
-      // A conversation's messages are one page of 20; more of them, all newer than the cursor, are left unread.
-      if (
-        cutShort(
-          conversation.messages?.paging,
-          messages.map((message) => message.created_time),
-          since,
-        )
-      )
-        truncated = true;
-      for (const message of messages) {
-        times.push(message.created_time);
-        if (!after(message.created_time, since) || message.from.id === session.igUserId) continue;
-        items.push({
-          kind: "message",
-          graph_id: message.id,
-          thread_graph_id: conversation.id,
-          parent_graph_id: null,
-          author_handle: (message.from.username ?? "").slice(0, 100),
-          body: message.message.slice(0, 4000),
-          received_at: message.created_time,
-          letters: hasLetter(message.message),
-        });
-      }
-    }
-    cursor = answer.paging?.cursors?.after;
-    const pageTimes = answer.data.map((conversation) => conversation.updated_time);
-    if (!cutShort(answer.paging, pageTimes, since) || cursor === undefined) break;
-    if (page + 1 >= MAX_PAGES) {
-      truncated = true;
-      break;
-    }
+    for (const message of answer.data) messageItem(reading, pass.node, message, since);
+    return nextOf(answer.paging);
   }
-  return readOf(items, times, since, truncated);
+  const answer = await call(
+    reading.session,
+    "GET",
+    `${pass.node}/conversations`,
+    { platform: "instagram", fields: CONVERSATION_FIELDS, ...cursor },
+    conversationListSchema,
+    "conversations",
+  );
+  for (const conversation of answer.data) {
+    reading.times.push(conversation.updated_time);
+    // A conversation not updated since the cursor holds no new message.
+    if (!after(conversation.updated_time, since)) continue;
+    for (const message of conversation.messages?.data ?? [])
+      messageItem(reading, conversation.id, message, since);
+    nested(
+      reading,
+      { ...pass, thread: conversation.id },
+      "messages",
+      conversation.id,
+      conversation.messages?.paging,
+    );
+  }
+  return nextOf(answer.paging);
+};
+
+/** The messages of our Instagram conversations newer than `since`; our own messages are never read in. */
+export async function readMessages(
+  ctx: StepContext,
+  since: Date | null,
+  pending: Pending = {},
+): Promise<InboxRead> {
+  const session = await connect(ctx);
+  // A list of another Page (its ids changed in Settings) is dropped.
+  const stored = Object.fromEntries(
+    Object.entries(pending).filter(
+      ([node, pass]) => pass.edge === "messages" || node === session.pageId,
+    ),
+  );
+  const fresh: Pass = {
+    edge: "conversations",
+    node: session.pageId,
+    thread: session.pageId,
+    after: undefined,
+    since: since === null ? null : since.toISOString(),
+    started: ctx.now.toISOString(),
+  };
+  return readAll(session, stored, [fresh], since, conversationPage);
 }
 
 /** Sends an approved reply: under the comment, or into the conversation to the person in it. Returns its Graph id. */

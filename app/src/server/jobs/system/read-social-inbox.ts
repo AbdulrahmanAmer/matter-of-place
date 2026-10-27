@@ -1,9 +1,11 @@
 import { z } from "zod";
 import {
+  pendingSchema,
   rateLimited,
   readComments,
   readMessages,
   type InboxRead,
+  type Pending,
 } from "../../channels/meta-inbox.ts";
 import { getMetaToken } from "../../channels/meta-token.ts";
 import { AppError } from "../../lib/errors.ts";
@@ -56,16 +58,34 @@ async function whyOff(ctx: StepContext): Promise<Off | null> {
   return null;
 }
 
-async function cursors(ctx: StepContext): Promise<{ comments: Date; messages: Date }> {
-  const { data, error } = await ctx.db.from("social_inbox_cursors").select("key, read_until");
+type Key = "instagram_comments" | "instagram_messages";
+interface Cursor {
+  since: Date;
+  pending: Pending;
+}
+
+async function cursors(ctx: StepContext): Promise<Record<Key, Cursor>> {
+  const { data, error } = await ctx.db
+    .from("social_inbox_cursors")
+    .select("key, read_until, pending");
   if (error !== null) throw unavailable("social_inbox_cursors");
-  const since = (key: string) => {
-    const row = data.find((cursor) => cursor.key === key);
-    return row === undefined
-      ? new Date(ctx.now.getTime() - FIRST_READ_MS)
-      : new Date(Date.parse(row.read_until) - OVERLAP_MS);
+  const cursor = (key: Key): Cursor => {
+    const row = data.find((stored) => stored.key === key);
+    if (row === undefined) {
+      return { since: new Date(ctx.now.getTime() - FIRST_READ_MS), pending: {} };
+    }
+    // Round 3: the lists a read left part way. A value that is not their shape is said once and read afresh.
+    const pending = pendingSchema.safeParse(row.pending);
+    if (!pending.success) ctx.log("warn", "social_inbox_pending_unreadable", { key });
+    return {
+      since: new Date(Date.parse(row.read_until) - OVERLAP_MS),
+      pending: pending.success ? pending.data : {},
+    };
   };
-  return { comments: since("instagram_comments"), messages: since("instagram_messages") };
+  return {
+    instagram_comments: cursor("instagram_comments"),
+    instagram_messages: cursor("instagram_messages"),
+  };
 }
 
 async function ourPosts(ctx: StepContext): Promise<string[]> {
@@ -81,16 +101,15 @@ async function ourPosts(ctx: StepContext): Promise<string[]> {
   return data.flatMap((row) => (row.remote_id === null ? [] : [row.remote_id]));
 }
 
-async function record(
-  ctx: StepContext,
-  key: "instagram_comments" | "instagram_messages",
-  read: InboxRead,
-): Promise<number> {
-  // Round 2: a page cap was hit with newer items unread; the cursor stayed (meta-inbox.ts), said once per read.
-  if (read.truncated) ctx.log("warn", "social_inbox_truncated", { key });
+async function record(ctx: StepContext, key: Key, read: InboxRead): Promise<number> {
+  // Round 3: a cap cut the read short; the lists left part way are stored with the cursor and resumed next tick.
+  if (read.truncated) {
+    ctx.log("warn", "social_inbox_truncated", { key, open: Object.keys(read.pending).length });
+  }
   const { data, error } = await ctx.db.rpc("social_inbox_record", {
     p_items: read.items,
     p_cursor_key: key,
+    p_pending: read.pending,
     ...(read.newest === null ? {} : { p_read_until: read.newest }),
   });
   if (error !== null) throw unavailable("social_inbox_record");
@@ -108,16 +127,20 @@ export const readSocialInbox: SystemJobDefinition = {
       ctx.log("info", "social_inbox_skipped", { reason: off });
       return { status: "done", result: { skipped: off } };
     }
-    const since = await cursors(ctx);
+    const { instagram_comments: posts, instagram_messages: inbox } = await cursors(ctx);
     let comments = 0;
     let messages = 0;
     try {
       comments = await record(
         ctx,
         "instagram_comments",
-        await readComments(ctx, await ourPosts(ctx), since.comments),
+        await readComments(ctx, await ourPosts(ctx), posts.since, posts.pending),
       );
-      messages = await record(ctx, "instagram_messages", await readMessages(ctx, since.messages));
+      messages = await record(
+        ctx,
+        "instagram_messages",
+        await readMessages(ctx, inbox.since, inbox.pending),
+      );
     } catch (error) {
       // Round 2: Graph's rate limit skips the tick (what was recorded stays, a cursor moves only with its rows).
       if (!rateLimited(error)) throw error;

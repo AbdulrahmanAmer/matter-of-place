@@ -2,6 +2,7 @@
 // documented shapes and writes down every request. Nothing reaches the network (R50); there is no token yet (W8 6).
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { GraphError } from "../../../src/server/channels/meta.ts";
+import { classifyGraphError } from "../../../src/server/channels/meta-errors.ts";
 import {
   rateLimited,
   readComments,
@@ -200,96 +201,7 @@ const more = (after: string) => ({
   next: `https://graph.example/next/${after}`,
 });
 
-describe("round 2: paging, caps and rate limits", () => {
-  it("stops at the first page that reaches the cursor and moves it to the newest time read", async () => {
-    const sent = stubPages({
-      [`GET ${MEDIA}/comments`]: [
-        {
-          data: [
-            comment("n1", "2026-10-04T11:00:00+0000"),
-            comment("o1", "2026-10-01T11:00:00+0000"),
-          ],
-          paging: more("p2"),
-        },
-      ],
-    });
-    const read = await readComments(ctx(), [MEDIA], SINCE);
-    expect(sent).toHaveLength(1);
-    expect(read.items.map((item) => item.graph_id)).toEqual(["n1"]);
-    expect(read).toMatchObject({ truncated: false, newest: "2026-10-04T11:00:00.000Z" });
-  });
-
-  it("holds the cursor when the page cap is hit with newer comments unread", async () => {
-    const page = (n: number) => ({
-      data: [comment(`c${String(n)}`, `2026-10-0${String(9 - n)}T11:00:00+0000`)],
-      paging: more(`p${String(n + 1)}`),
-    });
-    const sent = stubPages({ [`GET ${MEDIA}/comments`]: [page(1), page(2), page(3), page(4)] });
-    const read = await readComments(ctx(), [MEDIA], SINCE);
-    expect(sent.map((request) => request.params["after"] ?? "first")).toEqual([
-      "first",
-      "p2",
-      "p3",
-      "p4",
-    ]);
-    expect(read.items).toHaveLength(4);
-    expect(read).toMatchObject({ truncated: true, newest: SINCE.toISOString() });
-  });
-
-  it("holds the cursor when a comment's nested replies have more, all newer than it", async () => {
-    stubPages({
-      [`GET ${MEDIA}/comments`]: [
-        {
-          data: [
-            comment("c1", "2026-10-03T11:00:00+0000", {
-              replies: {
-                data: [comment("r1", "2026-10-04T11:00:00+0000")],
-                paging: more("r2"),
-              },
-            }),
-          ],
-        },
-      ],
-    });
-    const read = await readComments(ctx(), [MEDIA], SINCE);
-    expect(read.items.map((item) => item.graph_id)).toEqual(["c1", "r1"]);
-    expect(read).toMatchObject({ truncated: true, newest: SINCE.toISOString() });
-  });
-
-  it("pages the conversations to the cursor and holds it when a conversation's messages have more", async () => {
-    const message = (id: string, time: string) => ({
-      id,
-      message: `Message ${id}`,
-      created_time: time,
-      from: { id: "9002", username: "buyer" },
-    });
-    const sent = stubPages({
-      [`GET ${PAGE}/conversations`]: [
-        {
-          data: [
-            {
-              id: "t1",
-              updated_time: "2026-10-04T11:00:00+0000",
-              messages: {
-                data: [message("m2", "2026-10-04T11:00:00+0000")],
-                paging: more("m1"),
-              },
-            },
-          ],
-          paging: more("t2"),
-        },
-        {
-          data: [{ id: "t2", updated_time: "2026-10-01T09:00:00+0000" }],
-          paging: more("t3"),
-        },
-      ],
-    });
-    const read = await readMessages(ctx(), SINCE);
-    expect(sent.map((request) => request.params["after"] ?? "first")).toEqual(["first", "t2"]);
-    expect(read.items.map((item) => item.graph_id)).toEqual(["m2"]);
-    expect(read).toMatchObject({ truncated: true, newest: SINCE.toISOString() });
-  });
-
+describe("round 2: letters and rate limits", () => {
   it("marks words without a letter, in any script, so they wake no one", async () => {
     stubPages({
       [`GET ${MEDIA}/comments`]: [
@@ -310,18 +222,167 @@ describe("round 2: paging, caps and rate limits", () => {
     ]);
   });
 
-  it("names Graph's rate-limit codes and nothing else as a skipped tick", () => {
-    const graph = (code: number) =>
-      new GraphError({ class: "retry_at", code, subcode: null, message: "limit" });
-    expect([4, 17, 32, 613, 100, 190].map((code) => rateLimited(graph(code)))).toEqual([
+  it("takes every Graph error of class retry_at, a bare 429 and the daily limit included, as a skipped tick", () => {
+    const graph = (status: number, error?: { code: number; error_subcode?: number }) =>
+      new GraphError(classifyGraphError(status, error === undefined ? {} : { error }));
+    const answers = [
+      graph(400, { code: 4 }),
+      graph(400, { code: 613 }),
+      graph(429),
+      graph(400, { code: 9, error_subcode: 2207042 }),
+      graph(400, { code: 100 }),
+      graph(400, { code: 190 }),
+      graph(503),
+    ];
+    expect(answers.map((error) => rateLimited(error))).toEqual([
       true,
       true,
       true,
       true,
+      false,
       false,
       false,
     ]);
     expect(rateLimited(new Error("network"))).toBe(false);
+  });
+});
+
+/**
+ * Round 3: answers `<METHOD> <path>` by its `after` cursor ("first" when there is none), so a read that resumes from
+ * the wrong place gets the wrong page; a cursor nobody registered is an empty page (P-4682). `sent` holds every request.
+ */
+function stubCursors(answers: Record<string, Record<string, unknown>>) {
+  const sent: Sent[] = [];
+  vi.stubGlobal("fetch", (input: string, init: RequestInit = {}) => {
+    const method = init.method ?? "GET";
+    const url = new URL(input);
+    const path = url.pathname.replace(/^\/v23\.0\//, "");
+    const params = Object.fromEntries(url.searchParams);
+    sent.push({ method, path, params });
+    const page = answers[`${method} ${path}`]?.[params["after"] ?? "first"];
+    return Promise.resolve(new Response(JSON.stringify(page ?? { data: [] })));
+  });
+  return sent;
+}
+
+/** Six pages of one comment each, linked by `after` cursors p2..p6; the last has no next page. */
+const sixPages = (time: (n: number) => string) =>
+  Object.fromEntries(
+    [1, 2, 3, 4, 5, 6].map((n) => [
+      n === 1 ? "first" : `p${String(n)}`,
+      {
+        data: [comment(`c${String(n)}`, time(n))],
+        ...(n === 6 ? {} : { paging: more(`p${String(n + 1)}`) }),
+      },
+    ]),
+  );
+
+const ids = (read: { items: { graph_id: string }[] }) => read.items.map((item) => item.graph_id);
+
+describe("round 3: a read cut short resumes where it stopped", () => {
+  it("two reads in a row reach every item of a post with more items than one read's cap", async () => {
+    const sent = stubCursors({
+      [`GET ${MEDIA}/comments`]: sixPages((n) => `2026-10-03T1${String(n)}:00:00+0000`),
+    });
+    const first = await readComments(ctx(), [MEDIA], SINCE);
+    const second = await readComments(ctx(), [MEDIA], SINCE, first.pending);
+    expect([...ids(first), ...ids(second)]).toEqual(["c1", "c2", "c3", "c4", "c5", "c6"]);
+    expect(sent.map((request) => request.params["after"] ?? "first")).toEqual([
+      "first",
+      "p2",
+      "p3",
+      "p4",
+      "p5",
+      "p6",
+    ]);
+    expect(second.pending).toEqual({});
+  });
+
+  it("reads to the end whatever the order: a page older than the cursor does not stop it", async () => {
+    stubCursors({
+      [`GET ${MEDIA}/comments`]: {
+        first: { data: [comment("old", "2026-10-01T09:00:00+0000")], paging: more("p2") },
+        p2: { data: [comment("new", "2026-10-03T09:00:00+0000")] },
+      },
+    });
+    const read = await readComments(ctx(), [MEDIA], SINCE);
+    expect(ids(read)).toEqual(["new"]);
+  });
+
+  it("follows a comment's nested replies past the page its comment carries", async () => {
+    const sent = stubCursors({
+      [`GET ${MEDIA}/comments`]: {
+        first: {
+          data: [
+            comment("c1", "2026-10-01T11:00:00+0000", {
+              replies: { data: [comment("r1", "2026-10-03T11:00:00+0000")], paging: more("r2") },
+            }),
+          ],
+        },
+      },
+      "GET c1/replies": { r2: { data: [comment("r2", "2026-10-03T12:00:00+0000")] } },
+    });
+    const read = await readComments(ctx(), [MEDIA], SINCE);
+    expect(read.items.map((item) => [item.graph_id, item.parent_graph_id])).toEqual([
+      ["r1", "c1"],
+      ["r2", "c1"],
+    ]);
+    expect(sent.map((request) => request.path)).toEqual([`${MEDIA}/comments`, "c1/replies"]);
+    expect(read.pending).toEqual({});
+  });
+
+  it("reads a conversation's messages past the first page, over two reads when one read's cap cuts it", async () => {
+    const message = (id: string) => ({
+      id,
+      message: `Message ${id}`,
+      created_time: "2026-10-03T11:00:00+0000",
+      from: { id: "9002", username: "buyer" },
+    });
+    const page = (n: number) => ({
+      data: [message(`m${String(n)}`)],
+      ...(n === 6 ? {} : { paging: more(`q${String(n + 1)}`) }),
+    });
+    stubCursors({
+      [`GET ${PAGE}/conversations`]: {
+        first: {
+          data: [
+            {
+              id: "t1",
+              updated_time: "2026-10-03T11:00:00+0000",
+              messages: { data: [message("m1")], paging: more("q2") },
+            },
+          ],
+        },
+      },
+      "GET t1/messages": Object.fromEntries([2, 3, 4, 5, 6].map((n) => [`q${String(n)}`, page(n)])),
+    });
+    const first = await readMessages(ctx(), SINCE);
+    const second = await readMessages(ctx(), SINCE, first.pending);
+    // The second read sees m1 again on the conversation's first page; the record keeps an id once.
+    expect([...new Set([...ids(first), ...ids(second)])].sort()).toEqual([
+      "m1",
+      "m2",
+      "m3",
+      "m4",
+      "m5",
+      "m6",
+    ]);
+    expect(first.pending["t1"]).toMatchObject({ edge: "messages", after: "q6" });
+    expect(second.pending).toEqual({});
+  });
+
+  it("moves the time cursor once a post is read through, never past the start of a read still open", async () => {
+    stubCursors({
+      [`GET ${MEDIA}/comments`]: sixPages((n) =>
+        n === 6 ? "2026-10-04T12:05:00+0000" : `2026-10-03T1${String(n)}:00:00+0000`,
+      ),
+    });
+    const first = await readComments(ctx(), [MEDIA], SINCE);
+    // A quarter of an hour later the rest is read, holding a comment written after the first read began.
+    const later = { ...ctx(), now: new Date("2026-10-04T12:15:00Z") };
+    const second = await readComments(later, [MEDIA], SINCE, first.pending);
+    expect(first).toMatchObject({ truncated: true, newest: "2026-10-03T14:00:00.000Z" });
+    expect(second).toMatchObject({ truncated: false, newest: "2026-10-04T12:00:00.000Z" });
   });
 });
 

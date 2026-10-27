@@ -115,7 +115,7 @@ export const subjectStatusAnswer = z.object({
   handled_by: z.string().nullable(),
 });
 
-/** `POST audit/subject-requests/:id/export`, `delete` and `opt-out`: the request alone. */
+/** `POST audit/subject-requests/:id/opt-out`: the request alone. */
 export const subjectActionInput = z.object({ id: z.string().uuid() }).strict();
 
 /**
@@ -133,6 +133,12 @@ export const subjectDeleteInput = z
   })
   .strict();
 
+/**
+ * `POST audit/subject-requests/:id/export`: the request, and the Instagram handle the person names, if any, whose
+ * comments and messages join the bundle (W8 item 4 round 3). The same shape as a deletion's.
+ */
+export const subjectExportInput = subjectDeleteInput;
+
 /** The access bundle: every row the address appears in, as stored (S55). */
 export const subjectExportSchema = z.object({
   request: z.object({ id: z.string().uuid(), kind: z.literal("access"), received_at: z.string() }),
@@ -143,6 +149,8 @@ export const subjectExportSchema = z.object({
   submissions: z.array(z.unknown()),
   // W8 0h review: the person's emails the mailbox check recorded.
   inbound_mail: z.array(z.unknown()),
+  // W8 item 4 round 3: the comments and messages of the Instagram handle named, empty when none was.
+  social_inbox: z.array(z.unknown()),
 });
 
 /** What `delete_subject` and `opt_out_subject` changed, as counts only. */

@@ -1,7 +1,8 @@
 create or replace function public.social_inbox_record(
   p_items jsonb,
   p_cursor_key text,
-  p_read_until timestamptz default null
+  p_read_until timestamptz default null,
+  p_pending jsonb default null
 )
 returns integer
 language plpgsql
@@ -29,8 +30,11 @@ begin
   -- colleague through the triage (W8 0a, 0b), within the wake caps above, so a first read's backlog or a flood never
   -- wakes more than the cap. A comment on one of our Instagram posts is tied to its social_posts row.
   -- The cursor moves forward only, in the same transaction, so a failed write never skips an item.
+  -- Round 3: one read at a time counts and spends the daily wakes, so two reads that overlap never pass the cap.
+  perform pg_advisory_xact_lock(hashtext('social_inbox_record'));
   if p_cursor_key is null or p_cursor_key not in ('instagram_comments', 'instagram_messages')
     or p_items is null or jsonb_typeof(p_items) <> 'array'
+    or (p_pending is not null and jsonb_typeof(p_pending) <> 'object')
   then
     raise exception 'bad_request';
   end if;
@@ -114,15 +118,18 @@ begin
       c_day_cap
     ));
   end if;
+  -- Round 3: the lists this read left part way (Graph's `after` cursors, meta-inbox.ts) replace the last read's, in the
+  -- same transaction as the rows, so the next read resumes exactly where this one stopped.
   if p_read_until is not null then
-    insert into public.social_inbox_cursors (key, read_until, read_at)
-    values (p_cursor_key, p_read_until, now())
+    insert into public.social_inbox_cursors (key, read_until, read_at, pending)
+    values (p_cursor_key, p_read_until, now(), coalesce(p_pending, '{}'::jsonb))
     on conflict (key) do update
-    set read_until = greatest(public.social_inbox_cursors.read_until, excluded.read_until), read_at = now();
+    set read_until = greatest(public.social_inbox_cursors.read_until, excluded.read_until), read_at = now(),
+      pending = coalesce(p_pending, public.social_inbox_cursors.pending);
   end if;
   return v_new;
 end;
 $$;
 
-revoke execute on function public.social_inbox_record(jsonb, text, timestamptz) from public, anon, authenticated;
-grant execute on function public.social_inbox_record(jsonb, text, timestamptz) to service_role;
+revoke execute on function public.social_inbox_record(jsonb, text, timestamptz, jsonb) from public, anon, authenticated;
+grant execute on function public.social_inbox_record(jsonb, text, timestamptz, jsonb) to service_role;

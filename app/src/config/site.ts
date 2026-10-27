@@ -46,7 +46,7 @@ export const legalUpdated = "2026-10-13";
  * (`currentRightsVersion`), so editing the terms adds a new version here and a new entry in
  * `tests/unit/fixtures/legal-hashes.json`.
  */
-export const legalVersions = { privacy: "2026-10-27", terms: "2026-10-11" } as const;
+export const legalVersions = { privacy: "2026-10-28", terms: "2026-10-11" } as const;
 
 /** Absolute URL for a site path, used in canonical links and structured data. */
 export const absoluteUrl = (path: string) =>

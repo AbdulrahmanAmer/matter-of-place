@@ -86,6 +86,24 @@ export const sendSocialReply: SystemJobDefinition = {
   async run(ctx, _params, data) {
     const input = dataSchema.safeParse(data);
     if (!input.success) throw new NonRetryableError("The job names no approval.");
+    // Round 3: the switch is read before begin, so a reply while Instagram is off is refused without ever being
+    // marked `sending`. A reply already begun goes on to begin, which answers the state it reached.
+    if (!(await instagramOn(ctx))) {
+      const unsent = await ctx.db
+        .from("social_inbox")
+        .select("id")
+        .eq("approval_id", input.data.approval_id)
+        .is("reply_state", null);
+      if (unsent.error !== null) throw unavailable("social_inbox");
+      const row = unsent.data[0];
+      if (row !== undefined) {
+        await recordOutcome(ctx, row.id, {
+          outcome: "refused",
+          error: "Instagram is switched off in Channels: no write was made.",
+        });
+        return { status: "done", result: { refused: "instagram_off" } };
+      }
+    }
     const answer = await ctx.db.rpc("social_inbox_reply_begin", {
       p_approval_id: input.data.approval_id,
     });
@@ -113,13 +131,6 @@ export const sendSocialReply: SystemJobDefinition = {
         });
       }
       return { status: "done", result: { skipped: begun.state } };
-    }
-    if (!(await instagramOn(ctx))) {
-      await recordOutcome(ctx, begun.inbox_id, {
-        outcome: "refused",
-        error: "Instagram is switched off in Channels: no write was made.",
-      });
-      return { status: "done", result: { refused: "instagram_off" } };
     }
     if (!liveSideEffects("social")) {
       await recordOutcome(ctx, begun.inbox_id, {

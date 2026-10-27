@@ -1267,14 +1267,14 @@ isOneToOne: false
                   ]
                 },"social_inbox_cursors": {
                   Row: {
-                    "key": string,"read_at": string,"read_until": string
+                    "key": string,"pending": NonNullable<Json>,"read_at": string,"read_until": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "key": string,"read_at"?: string,"read_until": string
+                    "key": string,"pending"?: NonNullable<Json>,"read_at"?: string,"read_until": string
                   }
                   Update: {
-                    "key"?: string,"read_at"?: string,"read_until"?: string
+                    "key"?: string,"pending"?: NonNullable<Json>,"read_at"?: string,"read_until"?: string
                   }
                   Relationships: [
 
@@ -1914,7 +1914,7 @@ isOneToOne: false
 { Args: { "months_ahead"?: number }; Returns: undefined
                            },
 "export_subject":
-{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_subject_request_id": string }; Returns: Json
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_instagram_handle"?: string,"p_request_id": string,"p_subject_request_id": string }; Returns: Json
                            },
 "fail_job":
 { Args: { "p_claim": string,"p_dead"?: boolean,"p_error": string,"p_job_id": string,"p_run_url"?: string }; Returns: boolean
@@ -2529,7 +2529,7 @@ isOneToOne: false
 { Args: { "p_agent_id": string,"p_content": Json,"p_content_hash": string,"p_inbox_id": string,"p_run_id": string,"p_summary": string }; Returns: string
                            },
 "social_inbox_record":
-{ Args: { "p_cursor_key": string,"p_items": Json,"p_read_until"?: string }; Returns: number
+{ Args: { "p_cursor_key": string,"p_items": Json,"p_pending"?: Json,"p_read_until"?: string }; Returns: number
                            },
 "social_inbox_reply_begin":
 { Args: { "p_approval_id": string }; Returns: Json

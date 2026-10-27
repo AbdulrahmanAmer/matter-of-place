@@ -91,12 +91,20 @@ export async function setSubjectRequestStatus(
   return subjectStatusAnswer.parse(data);
 }
 
-/** `POST audit/subject-requests/:id/export`: the bundle of an access request; the request is then fulfilled. */
-export async function exportSubject(actor: AdminActor, db: Db, input: { id: string }) {
+/**
+ * `POST audit/subject-requests/:id/export`: the bundle of an access request, with the comments and messages of the
+ * Instagram handle the person names (W8 item 4 round 3); the request is then fulfilled.
+ */
+export async function exportSubject(
+  actor: AdminActor,
+  db: Db,
+  input: { id: string; instagram_handle?: string | undefined },
+) {
   authorize(actor, "audit.subject_export");
   const { data, error } = await db.rpc("export_subject", {
     p_subject_request_id: input.id,
     ...auditContext(actor),
+    ...(input.instagram_handle === undefined ? {} : { p_instagram_handle: input.instagram_handle }),
   });
   if (error !== null) throw fromRpcError(error);
   return subjectExportSchema.parse(data);

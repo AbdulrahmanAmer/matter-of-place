@@ -50,6 +50,7 @@ const BUNDLE = {
   contacts: [],
   submissions: [],
   inbound_mail: [],
+  social_inbox: [],
 };
 
 /** A request received `daysAgo` days before NOW, due 45 days after it, as B3's generated column has it. */

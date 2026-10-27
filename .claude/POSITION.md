@@ -2525,3 +2525,13 @@ registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3
   20261027205444, registry W8-4.json 64 entries (32 new), every new test watched red on round 1's code; SQL dry-run on
   a native PG 18 stub cluster. No PR (Matter merges). UNPROVEN until CI: typecheck, lint, db cases, replay. Bank P-4682,
   hit again P-008 and P-015.
+- 2026-10-28 01:20 +0300, W8 item 4 round 3 (branch overdrive/w8-4-comments, worktree E:/mop-build/od-w8-4, origin/main
+  had nothing new): the fresh review's two mediums and the lows fixed. Every Instagram list is read to its end whatever
+  Graph's order (nested replies and messages paged), a capped list keeps Graph's `after` cursor in
+  `social_inbox_cursors.pending` and resumes next tick, the time cursor never passes an open list's start; the privacy
+  paragraphs name Instagram and an access request exports a handle's rows; record takes an advisory lock, only a human
+  role row approves (decide and begin), an edit over the limit is refused, the switch is read before begin, every
+  `retry_at` skips a tick, a deleted handle's held lines go. Migrations 20261027215437 (column) and 20261027221335 (fns);
+  registry W8-4.json 79 entries (19 new), 20 sql entries in five registries rebuilt on current texts; new unit, screen
+  and privacy tests red on round 2's code; SQL probes on a native PG 18 stub cluster, red on round 2's texts. No PR
+  (Matter merges). UNPROVEN until CI: typecheck, lint, db cases, replay. Bank P-4683, hit again P-2216.

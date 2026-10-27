@@ -775,6 +775,8 @@ export const schemaManifest: Record<string, Record<string, string>> = {
     key: "text",
     read_until: "timestamptz",
     read_at: "timestamptz",
+    // W8 item 4 round 3: the lists a read left part way, with Graph's `after` cursors.
+    pending: "jsonb",
   },
   // W8 item 10 (H116, H135): proposed posts, one row per channel of each revision, and each revision sent back.
   proposed_posts: {

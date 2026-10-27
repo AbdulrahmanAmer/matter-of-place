@@ -83,6 +83,9 @@ async function proposed(db: Db): Promise<{ inbox: string; approval: string; hash
   return { inbox, approval, hash };
 }
 
+/** Round 3: a person on record, who may approve a reply on Instagram (a human role row). */
+const person = (db: Db) => createStaffUser(db, ["admin"]);
+
 async function refusal(db: Db, sql: string, params: unknown[]): Promise<string> {
   await db.query("savepoint w84");
   try {
@@ -204,12 +207,7 @@ describe("a Social reply, from Approvals to the send", () => {
       const { inbox, approval, hash } = await proposed(db);
       await db.query(
         "select public.workforce_decide($1, 'approved', $2, $3, 'human', 'req-w84', null, $4)",
-        [
-          approval,
-          hash,
-          await createAuthUser(db),
-          "Thank you, the architect is named on the page.",
-        ],
+        [approval, hash, await person(db), "Thank you, the architect is named on the page."],
       );
       const jobs = await db.query<{ key: string }>(
         "select idempotency_key as key from public.jobs where type = 'send_social_reply'",
@@ -261,7 +259,7 @@ describe("a Social reply, from Approvals to the send", () => {
       const { inbox, approval, hash } = await proposed(db);
       await db.query(
         "select public.workforce_decide($1, 'approved', $2, $3, 'human', 'req-w84b')",
-        [approval, hash, await createAuthUser(db)],
+        [approval, hash, await person(db)],
       );
       await db.query("select public.social_inbox_reply_begin($1)", [approval]);
       await db.query(
@@ -394,7 +392,7 @@ describe("W8 item 4 round 2", () => {
         "select public.social_inbox_propose($1, $2, null, 'A reply', $3::jsonb, $4) as v",
         [inbox, agent, JSON.stringify({ inbox_id: inbox, body: "Yes, it is." }), hash],
       );
-      await db.query(DECIDE, [approval, "approved", hash, await createAuthUser(db), "human", null]);
+      await db.query(DECIDE, [approval, "approved", hash, await person(db), "human", null]);
       return scalar<{ state: string; reason: string }>(
         db,
         "select public.social_inbox_reply_begin($1) as v",
@@ -495,7 +493,7 @@ describe("W8 item 4 round 2", () => {
         "select public.social_inbox_propose($1, $2, null, 'x', $3::jsonb, 'h')",
         [message, agent, JSON.stringify({ inbox_id: message, body: "x".repeat(1001) })],
       );
-      await db.query(DECIDE, [approval, "approved", hash, await createAuthUser(db), "human", null]);
+      await db.query(DECIDE, [approval, "approved", hash, await person(db), "human", null]);
       await db.query("select public.social_inbox_reply_begin($1)", [approval]);
       await db.query(
         "select public.social_inbox_reply_result($1, 'refused', null, 'Instagram is switched off in Channels: no write was made.')",
@@ -548,5 +546,167 @@ describe("W8 item 4 round 2", () => {
       return { removed: result.counts["social_inbox"], left: left.rows.map((row) => row.graph_id) };
     });
     expect(seen).toEqual({ removed: 1, left: ["w84-m1"] });
+  });
+});
+
+describe("W8 item 4 round 3", () => {
+  const RECORD4 =
+    "select public.social_inbox_record($1::jsonb, $2, $3::timestamptz, $4::jsonb) as v";
+  const DECIDE3 =
+    "select public.workforce_decide($1, 'approved', $2, $3, 'human', 'req-w84r3', null, $4)";
+  const PART = {
+    [MEDIA]: {
+      edge: "comments",
+      thread: MEDIA,
+      after: "p5",
+      since: "2026-10-26T10:00:00.000Z",
+      started: "2026-10-27T10:00:00.000Z",
+    },
+  };
+
+  /** An access or deletion request whose identity is confirmed, and the admin who handles it. */
+  async function confirmed(db: Db, kind: "access" | "deletion") {
+    const admin = await person(db);
+    const id = await scalar<string>(
+      db,
+      "insert into public.subject_requests (email, kind) values ('w84r3@example.net', $1) returning id as v",
+      [kind],
+    );
+    await db.query(STATUS, [id, "start_verification", admin, null]);
+    await db.query(STATUS, [id, "confirm_identity", admin, "Wrote from the account."]);
+    return { admin, id };
+  }
+
+  it("keeps the lists a read left part way with its cursor, and the next read's lists replace them", async () => {
+    const seen = await withRollback(async (db) => {
+      const pending = () =>
+        scalar<unknown>(
+          db,
+          "select pending as v from public.social_inbox_cursors where key = 'instagram_comments'",
+        );
+      await db.query(RECORD4, [
+        "[]",
+        "instagram_comments",
+        "2026-10-27T10:00:00Z",
+        JSON.stringify(PART),
+      ]);
+      const first = await pending();
+      await db.query(RECORD4, ["[]", "instagram_comments", "2026-10-27T10:15:00Z", "{}"]);
+      const second = await pending();
+      const bad = await refusal(db, RECORD4, ["[]", "instagram_comments", null, "[]"]);
+      return { first, second, bad };
+    });
+    expect(seen).toEqual({ first: PART, second: {}, bad: "bad_request" });
+  });
+
+  it("takes one lock for a read, so two reads that overlap spend the daily wakes one after the other", async () => {
+    const held = await withRollback(async (db) => {
+      await record(db, "[]", "instagram_comments", null);
+      return scalar<number>(
+        db,
+        `select count(*)::int as v from pg_locks
+         where locktype = 'advisory' and pid = pg_backend_pid()
+           and objid::bigint = (hashtext('social_inbox_record')::bigint & 4294967295)`,
+      );
+    });
+    expect(held).toBe(1);
+  });
+
+  it("refuses an approval from an id with no human role row, at decide and at begin", async () => {
+    const seen = await withRollback(async (db) => {
+      const { inbox, approval, hash } = await proposed(db);
+      const nobody = await createAuthUser(db);
+      const decided = await refusal(db, DECIDE3, [approval, hash, nobody, null]);
+      // An approval recorded by any other path, with that id as its decider, is still refused before any send.
+      await db.query(
+        "update public.agent_approvals set state = 'approved', decided_by = $2 where id = $1",
+        [approval, nobody],
+      );
+      const begun = await scalar<{ state: string; reason: string }>(
+        db,
+        "select public.social_inbox_reply_begin($1) as v",
+        [approval],
+      );
+      const replyState = await scalar<string | null>(
+        db,
+        "select reply_state as v from public.social_inbox where id = $1",
+        [inbox],
+      );
+      return { decided, state: begun.state, reason: begun.reason, replyState };
+    });
+    expect(seen).toEqual({
+      decided: "manual_approval",
+      state: "refuse",
+      reason: "No person approved this reply: no write was made.",
+      replyState: null,
+    });
+  });
+
+  it("refuses a person's edit of a reply longer than its kind takes, and takes one within it", async () => {
+    const seen = await withRollback(async (db) => {
+      const { approval, hash } = await proposed(db);
+      const admin = await person(db);
+      const tooLong = await refusal(db, DECIDE3, [approval, hash, admin, "x".repeat(2201)]);
+      const fits = await refusal(db, DECIDE3, [approval, hash, admin, "x".repeat(2200)]);
+      return { tooLong, fits };
+    });
+    expect(seen).toEqual({ tooLong: "validation", fits: "ok" });
+  });
+
+  it("exports the comments and messages of the Instagram handle an access request names, and none without one", async () => {
+    const seen = await withRollback(async (db) => {
+      await record(db, items, "instagram_comments", null);
+      const named = await confirmed(db, "access");
+      const bundle = await scalar<{ social_inbox: { graph_id: string }[] }>(
+        db,
+        "select public.export_subject($1, $2, 'human', 'r-w84r3', ' @Reader ') as v",
+        [named.id, named.admin],
+      );
+      const unnamed = await confirmed(db, "access");
+      const none = await scalar<{ social_inbox: unknown[] }>(
+        db,
+        "select public.export_subject($1, $2, 'human', 'r-w84r3b') as v",
+        [unnamed.id, unnamed.admin],
+      );
+      return {
+        named: bundle.social_inbox.map((row) => row.graph_id),
+        none: none.social_inbox.length,
+      };
+    });
+    expect(seen).toEqual({ named: ["w84-c1"], none: 0 });
+  });
+
+  it("deletes the lines held for Matter about a deleted handle's comments, and no other line", async () => {
+    const seen = await withRollback(async (db) => {
+      await record(db, items, "instagram_comments", null);
+      const inbox = await scalar<string>(
+        db,
+        "select id::text as v from public.social_inbox where graph_id = 'w84-c1'",
+      );
+      const other = await scalar<string>(
+        db,
+        "select id::text as v from public.social_inbox where graph_id = 'w84-m1'",
+      );
+      const held = (id: string) =>
+        scalar<string>(
+          db,
+          `insert into public.agent_messages (thread, author_kind, author_id, author_name, body)
+           values ('social', 'system', 'triage', 'Triage', $1) returning id::text as v`,
+          [`@matter An outside message was held.\nFrom: reader.\nRecord: social_comment ${id}.`],
+        );
+      const tied = await held(inbox);
+      const kept = await held(other);
+      const named = await confirmed(db, "deletion");
+      await db.query("select public.delete_subject($1, $2, 'human', 'r-w84r3c', 'reader')", [
+        named.id,
+        named.admin,
+      ]);
+      const left = await db.query<{ id: string }>(
+        "select id::text from public.agent_messages where id = any ($1::uuid[])",
+        [[tied, kept]],
+      );
+      return { left: left.rows.map((row) => row.id), kept };
+    });
+    expect(seen.left).toEqual([seen.kept]);
   });
 });

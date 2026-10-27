@@ -85,11 +85,14 @@ const channelRow = (enabled: boolean) => ({
 });
 
 /** The read's database: Instagram on or off, a token or none, and a `social_inbox_record` that keeps Graph ids. */
-function readDb(options: { enabled?: boolean; token?: string } = {}) {
+type CursorRow = { key: string; read_until: string; read_at: string; pending: NonNullable<Json> };
+
+function readDb(options: { enabled?: boolean; token?: string; cursors?: CursorRow[] } = {}) {
   const kept = new Set<string>();
   const recorded: { key: string; ids: string[] }[] = [];
-  /** The cursor each record call was asked to keep. */
+  /** The cursor each record call was asked to keep, and the lists left part way (round 3). */
   const untils: (string | undefined)[] = [];
+  const pendings: Json[] = [];
   const db = fakeDb({
     rpc: {
       get_vault_secret: () => options.token ?? "EAAtest-page-token",
@@ -105,6 +108,7 @@ function readDb(options: { enabled?: boolean; token?: string } = {}) {
         );
         recorded.push({ key: args.p_cursor_key, ids });
         untils.push(args.p_read_until);
+        pendings.push(args.p_pending ?? null);
         const fresh = ids.filter((id) => !kept.has(id));
         for (const id of fresh) kept.add(id);
         return fresh.length;
@@ -113,7 +117,7 @@ function readDb(options: { enabled?: boolean; token?: string } = {}) {
     tables: {
       channel_settings: [channelRow(options.enabled ?? true)],
       settings: [settingsRow],
-      social_inbox_cursors: [],
+      social_inbox_cursors: options.cursors ?? [],
       social_posts: [
         {
           id: "6a1b2c3d-0000-4000-8000-0000000000d1",
@@ -135,7 +139,7 @@ function readDb(options: { enabled?: boolean; token?: string } = {}) {
       ],
     },
   });
-  return { db, recorded, untils };
+  return { db, recorded, untils, pendings };
 }
 
 const readCtx = (db: ReturnType<typeof fakeDb>) => ({
@@ -194,7 +198,8 @@ describe("read_social_inbox", () => {
     expect(log.mock.calls.map((call: unknown[]) => call[1])).toEqual(["social_inbox_rate_limited"]);
   });
 
-  it("logs a read that hit its page cap and records it with the cursor held", async () => {
+  it("stores where a capped read stopped, says it once, and the next tick resumes there", async () => {
+    // Six pages of comments, one each, linked p2..p6 (round 3); a cursor nobody registered is an empty page.
     const page = (n: number) => ({
       data: [
         {
@@ -204,27 +209,50 @@ describe("read_social_inbox", () => {
           username: "r",
         },
       ],
-      paging: { cursors: { after: `p${String(n)}` }, next: "https://graph.example/next" },
+      ...(n === 6
+        ? {}
+        : {
+            paging: {
+              cursors: { after: `p${String(n + 1)}` },
+              next: "https://graph.example/next",
+            },
+          }),
     });
-    let turn = 0;
-    stubGraph({ [`GET ${PAGE}/conversations`]: { data: [] } });
-    const conversations = globalThis.fetch;
-    vi.stubGlobal("fetch", (input: string, init: RequestInit = {}) => {
-      if (new URL(input).pathname.endsWith(`${MEDIA}/comments`)) {
-        turn += 1;
-        return Promise.resolve(new Response(JSON.stringify(page(turn))));
+    const asked: string[] = [];
+    vi.stubGlobal("fetch", (input: string) => {
+      const url = new URL(input);
+      if (!url.pathname.endsWith(`${MEDIA}/comments`)) {
+        return Promise.resolve(new Response(JSON.stringify({ data: [] })));
       }
-      return conversations(input, init);
+      const after = url.searchParams.get("after") ?? "p1";
+      asked.push(after);
+      const n = Number(after.slice(1));
+      return Promise.resolve(
+        new Response(JSON.stringify(n >= 1 && n <= 6 ? page(n) : { data: [] })),
+      );
     });
-    const { db, untils } = readDb();
+    const first = readDb();
     const log = vi.fn();
-    const ctx = { ...readCtx(db), log };
-    await readSocialInbox.run(ctx, {}, {});
+    await readSocialInbox.run({ ...readCtx(first.db), log }, {}, {});
     expect(log.mock.calls.map((call: unknown[]) => [call[1], call[2]])).toEqual([
-      ["social_inbox_truncated", { key: "instagram_comments" }],
+      ["social_inbox_truncated", { key: "instagram_comments", open: 1 }],
     ]);
-    // The first read starts a day back: that is the cursor the truncated read keeps.
-    expect(untils[0]).toBe(new Date(ctx.now.getTime() - 24 * 60 * 60 * 1000).toISOString());
+    const stored = first.pendings[0] ?? {};
+    expect(stored).toMatchObject({ [MEDIA]: { edge: "comments", after: "p5" } });
+    const second = readDb({
+      cursors: [
+        {
+          key: "instagram_comments",
+          read_until: first.untils[0] ?? "",
+          read_at: "2026-10-04T12:00:00Z",
+          pending: stored,
+        },
+      ],
+    });
+    await readSocialInbox.run(readCtx(second.db), {}, {});
+    expect(asked).toEqual(["p1", "p2", "p3", "p4", "p5", "p6"]);
+    expect(second.recorded[0]).toEqual({ key: "instagram_comments", ids: ["c5", "c6"] });
+    expect(second.pendings[0]).toEqual({});
   });
 
   it("does nothing and says why with no token stored", async () => {
@@ -237,7 +265,29 @@ describe("read_social_inbox", () => {
 });
 
 /** The send's database: what `social_inbox_reply_begin` answers in turn, and every outcome recorded. */
-function sendDb(answers: Json[], options: { enabled?: boolean } = {}) {
+/** The inbox row of an approved reply not yet begun (round 3: what the send reads while Instagram is off). */
+const unsentRow = {
+  id: INBOX,
+  channel: "instagram",
+  kind: "comment",
+  graph_id: "c1",
+  thread_graph_id: MEDIA,
+  parent_graph_id: null,
+  social_post_id: null,
+  author_handle: "reader",
+  body: "Which architect?",
+  received_at: "2026-10-04T11:00:00Z",
+  state: "proposed",
+  approval_id: APPROVAL,
+  reply_state: null,
+  reply_graph_id: null,
+  reply_error: null,
+  replied_at: null,
+  created_at: "2026-10-04T11:00:00Z",
+  updated_at: "2026-10-04T11:00:00Z",
+};
+
+function sendDb(answers: Json[], options: { enabled?: boolean; unsent?: boolean } = {}) {
   const outcomes: { outcome: string; reply?: string | undefined; error?: string | undefined }[] =
     [];
   let call = 0;
@@ -258,7 +308,12 @@ function sendDb(answers: Json[], options: { enabled?: boolean } = {}) {
         return undefined;
       },
     },
-    tables: { settings: [settingsRow], channel_settings: [channelRow(options.enabled ?? true)] },
+    tables: {
+      settings: [settingsRow],
+      channel_settings: [channelRow(options.enabled ?? true)],
+      // The rows the query is meant to return: this approval's row while its reply is not begun, else none.
+      social_inbox: options.unsent === false ? [] : [unsentRow],
+    },
   });
   return { db, outcomes };
 }
@@ -334,6 +389,24 @@ describe("send_social_reply", () => {
         error: "Instagram is switched off in Channels: no write was made.",
       },
     ]);
+  });
+
+  it("reads the switch before begin: a reply refused while Instagram is off is never marked sending", async () => {
+    vi.stubEnv("MOP_ENV", "production");
+    stubGraph({});
+    const off = sendDb([begin], { enabled: false });
+    await sendSocialReply.run(sendCtx(off.db), {}, data);
+    expect(off.db.calls.filter((call) => call.kind === "rpc").map((call) => call.name)).toEqual([
+      "social_inbox_reply_result",
+    ]);
+    // A reply already begun goes on to begin, which answers the state it reached.
+    const since = new Date(Date.parse("2026-10-04T12:00:00Z") - 10 * 60 * 1000).toISOString();
+    const begun = sendDb([{ state: "sending", inbox_id: INBOX, since }], {
+      enabled: false,
+      unsent: false,
+    });
+    await sendSocialReply.run(sendCtx(begun.db), {}, data);
+    expect(begun.outcomes.map((row) => row.outcome)).toEqual(["unknown"]);
   });
 
   it("records begin's refusal (no person, or the 24-hour window) with its words and makes no call", async () => {

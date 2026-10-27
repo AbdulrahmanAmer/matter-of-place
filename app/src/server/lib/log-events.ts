@@ -22,8 +22,10 @@ export const LogEvent = [
   // W8 item 4: the comments and messages read did nothing (Instagram off, its ids unset, or no token).
   "social_inbox_skipped",
   // Round 2: a read hit its page cap with newer items unread (the cursor held), or Graph's rate limit (tick skipped).
+  // Round 3: a capped read stores where each list stopped; a stored value not in that shape is read afresh.
   "social_inbox_truncated",
   "social_inbox_rate_limited",
+  "social_inbox_pending_unreadable",
   "fanout_failed",
   "fanout_payload_invalid",
   "fanout_failure_unrecorded",

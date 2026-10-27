@@ -2,7 +2,8 @@ create or replace function public.export_subject(
   p_subject_request_id uuid,
   p_actor uuid,
   p_actor_kind public.actor_kind,
-  p_request_id text
+  p_request_id text,
+  p_instagram_handle text default null
 )
 returns jsonb
 language plpgsql
@@ -12,6 +13,8 @@ as $$
 declare
   v_row public.subject_requests;
   v_email text;
+  -- W8 item 4 round 3: the Instagram handle the person names, read as delete_subject reads it.
+  v_handle text := lower(nullif(btrim(ltrim(btrim(coalesce(p_instagram_handle, '')), '@')), ''));
   v_contacts uuid[];
   v_bundle jsonb;
 begin
@@ -58,6 +61,11 @@ begin
     'inbound_mail', coalesce((
       select jsonb_agg(to_jsonb(m) order by m.received_at)
       from public.inbound_mail m where lower(m.from_email) = v_email
+    ), '[]'),
+    -- W8 item 4 round 3: the comments and messages of the Instagram handle the person names; none without one.
+    'social_inbox', coalesce((
+      select jsonb_agg(to_jsonb(s) order by s.received_at)
+      from public.social_inbox s where v_handle is not null and lower(s.author_handle) = v_handle
     ), '[]')
   ) into v_bundle;
 
@@ -75,7 +83,8 @@ begin
         'inquiries', jsonb_array_length(v_bundle -> 'inquiries'),
         'contacts', jsonb_array_length(v_bundle -> 'contacts'),
         'submissions', jsonb_array_length(v_bundle -> 'submissions'),
-        'inbound_mail', jsonb_array_length(v_bundle -> 'inbound_mail')
+        'inbound_mail', jsonb_array_length(v_bundle -> 'inbound_mail'),
+        'social_inbox', jsonb_array_length(v_bundle -> 'social_inbox')
       )
     ),
     p_request_id
@@ -84,6 +93,6 @@ begin
 end;
 $$;
 
-revoke execute on function public.export_subject(uuid, uuid, public.actor_kind, text)
+revoke execute on function public.export_subject(uuid, uuid, public.actor_kind, text, text)
   from public, anon, authenticated;
-grant execute on function public.export_subject(uuid, uuid, public.actor_kind, text) to service_role;
+grant execute on function public.export_subject(uuid, uuid, public.actor_kind, text, text) to service_role;
