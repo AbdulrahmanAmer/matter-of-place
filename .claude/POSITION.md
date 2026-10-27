@@ -2523,7 +2523,7 @@ registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3
   (`social_inbox_truncated`), rate limits skip a tick; the 24-hour message window rides in the proposal and begin
   refuses past it; privacy notice and delete-by-handle; wake caps 10 a read and 50 a day; the lows. Fns migration
   20261027205444, registry W8-4.json 64 entries (32 new), every new test watched red on round 1's code; SQL dry-run on
-  a native PG 18 stub cluster. No PR (Matter merges). UNPROVEN until CI: typecheck, lint, db cases, replay. Bank P-4682,
+  a native PG 18 stub cluster. No PR (Matter merges). UNPROVEN until CI: typecheck, lint, db cases, replay. Bank P-4692,
   hit again P-008 and P-015.
 - 2026-10-28 01:20 +0300, W8 item 4 round 3 (branch overdrive/w8-4-comments, worktree E:/mop-build/od-w8-4, origin/main
   had nothing new): the fresh review's two mediums and the lows fixed. Every Instagram list is read to its end whatever
@@ -2534,4 +2534,4 @@ registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3
   `retry_at` skips a tick, a deleted handle's held lines go. Migrations 20261027215437 (column) and 20261027221335 (fns);
   registry W8-4.json 79 entries (19 new), 20 sql entries in five registries rebuilt on current texts; new unit, screen
   and privacy tests red on round 2's code; SQL probes on a native PG 18 stub cluster, red on round 2's texts. No PR
-  (Matter merges). UNPROVEN until CI: typecheck, lint, db cases, replay. Bank P-4683, hit again P-2216.
+  (Matter merges). UNPROVEN until CI: typecheck, lint, db cases, replay. Bank P-4693, hit again P-2216.

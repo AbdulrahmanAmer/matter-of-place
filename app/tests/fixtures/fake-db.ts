@@ -28,6 +28,7 @@ export type FakeDb = Db & { calls: FakeCall[] };
 
 interface FakeQuery extends Promise<{ data: unknown[]; error: null }> {
   is: () => FakeQuery;
+  not: () => FakeQuery;
   gt: () => FakeQuery;
   eq: () => FakeQuery;
   in: () => FakeQuery;
@@ -69,6 +70,7 @@ export function fakeDb(options: FakeDbOptions = {}): FakeDb {
     const query = (): FakeQuery =>
       Object.assign(Promise.resolve({ data: rows, error: null }), {
         is: query,
+        not: query,
         gt: query,
         eq: query,
         in: query,

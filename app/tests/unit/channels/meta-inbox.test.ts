@@ -249,7 +249,7 @@ describe("round 2: letters and rate limits", () => {
 
 /**
  * Round 3: answers `<METHOD> <path>` by its `after` cursor ("first" when there is none), so a read that resumes from
- * the wrong place gets the wrong page; a cursor nobody registered is an empty page (P-4682). `sent` holds every request.
+ * the wrong place gets the wrong page; a cursor nobody registered is an empty page (P-4692). `sent` holds every request.
  */
 function stubCursors(answers: Record<string, Record<string, unknown>>) {
   const sent: Sent[] = [];
