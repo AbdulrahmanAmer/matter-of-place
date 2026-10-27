@@ -9369,3 +9369,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `gh pr view 509 --json body` showed the old body before `gh pr edit 509 --body-file`; `head -1 ~/.mop-workforce/builders/w8-1-render/brief.final.md` showed "round 9" under the round 10 launch.
 - added: 2026-10-27
 
+
+## P-4680 · A colleague answer that is not valid JSON was posted raw and its proposal lost, with nothing said
+- symptom: 2026-10-27 19:29 UTC, W9 item 3's live proof: the replayed Fairfield bounce woke the Editor (run ebca4a55); his line in the thread was his whole answer, fence and JSON, and no proposal reached Approvals although his reply said "I've filed a proposal in Approvals".
+- cause: his JSON had one bracket wrong (`Expected '}'` near the end, `..."}]}], "hire": []}`); `readJsonAnswer` (`scripts/workforce/answer.ts`) tries each `{` and, when none parses, returns the raw text as the reply with no proposals, hires or actions, and the runner says nothing about it.
+- rule: an answer the runner cannot read is never posted raw and never dropped in silence: retry once with the parse error, and if it still fails say plainly that nothing from the run was filed (fix round `overdrive/answer-not-json`). A live proof that waits on a proposal checks `agent_approvals` for the run, not the colleague's own words.
+- proof: `bun .tmp/parse-line.ts editor 2026-10-27T19:29:00Z` from the live checkout → `JSON.parse: JSON Parse error: Expected '}'` and `readJsonAnswer: {"reply":"```json ...`; `bun .tmp/bounce-run.ts 6396fcf1-...` → `proposals: []`.
+- added: 2026-10-27
