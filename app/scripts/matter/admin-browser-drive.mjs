@@ -5,9 +5,9 @@
 // is never printed, and an error that would carry it is replaced by a plain line. Exit 0 read, 3 signed out, 1 failed.
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
 import puppeteer from "puppeteer-core";
 import { z } from "zod";
+import { chromePath } from "../lib/chrome-path.mjs";
 
 const STEP_MS = 30_000;
 const NAVIGATION_MS = 45_000;
@@ -25,7 +25,6 @@ const inputSchema = z.object({
   headed: z.boolean(),
   link: z.string().startsWith("https://matterofplace.com/admin/auth/confirm?").nullable(),
 });
-const engineSchema = z.object({ findChrome: z.function().returns(z.string()) });
 const answerSchema = z.object({ status: z.number(), body: z.unknown() });
 const meSchema = z.object({
   kind: z.string(),
@@ -45,17 +44,6 @@ async function readStdin() {
   // With an encoding set, each chunk is a string; stdin's iterator is typed `any`, so it is read through String().
   for await (const chunk of process.stdin) text += String(chunk);
   return text;
-}
-
-/** @returns {Promise<string>} Chrome from `CHROME_PATH`, else the cached one the launch engine finds (as shoot.mjs) */
-async function chromePath() {
-  const fromEnv = process.env["CHROME_PATH"];
-  if (fromEnv !== undefined && fromEnv !== "") return fromEnv;
-  const enginePath = fileURLToPath(new URL("../../../launch/engine/chrome.mjs", import.meta.url));
-  const engine = engineSchema.parse(
-    await import(/* @vite-ignore */ pathToFileURL(enginePath).href),
-  );
-  return engine.findChrome();
 }
 
 /**
