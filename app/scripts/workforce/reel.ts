@@ -10,12 +10,15 @@
 // itself. A step that fails stops the piece, writes nothing to the site, and says which check failed in the thread that
 // asked. Every change of a piece is saved to `brief.json` and `status.md` together, and its row (`studio_pieces`) is
 // brought in step with the folder at the start and end of every pass.
+import { spawn, type SpawnOptions } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import {
+  closeSync,
   copyFileSync,
   cpSync,
   existsSync,
   mkdirSync,
+  openSync,
   readdirSync,
   readFileSync,
   realpathSync,
@@ -619,6 +622,27 @@ export const REFERENCE = [
 export const GATE_RULES =
   "The motion gate measures the final file and refuses it unless: at least 85% of frames differ from the one before (keep the camera, a photograph or the light always moving; a held title still drifts), no still run longer than 1.0 s, 3 to 8 hard cuts (a cut counts only when the picture changes strongly, a scene score over 0.30: flip the value at every cut, dark to light or light to dark, as the film does; a cut between two dark framings of the same room is not seen, and the door move's passes through light are not cuts), an average shot of 2.0 to 5.5 s, the sound at -18 LUFS (within 1.5) with a true peak at or below -1 dBTP, and no sustained pitch (the score is noise-based sound design, never a held tone).";
 
+/**
+ * The site's own @font-face rules (`src/styles/fonts.css`, the one source) at the path the engine serves the files, for
+ * a studio designer to copy as they are. W8 item 1: a designer that guessed `CormorantGaramond-Light.woff2` failed every
+ * font request; the files are variable, one per family and style, a weight being a `font-weight` inside its range.
+ */
+export function fontFaces(
+  css: string = readFileSync(join(REPO, "app", "src", "styles", "fonts.css"), "utf8"),
+): string {
+  return (css.match(/@font-face\s*\{[^}]*\}/g) ?? [])
+    .filter((rule) => rule.includes('url("/fonts/'))
+    .map((rule) =>
+      rule.split(/\s+/).join(" ").split('url("/fonts/').join('url("/app/public/fonts/'),
+    )
+    .join("\n");
+}
+
+/** The typefaces a studio page may load, as the designer is told them. */
+export function fontRule(): string {
+  return `Typefaces only through these @font-face rules, the site's own, copied as they are into the page's CSS. Each file is a variable font: a weight is a font-weight inside its range and italic is font-style: italic, never a file of its own; no other font file exists.\n${fontFaces()}`;
+}
+
 /** The designer's brief: the request, the house rules that govern (H108, H110) and the files a scene must hold. */
 export function scenePrompt(brief: Brief, shots: readonly (Shot & { file: string })[]): string {
   const request = reelOf(brief);
@@ -635,11 +659,12 @@ export function scenePrompt(brief: Brief, shots: readonly (Shot & { file: string
         ]),
     "Read first, in reference/: DIRECTION.md (the Product Launch film: study its process and craft, never copy its layout or shots), MOTION-BIBLE.md, and the engine (film.js, audio.js). reel/ is the property reel, shown only as an example of the engine's API.",
     "House rules that govern (ruling H110): Cormorant Garamond for display, Jost for labels; palette Obsidian #11110F, Bone #EEEAE1, Warm Ivory #F5F2EB, Sandstone #C9C0B2 (accents only), Mineral Grey #575751, Warm Grey #8B877F. Ink follows the paper; one italic word per title; titles rise through masks, never bounce, fade, scale or glow; eased camera, no shake; cuts on an 80 BPM grid (0.75 s); no gradients, no glow, no music (S36): the score is synthesized sound design in cues.mjs only. Copy: calm, brief, no em dashes, no hyperbole, no promise of leads or sales.",
+    fontRule(),
     "Format: 1080 x 1920, 30 fps, 15 to 25 seconds, 3 to 8 cuts, every line that must be read inside the central safe area (about 950 x 980 px, clear of the top 270 px and bottom 670 px), and at least 32 px.",
     DOOR_RULE,
     GATE_RULES,
     COPY_RULE,
-    "Write exactly three files in scene/: scene.html (the page; fonts from /app/public/fonts/, tokens from /app/src/styles/tokens.css), scene.mjs (imports /launch/engine/runtime/film.js by that absolute path, reads ?spec= and ?cues=, draws the spec's titles and shots by their src), and cues.mjs (run as `node cues.mjs <spec.json> <out.json>`, writing the sound cue list audio.js plays, with the same duration as the scene).",
+    "Write exactly three files in scene/: scene.html (the page; fonts by the @font-face rules above, tokens from /app/src/styles/tokens.css), scene.mjs (imports /launch/engine/runtime/film.js by that absolute path, reads ?spec= and ?cues=, draws the spec's titles and shots by their src), and cues.mjs (run as `node cues.mjs <spec.json> <out.json>`, writing the sound cue list audio.js plays, with the same duration as the scene).",
     'End with one JSON object on its own: {"duration_s": <seconds>, "note": "one line on the idea"}.',
   ].join("\n\n");
 }
@@ -1251,8 +1276,60 @@ export async function realDeps(): Promise<ReelDeps> {
   };
 }
 
-// `bun scripts/workforce/reel.ts --pass`: the runner starts this between runs; it does the studio's work (W8 0f) and,
-// when the oldest queued piece is a still post, makes it (W8 item 1, `brand-post.ts`).
+/** The studio pass's own lines and errors, appended: the runner starts the pass with no console of its own. */
+export const STUDIO_LOG = join(homedir(), ".mop-workforce", "studio.log");
+
+/**
+ * Starts `--pass` as a process of its own, as the runner does between runs, its output and errors appended to `log`.
+ * W8 item 1: with its output ignored, three queued posts sat for 30 minutes while every pass hung and said nothing.
+ */
+export function startStudioPass(
+  run: (command: string, args: string[], options: SpawnOptions) => { unref: () => void } = spawn,
+  log: string = STUDIO_LOG,
+): void {
+  mkdirSync(dirname(log), { recursive: true });
+  const out = openSync(log, "a");
+  try {
+    run("bun", [fileURLToPath(import.meta.url), "--pass"], {
+      cwd: join(REPO, "app"),
+      detached: true,
+      stdio: ["ignore", out, out],
+      windowsHide: true,
+    }).unref();
+  } finally {
+    closeSync(out);
+  }
+}
+
+/** What `--pass` does, given so it is tested without the studio's real steps. */
+export type PassSteps = {
+  reel: () => Promise<string | null>;
+  /** True when the oldest queued piece is a still post. */
+  postNext: () => boolean;
+  post: () => Promise<string | null>;
+};
+
+/**
+ * One `--pass`: the reel pass, then the post pass when a still post is next. Every line carries its time, so in
+ * STUDIO_LOG a pass that never ends shows as a start with no end, and one that throws says why.
+ */
+export async function studioPass(steps: PassSteps, log: (line: string) => void): Promise<void> {
+  const say = (line: string) => {
+    log(`${new Date().toISOString()} ${line}`);
+  };
+  say("studio pass started");
+  try {
+    say((await steps.reel()) ?? "reel: nothing to do");
+    if (steps.postNext()) say((await steps.post()) ?? "post: none queued");
+    say("studio pass ended");
+  } catch (failure: unknown) {
+    say(`studio pass failed: ${failure instanceof Error ? failure.message : String(failure)}`);
+    throw failure;
+  }
+}
+
+// `bun scripts/workforce/reel.ts --pass`: the runner starts this between runs (`startStudioPass`); it does the studio's
+// work (W8 0f) and, when the oldest queued piece is a still post, makes it (W8 item 1, `brand-post.ts`).
 // `bun scripts/workforce/reel.ts --queue '<request JSON>'`: queues one by hand, answered in the team thread.
 // `bun scripts/workforce/reel.ts --decide '<decision JSON>'`: a person's decision on a draft, as Matter's would be:
 //   {"skill":"studio","piece":"<folder name>","decision":"approve|revise|ask_operator","note":"..."}
@@ -1268,14 +1345,26 @@ if (import.meta.main) {
     const decision = studioDecisionSchema.parse(JSON.parse(process.argv[decide + 1] ?? "{}"));
     console.log(decidePiece(decision).line);
   } else if (process.argv.includes("--pass")) {
-    console.log((await reelPass(await realDeps())) ?? "reel: nothing to do");
-    if (nextReel()?.brief.request.skill === "post") {
-      const { postPass, realPostDeps } = await import("./brand-post.ts");
-      const post = await realPostDeps();
-      console.log((await postPass(post)) ?? "post: none queued");
-      // the post's row follows its folder now, not at the next pass
-      const unwritten = await syncPieces(post.db);
-      if (unwritten.length > 0) console.log(`rows not written: ${unwritten.join("; ")}`);
-    }
+    await studioPass(
+      {
+        reel: async () => reelPass(await realDeps()),
+        postNext: () => nextReel()?.brief.request.skill === "post",
+        post: async () => {
+          // brand-post.ts never imports this module dynamically: while this block awaits, such an import never
+          // settles and the pass hangs (W8 item 1, GOTCHAS)
+          const { postPass, realPostDeps } = await import("./brand-post.ts");
+          const post = await realPostDeps();
+          const made = (await postPass(post)) ?? "post: none queued";
+          // the post's row follows its folder now, not at the next pass
+          const unwritten = await syncPieces(post.db);
+          return unwritten.length === 0
+            ? made
+            : `${made}; rows not written: ${unwritten.join("; ")}`;
+        },
+      },
+      (line) => {
+        console.log(line);
+      },
+    );
   }
 }

@@ -5,7 +5,7 @@
 // No model key exists anywhere (H34): the CLI is the operator's own account. It prints no secret and no prompt.
 //   bun scripts/workforce/daemon.ts          one pass, then exit (the scheduled task runs it every minute)
 //   bun scripts/workforce/daemon.ts --loop   pass after pass until stopped (for watching it live)
-import { spawn, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, hostname } from "node:os";
@@ -48,6 +48,8 @@ import {
   REEL_TOOL_LINE,
   reelWork,
   reelWorking,
+  startStudioPass,
+  STUDIO_LOG,
   withReel,
 } from "./reel.ts";
 import { breakerUntil, type CliUsage, runClaude, UsageLimitError } from "./cli.ts";
@@ -1496,13 +1498,8 @@ async function pass(client: Db): Promise<void> {
   // does not wait for colleague runs: Matter's live session is one and is nearly always running (P-3480). W8 0f: the same
   // pass uploads an approved draft, sends a waiting piece's preview and writes the rows of the studio.
   if (!reelBusy && reelWork()) {
-    spawn("bun", [join(import.meta.dir, "reel.ts"), "--pass"], {
-      cwd: resolve(import.meta.dir, "../.."),
-      detached: true,
-      stdio: "ignore",
-      windowsHide: true,
-    }).unref();
-    console.log(`${new Date().toISOString()} reel pass started`);
+    startStudioPass();
+    console.log(`${new Date().toISOString()} reel pass started (its lines: ${STUDIO_LOG})`);
   }
   await makeApprovedCalls(client);
   // W4: replies to our email reach their colleague; W8 0h: every other message of every folder is recorded once and

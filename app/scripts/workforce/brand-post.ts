@@ -33,12 +33,15 @@ import {
   type PostRequest,
 } from "./post-request.ts";
 import {
+  fontRule,
   hash8,
   nextReel,
   readBrief,
   readVerdict,
+  realDeps,
   record,
   REVISIONS,
+  studioArgs,
   subjectArgs,
   writeBrief,
   type Brief,
@@ -297,7 +300,7 @@ export function copyEarlier(studio: string, folder: string): number {
 }
 
 const HOUSE =
-  "House rules that govern (rulings H108, H110): Cormorant Garamond for display, Jost for labels (Urbanist and Epilogue are the only other typefaces), from /app/public/fonts/; palette Obsidian #11110F, Bone #EEEAE1, Warm Ivory #F5F2EB, Sandstone #C9C0B2 (accents only), Mineral Grey #575751, Warm Grey #8B877F, flat colour only. Ink follows the paper; one italic word per title at most. No gradients, no glow, no shadows, no blur, no gold or metallic, no stock pictures, no drawn house. A legibility scrim over a photograph is a flat tint of Obsidian, never a gradient. Calm, brief, specific; a $15M owner is comfortable here.";
+  "House rules that govern (rulings H108, H110): Cormorant Garamond for display, Jost for labels (Urbanist and Epilogue are the only other typefaces), by the @font-face rules given; palette Obsidian #11110F, Bone #EEEAE1, Warm Ivory #F5F2EB, Sandstone #C9C0B2 (accents only), Mineral Grey #575751, Warm Grey #8B877F, flat colour only. Ink follows the paper; one italic word per title at most. No gradients, no glow, no shadows, no blur, no gold or metallic, no stock pictures, no drawn house. A legibility scrim over a photograph is a flat tint of Obsidian, never a gradient. Calm, brief, specific; a $15M owner is comfortable here.";
 
 /** The designer's brief: the request, the house rules, the frames and what the page must hold. */
 export function postPrompt(
@@ -319,9 +322,10 @@ export function postPrompt(
       ? "This is the first brand post."
       : `reference/earlier/ holds the first frame of the ${String(earlier)} newest earlier brand posts. Yours must share no layout with any of them: a different arrangement of type, image, emblem and space, not the same grid in other words.`,
     HOUSE,
+    fontRule(),
     `The frames, each its own composition at its own size: ${frames.map((frame) => `${frame.name} ${String(frame.width)} x ${String(frame.height)}`).join(", ")}. ${format === "carousel" ? "Slide n carries title n, in order; the first slide stands alone in a feed and the slides read as one piece." : format === "cover" ? "The three frames are one design: the cover and its X and LinkedIn crops; keep everything between y 6 and y 624 so the LinkedIn crop cuts nothing." : "Keep the words clear of the top 250 px and the bottom 340 px, where the app draws its own controls."} Keep every word at least 90 px from the edges and at least ${String(MIN_TEXT_PX)} px tall (the gate refuses smaller text).`,
     `Words on the piece: only the requested titles, MATTER OF PLACE (the emblem or the lockup, from the logo files, once) and the address ${addressOf(request)}. No other words, labels, numbers or slogans: a gate of code reads the page's text and refuses any word beyond these.`,
-    "Write post/post.html (and any post/*.css or post/*.mjs it loads). The engine opens it once per frame as post.html?frame=<name>&w=<width>&h=<height>&spec=<path of a JSON file>; fetch the spec (titles, shots with src and alt, address) and draw that frame at exactly that size. Load the logo files by their served path (/brand/logo/emblem/emblem-bone.svg and the others in reference/), fonts by /app/public/fonts/..., and nothing from the network. If the page draws after load (a canvas, Three.js at /launch/node_modules/three/build/three.module.js), set window.__post = { ready: <a promise that settles when the frame is drawn> }.",
+    "Write post/post.html (and any post/*.css or post/*.mjs it loads). The engine opens it once per frame as post.html?frame=<name>&w=<width>&h=<height>&spec=<path of a JSON file>; fetch the spec (titles, shots with src and alt, address) and draw that frame at exactly that size. Load the logo files by their served path (/brand/logo/emblem/emblem-bone.svg and the others in reference/), fonts only by the @font-face rules above, and nothing from the network. If the page draws after load (a canvas, Three.js at /launch/node_modules/three/build/three.module.js), set window.__post = { ready: <a promise that settles when the frame is drawn> }.",
     format === "carousel"
       ? 'End with one JSON object on its own: {"alt": "one sentence on what the post shows, for a person who cannot see it", "slide_alts": ["one sentence per slide, in order"], "note": "one line on the idea"}.'
       : 'End with one JSON object on its own: {"alt": "one sentence on what the post shows, for a person who cannot see it", "note": "one line on the idea"}.',
@@ -335,6 +339,7 @@ export function postRevisePrompt(refusal: string, carousel: boolean): string {
       : `Your post in post/ was refused by the gate: ${refusal}.`,
     "Fix every point in post/. Keep the idea, the titles and the house rules; never add words, and keep it unlike the posts in reference/earlier/.",
     HOUSE,
+    fontRule(),
     carousel
       ? 'End with one JSON object on its own: {"alt": "...", "slide_alts": ["one per slide"], "note": "what you changed"}.'
       : 'End with one JSON object on its own: {"alt": "...", "note": "what you changed"}.',
@@ -577,13 +582,39 @@ export async function postPass(deps: PostDeps, studio: string = STUDIO): Promise
   }
 }
 
+/** The most of an engine's error output a stored reason keeps. */
+const ERROR_CHARS = 800;
+
+/**
+ * An engine's error output as a stored reason keeps it: each message line once, without Node's excerpt of the throwing
+ * line, the stack frames and its version line, capped. W8 item 1: the last four lines were kept, which were the stack,
+ * and the 404 of every font the page asked for was lost.
+ */
+export function errorLines(stderr: string): string {
+  const lines = stderr.split(/\r?\n/);
+  const kept: string[] = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = (lines[index] ?? "").trim();
+    // the excerpt: the throwing line's location, its source and a caret under it
+    if (/^\S+:\d+$/.test(line) && /^\s*\^+\s*$/.test(lines[index + 2] ?? "")) {
+      index += 2;
+      continue;
+    }
+    if (line === "" || line.startsWith("at ") || /^Node\.js v\d/.test(line)) continue;
+    if (!kept.includes(line)) kept.push(line);
+  }
+  const text = kept.join(" ");
+  return text.length > ERROR_CHARS ? `${text.slice(0, ERROR_CHARS)}...` : text;
+}
+
 const WORK = join(APP, ".tmp", "post");
 // WORK as the page sees it: `launch/engine/serve.mjs` serves the repository root.
 const SERVED = "/app/.tmp/post";
 
 /** The runner's steps: the reel pass's own designer, download, upload and thread, the engine's stills, sharp. */
 export async function realPostDeps(): Promise<PostDeps> {
-  const { realDeps, studioArgs } = await import("./reel.ts");
+  // reel.ts is imported above, never with import(): `reel.ts --pass` runs this while its own top-level await is
+  // pending, and an import() of it then never settles (W8 item 1: three posts sat queued for 30 minutes)
   const { childEnv } = await import("./env.ts");
   const { runClaude } = await import("./cli.ts");
   const sharp = (await import("sharp")).default;
@@ -645,9 +676,7 @@ export async function realPostDeps(): Promise<PostDeps> {
         },
       );
       if (shot.status !== 0) {
-        throw new Error(
-          `gate_failed: the page did not render: ${shot.stderr.trim().split("\n").slice(-4).join(" ")}`,
-        );
+        throw new Error(`gate_failed: the page did not render: ${errorLines(shot.stderr)}`);
       }
       const raw = z
         .array(frameReportSchema.omit({ spread: true }))

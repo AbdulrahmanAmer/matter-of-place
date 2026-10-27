@@ -1,4 +1,12 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+  writeSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -7,12 +15,14 @@ import { matterPrompt } from "../../scripts/matter/run.ts";
 import { readJsonAnswer } from "../../scripts/workforce/answer.ts";
 import {
   copyEarlier,
+  errorLines,
   inPalette,
   MIN_TEXT_PX,
   postCaptions,
   postPass,
   postPrompt,
   postReviewPrompt,
+  postRevisePrompt,
   readDesign,
   sourceGate,
   stillGate,
@@ -25,7 +35,16 @@ import {
   postRequestSchema,
   type PostRequest,
 } from "../../scripts/workforce/post-request.ts";
-import { mediaFor, queueReel, reelPass, type Brief } from "../../scripts/workforce/reel.ts";
+import {
+  fontFaces,
+  mediaFor,
+  queueReel,
+  reelPass,
+  scenePrompt,
+  startStudioPass,
+  studioPass,
+  type Brief,
+} from "../../scripts/workforce/reel.ts";
 import { lintBrandCaption } from "../../src/server/assets/voice.ts";
 import { fakeDb, type FakeDb } from "../fixtures/fake-db.ts";
 
@@ -684,5 +703,139 @@ describe("the post pass", () => {
     const reels = studio();
     queueReel({ skill: "reel", name: "r", kind: "brand", titles: ["a"] }, from, reels);
     expect(await postPass(deps(), reels)).toBeNull();
+  });
+});
+
+// The live proof of 2026-10-27: three queued posts sat for 30 minutes while every pass hung in silence, and the one made
+// by hand failed on fonts the designer guessed, its reason keeping only the stack.
+describe("the live proof's failures (W8 item 1, 2026-10-27)", () => {
+  const workforce = join(process.cwd(), "scripts", "workforce");
+
+  it("gives the post and reel designers the site's own @font-face rule for every file in public/fonts", () => {
+    const asked = postRequestSchema.parse(comingSoon);
+    const post = { id: "x", at: "", request: asked, from, state: "working" as const };
+    const prompts = [
+      postPrompt(post, framesFor("carousel", asked.titles), [], 0),
+      postRevisePrompt("gate_failed: the page did not render", true),
+      scenePrompt(
+        { ...post, request: { skill: "reel", name: "r", kind: "brand", titles: ["a"] } },
+        [],
+      ),
+    ];
+    const files = readdirSync(join(process.cwd(), "public", "fonts")).filter((name) =>
+      name.endsWith(".woff2"),
+    );
+    expect(files).toHaveLength(5);
+    const rules = fontFaces().split("\n");
+    expect(rules).toHaveLength(files.length);
+    for (const file of files) {
+      const rule = rules.find((line) => line.includes(`url("/app/public/fonts/${file}")`));
+      expect(rule).toMatch(
+        /^@font-face \{ font-family: "[A-Za-z ]+"; font-style: (normal|italic); font-weight: \d+ \d+;/,
+      );
+      for (const prompt of prompts) expect(prompt).toContain(rule);
+    }
+    for (const prompt of prompts)
+      expect(prompt).not.toMatch(/url\("\/fonts\/|from \/app\/public\/fonts\//);
+  });
+
+  it("keeps the engine's message lines in a failed render's reason, never its stack, excerpt or Node version", () => {
+    const stderr = [
+      "file:///E:/mop/launch/engine/still.mjs:134",
+      '        throw new Error("Page errors in frame " + frame.name + ":\\n" + errors.join("\\n"));',
+      "              ^",
+      "",
+      "Error: Page errors in frame slide-0:",
+      "HTTP 404 http://127.0.0.1:4173/app/public/fonts/CormorantGaramond-Light.woff2",
+      "HTTP 404 http://127.0.0.1:4173/app/public/fonts/Jost-Medium.woff2",
+      "    at shoot (file:///E:/mop/launch/engine/still.mjs:134:15)",
+      "    at async main (file:///E:/mop/launch/engine/still.mjs:160:3)",
+      "",
+      "Node.js v24.22.1",
+    ].join("\r\n");
+    expect(errorLines(stderr)).toBe(
+      "Error: Page errors in frame slide-0: HTTP 404 http://127.0.0.1:4173/app/public/fonts/CormorantGaramond-Light.woff2 HTTP 404 http://127.0.0.1:4173/app/public/fonts/Jost-Medium.woff2",
+    );
+    // a long one is capped, from its start
+    const long = errorLines(
+      Array.from({ length: 40 }, (_, at) => `HTTP 404 /app/f${String(at)}.woff2`).join("\n"),
+    );
+    expect(long).toMatch(/^HTTP 404 \/app\/f0\.woff2 HTTP 404 \/app\/f1\.woff2 .*\.\.\.$/);
+    expect(long.length).toBe(803);
+  });
+
+  it("writes each line of a studio pass with its time: a start, the reel's and the post's lines, an end, or why it failed", async () => {
+    const lines: string[] = [];
+    const log = (line: string) => {
+      lines.push(line);
+    };
+    await studioPass(
+      {
+        reel: () => Promise.resolve(null),
+        postNext: () => true,
+        post: () => Promise.resolve("post Coming soon: done (a1)"),
+      },
+      log,
+    );
+    const at = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z /;
+    expect(lines.every((line) => at.test(line))).toBe(true);
+    expect(lines.map((line) => line.replace(at, ""))).toEqual([
+      "studio pass started",
+      "reel: nothing to do",
+      "post Coming soon: done (a1)",
+      "studio pass ended",
+    ]);
+    lines.length = 0;
+    await expect(
+      studioPass(
+        {
+          reel: () => Promise.resolve("reel r: made"),
+          postNext: () => true,
+          post: () => Promise.reject(new Error("record_failed: no")),
+        },
+        log,
+      ),
+    ).rejects.toThrow("record_failed: no");
+    expect(lines.map((line) => line.replace(at, ""))).toEqual([
+      "studio pass started",
+      "reel r: made",
+      "studio pass failed: record_failed: no",
+    ]);
+  });
+
+  it("is started by the runner with its output and errors appended to the studio log", () => {
+    const log = join(studio(), "logs", "studio.log");
+    let started: { args: string[]; stdio: unknown } | null = null;
+    startStudioPass((_command, args, options) => {
+      const { stdio } = options;
+      started = { args, stdio };
+      const [, out, errors] = Array.isArray(stdio) ? stdio : [];
+      if (typeof out === "number") writeSync(out, "a line\n");
+      if (typeof errors === "number") writeSync(errors, "an error\n");
+      return { unref: () => undefined };
+    }, log);
+    expect(started).toEqual({
+      args: [join(workforce, "reel.ts"), "--pass"],
+      stdio: ["ignore", expect.any(Number) as unknown, expect.any(Number) as unknown],
+    });
+    expect(readFileSync(log, "utf8")).toBe("a line\nan error\n");
+  });
+
+  it("never hangs on an import() of a runnable script while that script's top-level await is pending", () => {
+    // `reel.ts --pass` awaits brand-post.ts; an import() of reel.ts from there never settled, and the pass hung
+    const scripts = readdirSync(workforce)
+      .filter((name) => /\.(ts|mjs)$/.test(name))
+      .map((name) => ({ name, text: readFileSync(join(workforce, name), "utf8") }));
+    const runnable = new Set(
+      scripts.filter(({ text }) => text.includes("import.meta.main")).map(({ name }) => name),
+    );
+    expect(runnable.has("reel.ts")).toBe(true);
+    const cycles = scripts.flatMap(({ name, text }) =>
+      [...text.matchAll(/import\(\s*"\.\/([\w.-]+)"\s*\)/g)]
+        .map((found) => found[1] ?? "")
+        .filter((target) => runnable.has(target))
+        .map((target) => `${name} -> ${target}`),
+    );
+    expect(cycles).toEqual([]);
   });
 });

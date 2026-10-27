@@ -617,5 +617,59 @@
     "replace": "    types: [opened, synchronize, reopened, ready_for_review]\n    paths-ignore: [\"workspace/**\", \"launch/**\", \"launch/01-launch-film/**\"",
     "run": "bunx vitest run --project unit tests/unit/merge-gate.test.ts",
     "expect": "× .*refuses a pull request that changes only the post page sandbox with no checks"
+  },
+  {
+    "id": "w8-1-pass-no-import-cycle",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "  const { childEnv } = await import(\"./env.ts\");",
+    "replace": "  await import(\"./reel.ts\");\n  const { childEnv } = await import(\"./env.ts\");",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*never hangs on an import\\(\\) of a runnable script"
+  },
+  {
+    "id": "w8-1-pass-log-lines",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "    say(\"studio pass ended\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*writes each line of a studio pass with its time"
+  },
+  {
+    "id": "w8-1-pass-log-file",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "      stdio: [\"ignore\", out, out],",
+    "replace": "      stdio: \"ignore\",",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*is started by the runner with its output and errors appended"
+  },
+  {
+    "id": "w8-1-font-served-path",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": ".join('url(\"/app/public/fonts/'),",
+    "replace": ".join('url(\"/fonts/'),",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*gives the post and reel designers the site's own @font-face rule"
+  },
+  {
+    "id": "w8-1-font-rule-post",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "    HOUSE,\n    fontRule(),\n    `The frames",
+    "replace": "    HOUSE,\n    `The frames",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*gives the post and reel designers the site's own @font-face rule"
+  },
+  {
+    "id": "w8-1-error-lines",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "    if (line === \"\" || line.startsWith(\"at \") || /^Node\\.js v\\d/.test(line)) continue;",
+    "replace": "    if (line === \"\") continue;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*keeps the engine's message lines in a failed render's reason"
   }
 ]
