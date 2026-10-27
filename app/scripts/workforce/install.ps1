@@ -72,10 +72,15 @@ Register-ScheduledTask -TaskName "MOP Captions" -Action $captionsAction -Trigger
 Write-Output "task: MOP Captions registered (every ten minutes, hidden)"
 
 # 6. The scheduled task "MOP Meeting": the team's daily meeting at 17:45 local (W2 step 7, scripts/workforce/meeting.ts);
-#    the decisions land by 18:00 Cairo time, and Windows follows Egypt's clock changes.
+#    the decisions land by 18:00 Cairo time, and Windows follows Egypt's clock changes. W8 0j round 3: it starts again
+#    every hour until 21:45 (LAST_START in meeting.ts), so a step that stopped is run again the same day; a start
+#    after the day's marker does nothing, and each start keeps inside MOP Sweep's ceiling (its steps' own limits). W8 0j
+#    round 4: a missed start run late by StartWhenAvailable before 17:45 (after midnight) does nothing.
 $meetingAction = New-ScheduledTaskAction -Execute "wscript.exe" `
   -Argument ("`"" + $vbs + "`" `"" + $app + "`" scripts\workforce\meeting.ts meeting")
 $meetingTrigger = New-ScheduledTaskTrigger -Daily -At "17:45"
+# PowerShell 5.1 gives a daily trigger no repetition of its own: it takes a one-time trigger's
+$meetingTrigger.Repetition = (New-ScheduledTaskTrigger -Once -At "17:45" -RepetitionInterval (New-TimeSpan -Hours 1) -RepetitionDuration (New-TimeSpan -Hours 4 -Minutes 5)).Repetition
 Register-ScheduledTask -TaskName "MOP Meeting" -Action $meetingAction -Trigger $meetingTrigger -Settings $auditSettings `
   -Description "Matter of Place: the AI team's daily meeting (scorecard, three lines each, Matter's decisions)." -Force | Out-Null
 Write-Output "task: MOP Meeting registered (daily 17:45 local)"

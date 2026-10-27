@@ -24,7 +24,7 @@ export function isolatedArgs(home: string, allowed = ""): string[] {
   ];
 }
 
-const usageSchema = z.object({
+export const usageSchema = z.object({
   input_tokens: z.number().int().nonnegative().default(0),
   output_tokens: z.number().int().nonnegative().default(0),
   cache_creation_input_tokens: z.number().int().nonnegative().optional(),

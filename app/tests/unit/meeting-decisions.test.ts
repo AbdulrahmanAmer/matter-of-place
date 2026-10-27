@@ -1,20 +1,35 @@
+import { mkdtempSync, readdirSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { toolkitFor } from "../../src/domain/toolkits";
 import type { Db } from "../../src/server/lib/db";
 import { localSpecShape, propertySchema } from "../../scripts/lib/render-spec.mjs";
 import { goalLine, openDecisionsText, Supervisor } from "../../scripts/matter/live";
 import { context } from "../../scripts/workforce/daemon";
+import { TEAM_CEILING } from "../../scripts/workforce/hiring";
+import { RUN_CEILING_MS } from "../../scripts/workforce/sweep";
 import {
+  beforeFirstStart,
   closedDecisions,
+  decide,
   decisionRules,
   decisionsPost,
   lastJson,
   matterAnswer,
+  meetingDay,
+  meetingStep,
   missStreaks,
+  postScorecard,
   queueDecisionRuns,
+  type MeetingSides,
   refusedRepeats,
   settleDecisions,
+  shownStreaks,
+  startsLeftToday,
+  STEP_LIMIT_MS,
   stillOpenDecisions,
+  stoppedPost,
 } from "../../scripts/workforce/meeting";
 import { toolkitLine } from "../../scripts/workforce/toolkit-args";
 import { startedFromInside } from "../../scripts/workforce/triage";
@@ -40,6 +55,13 @@ function recordingDb(refuse: ReadonlySet<string> = new Set()) {
           }),
         });
       },
+      // round 4: an update is kept as `<table> update`, with the column it was matched on
+      update: (row: Row) => ({
+        eq: (column: string, value: unknown) => {
+          written.push({ table: `${table} update`, row: { ...row, [column]: value } });
+          return Promise.resolve({ error: null });
+        },
+      }),
     }),
   };
   // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- the one cast of the recording client
@@ -68,7 +90,12 @@ function filteringDb(table: string, rows: readonly Row[]) {
   const client = {
     from: (name: string) => {
       if (name !== table) throw new Error(`unexpected table ${name}`);
-      return { select: () => query(rows) };
+      return {
+        select: (columns: string) => {
+          asked.push(`select ${columns}`);
+          return query(rows);
+        },
+      };
     },
   };
   // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- the one cast of the filtering client
@@ -221,7 +248,8 @@ describe("MEETING-FIX what a decision may ask (H143 (2))", () => {
 
   it("shows each colleague's toolkit as its decision run holds it: reads and proposals, no writes, no renders", () => {
     const social = rules.split("\n").find((line) => line.startsWith("- @social")) ?? "";
-    expect(social).toContain("Writes nothing.");
+    const shared = rules.split("\n").find((line) => line.startsWith("- Every colleague's")) ?? "";
+    expect(shared).toContain("Writes nothing.");
     expect(social).toContain("Drafts social posts for approval.");
     expect(social).not.toContain("Has the runner render");
     expect(rules).toContain("- @matter: its live session holds the operator's tools");
@@ -430,5 +458,395 @@ describe("MEETING-FIX the renderer's spec shape (H143 (5), P-4644)", () => {
     expect(toolkitLine(toolkitFor("editor"), paths, false)).not.toContain(
       "A spec is one JSON file",
     );
+  });
+});
+
+// W8 0j round 3 (2026-10-27): the meeting's second step ran past its one 8 minute limit, set nothing and said so only in
+// its log, and no step's size or duration was recorded anywhere.
+describe("MEETING-FIX round 3: each step timed, said when it stops, run again the same day (W8 0j)", () => {
+  const ticks =
+    (...values: number[]) =>
+    () =>
+      values.shift() ?? 0;
+  const install = readFileSync(
+    new URL("../../scripts/workforce/install.ps1", import.meta.url),
+    "utf8",
+  )
+    .replace(/\s*`\r?\n\s*/g, " ")
+    .split(/\r?\n/);
+  const home = () => mkdtempSync(join(tmpdir(), "meeting-day-"));
+  const stopped = () => Promise.reject(new Error("the step took longer than 5 minutes"));
+
+  it("logs each step's prompt size, its duration and how it ended", async () => {
+    const { db } = recordingDb();
+    const logged: string[] = [];
+    const log = (line: string) => {
+      logged.push(line);
+    };
+    const step = {
+      db,
+      dry: false,
+      step: "@chief's three lines",
+      prompt: "x".repeat(2686),
+      startedAt: new Date("2026-10-27T14:45:00Z"),
+    };
+    await meetingStep(step, () => Promise.resolve("ok"), log, ticks(0, 42_400));
+    await expect(meetingStep(step, stopped, log, ticks(0, 300_000))).rejects.toThrow(
+      "the step took longer than 5 minutes",
+    );
+    expect(logged).toEqual([
+      "1970-01-01T00:00:00.000Z meeting step @chief's three lines: prompt 2686 characters, 42 s, answered",
+      "1970-01-01T00:00:00.000Z meeting step @chief's three lines: prompt 2686 characters, 300 s, stopped: the step took longer than 5 minutes",
+    ]);
+  });
+
+  it("says in the team thread which step stopped, that today's decisions were not set, and that the rest runs again", async () => {
+    const { db, written } = recordingDb();
+    const step = {
+      db,
+      dry: false,
+      step: "@chief's three lines",
+      prompt: "p",
+      startedAt: new Date("2026-10-27T14:45:00Z"),
+    };
+    // round 4: stopped at 18:05 Cairo time, so the 18:45 start is left
+    const clock = ticks(Date.parse("2026-10-27T15:00:00Z"), Date.parse("2026-10-27T15:05:00Z"));
+    await expect(meetingStep(step, stopped, () => undefined, clock)).rejects.toThrow();
+    expect(
+      written.map((item) => [
+        item.table,
+        item.row["thread"],
+        item.row["author_kind"],
+        item.row["body"],
+      ]),
+    ).toEqual([
+      [
+        "agent_messages",
+        "team",
+        "system",
+        "The meeting stopped at @chief's three lines: the step took longer than 5 minutes. Today's decisions were not set. The meeting runs again at its next start today and takes up only the steps it did not finish.",
+      ],
+    ]);
+  });
+
+  it("says no start is left after the day's last one, at 21:45 Cairo time", () => {
+    // on 2026-10-27 Cairo is UTC+3: a meeting started at 20:45 has the 21:45 start after it, one at 21:45 has none
+    expect([
+      startsLeftToday(new Date("2026-10-27T17:45:00Z"), new Date("2026-10-27T17:50:00Z")),
+      startsLeftToday(new Date("2026-10-27T18:45:00Z"), new Date("2026-10-27T18:50:00Z")),
+    ]).toEqual([true, false]);
+    expect(stoppedPost("the decisions", "Matter took longer than 15 minutes", false)).toContain(
+      "No start is left today; tomorrow's meeting takes up the open decisions.",
+    );
+  });
+
+  it("starts the meeting again every hour until 21:45, the last start the code counts on", () => {
+    expect(install).toContain('$meetingTrigger = New-ScheduledTaskTrigger -Daily -At "17:45"');
+    expect(install.find((line) => line.startsWith("$meetingTrigger.Repetition = "))).toContain(
+      "-RepetitionInterval (New-TimeSpan -Hours 1) -RepetitionDuration (New-TimeSpan -Hours 4 -Minutes 5)",
+    );
+  });
+
+  it("keeps a full team's worst case, every step just inside its limit, inside the sweep's ceiling for a scheduled pass", () => {
+    // round 4: since P-4660 the MOP Meeting task has no time limit; MOP Sweep ends a scheduled pass past RUN_CEILING_MS
+    const registered =
+      install.find((line) => line.startsWith('Register-ScheduledTask -TaskName "MOP Meeting"')) ??
+      "";
+    const settings = /-Settings (\$\w+)/.exec(registered)?.[1] ?? "none";
+    const declared =
+      install.find((line) => line.startsWith(`${settings} = New-ScheduledTaskSettingsSet`)) ?? "";
+    // the analyst and Matter speak once; every other colleague of a full team says its three lines
+    const worst =
+      STEP_LIMIT_MS.scorecard + (TEAM_CEILING - 2) * STEP_LIMIT_MS.lines + STEP_LIMIT_MS.decisions;
+    expect(declared).toContain("-ExecutionTimeLimit (New-TimeSpan -Seconds 0)");
+    expect(worst).toBeLessThanOrEqual(RUN_CEILING_MS);
+  });
+
+  it("never runs a finished step twice in a day: a second start takes what the first one kept", async () => {
+    const dir = home();
+    let runs = 0;
+    const scorecard = () => {
+      runs += 1;
+      return Promise.resolve(`Scorecard ${String(runs)}`);
+    };
+    const first = await meetingDay(dir, "2026-10-27", false).once("the scorecard", scorecard);
+    const second = await meetingDay(dir, "2026-10-27", false).once("the scorecard", scorecard);
+    expect([first, second, runs]).toEqual(["Scorecard 1", "Scorecard 1", 1]);
+  });
+
+  it("runs a step that stopped again on the next start, and holds the day only once every step finished", async () => {
+    const dir = home();
+    const first = meetingDay(dir, "2026-10-27", false);
+    await first.once("the scorecard", () => Promise.resolve("Scorecard"));
+    await expect(first.once("@chief's three lines", stopped)).rejects.toThrow();
+    const second = meetingDay(dir, "2026-10-27", false);
+    expect(second.held()).toBe(false);
+    expect(await second.once("@chief's three lines", () => Promise.resolve("@chief: Done"))).toBe(
+      "@chief: Done",
+    );
+    second.finish(new Date("2026-10-27T15:00:00Z"));
+    expect(meetingDay(dir, "2026-10-27", false).held()).toBe(true);
+  });
+
+  it("keeps nothing on a dry run", async () => {
+    const dir = home();
+    let runs = 0;
+    const scorecard = () => {
+      runs += 1;
+      return Promise.resolve("Scorecard");
+    };
+    const day = meetingDay(dir, "2026-10-27", true);
+    await day.once("the scorecard", scorecard);
+    await meetingDay(dir, "2026-10-27", true).once("the scorecard", scorecard);
+    day.finish(new Date("2026-10-27T15:00:00Z"));
+    expect([runs, readdirSync(dir)]).toEqual([2, []]);
+  });
+
+  it("says the words every colleague's run shares once, and each owner's own words on its line", () => {
+    const rules = decisionRules([
+      { slug: "matter", name: "Matter", tools: [] },
+      { slug: "social", name: "Maya", tools: ["chat", "draft_post"] },
+      { slug: "concierge", name: "Ava", tools: ["chat", "draft_reply"] },
+    ]).join("\n");
+    const social = rules.split("\n").find((line) => line.startsWith("- @social")) ?? "";
+    expect(rules.split("No command, no keys").length - 1).toBe(1);
+    expect(social).toContain("Drafts social posts for approval.");
+    expect(social).not.toContain("Writes nothing.");
+  });
+
+  it("shows Matter every streak of two or more, and a single miss only from the newest day decisions were closed", () => {
+    const row = (owner: string, metric: string, checked: string) => ({
+      owner_id: owner,
+      metric,
+      decision: "Draft two posts",
+      status: "missed",
+      checked_at: checked,
+    });
+    const shown = shownStreaks(
+      missStreaks([
+        row("id-social", "drafts", "2026-10-26T14:47:05Z"),
+        row("id-concierge", "replies", "2026-10-20T14:47:05Z"),
+        row("id-chief", "lists", "2026-10-18T14:47:05Z"),
+        row("id-chief", "lists", "2026-10-17T14:47:05Z"),
+      ]),
+    ).map((streak) => `${streak.metric} ${String(streak.count)}`);
+    expect(shown).toEqual(["drafts 1", "lists 2"]);
+  });
+
+  it("reads when each closed decision was checked, so an old single miss can be left out", async () => {
+    const { db, asked } = filteringDb("agent_decisions", []);
+    await closedDecisions(db);
+    expect(asked.find((line) => line.startsWith("select "))).toContain("checked_at");
+  });
+});
+
+describe("MEETING-FIX round 4: the decisions kept once they are written, the rest best effort (W8 0j)", () => {
+  const today = "2026-10-27";
+  const home = () => mkdtempSync(join(tmpdir(), "meeting-r4-"));
+  const at = (utc: string) => new Date(`${today}T${utc}:00Z`);
+  const team = [
+    { id: "id-matter", slug: "matter" },
+    { id: "id-social", slug: "social" },
+    { id: "id-concierge", slug: "concierge" },
+  ];
+  const open = [
+    {
+      id: "d-1",
+      owner_id: "id-social",
+      decision: "Draft two posts",
+      due_on: today,
+      metric: "drafts",
+    },
+    {
+      id: "d-2",
+      owner_id: "id-concierge",
+      decision: "Answer the open requests",
+      due_on: "2026-10-29",
+      metric: "replies",
+    },
+  ];
+  const answer = JSON.stringify({
+    closed: [{ id: "d-1", status: "done" }],
+    decisions: [
+      {
+        owner: "social",
+        decision: "Draft the Sunday carousel",
+        due_on: "2026-10-28",
+        metric: "carousels",
+      },
+    ],
+    digest: "One decision set.",
+  });
+  /** One start of the decisions on the meeting's folder, counting each time Matter is asked. */
+  const start = (db: Db, dir: string, asked: { count: number }, sides: MeetingSides) =>
+    decide(
+      {
+        db,
+        dry: false,
+        day: meetingDay(dir, today, false),
+        today,
+        startedAt: at("14:45"),
+        agents: team,
+        active: team,
+        matter: { id: "id-matter", slug: "matter", model: "opus" },
+        open,
+        closed: [],
+        ask: () => {
+          asked.count += 1;
+          return Promise.resolve({ text: answer });
+        },
+      },
+      sides,
+    );
+  const woken: string[][] = [];
+  const wakes = (failFirst: boolean): MeetingSides["wake"] => {
+    let fail = failFirst;
+    return (_db, _team, still) => {
+      if (fail) {
+        fail = false;
+        return Promise.reject(new Error("EBUSY: resource busy or locked"));
+      }
+      woken.push(still.map((item) => `${item.owner_id}: ${item.decision}`));
+      return Promise.resolve({ queued: ["social", "concierge"], failed: [] });
+    };
+  };
+  const quiet = { learn: () => 0, hire: () => Promise.resolve(), log: () => undefined };
+  const said = (written: readonly { table: string; row: Row }[], thread: string) =>
+    written
+      .filter((item) => item.table === "agent_messages" && item.row["thread"] === thread)
+      .map((item) => item.row["body"])
+      .filter((body) => typeof body === "string");
+  const count = (written: readonly { table: string }[], table: string) =>
+    written.filter((item) => item.table === table).length;
+
+  it("keeps the decisions the moment they are written: a start after the wake stopped asks Matter nothing and wakes the owners once", async () => {
+    const { db, written } = recordingDb();
+    const dir = home();
+    const asked = { count: 0 };
+    woken.length = 0;
+    const sides = { ...quiet, wake: wakes(true) };
+    await expect(start(db, dir, asked, sides)).rejects.toThrow("EBUSY");
+    await start(db, dir, asked, sides);
+    expect(asked.count).toBe(1);
+    expect([count(written, "agent_decisions update"), count(written, "agent_decisions")]).toEqual([
+      1, 1,
+    ]);
+    expect(woken).toEqual([
+      ["id-concierge: Answer the open requests", "id-social: Draft the Sunday carousel"],
+    ]);
+    const thread = said(written, "team");
+    expect(thread.filter((body) => body.includes("Decisions for 2026-10-27:"))).toHaveLength(1);
+    expect(thread[0]).toContain(
+      "The meeting stopped while waking the owners of today's decisions: EBUSY: resource busy or locked. Today's decisions are set and stay as they are.",
+    );
+  });
+
+  it("runs no part of the decisions twice when the day was not held: a later start asks, wakes and posts nothing again", async () => {
+    const { db, written } = recordingDb();
+    const dir = home();
+    const asked = { count: 0 };
+    woken.length = 0;
+    const sides = { ...quiet, wake: wakes(false) };
+    await start(db, dir, asked, sides);
+    await start(db, dir, asked, sides);
+    expect([asked.count, woken.length, count(written, "agent_runs")]).toEqual([1, 1, 1]);
+    expect(said(written, "team").filter((body) => body.includes("Decisions for"))).toHaveLength(1);
+    expect(said(written, "matter")).toEqual(["One decision set."]);
+  });
+
+  it("goes on when the knowledge base or the hires fail, and says each failure once in the team thread", async () => {
+    const { db, written } = recordingDb();
+    const asked = { count: 0 };
+    const sides = {
+      ...quiet,
+      wake: wakes(false),
+      learn: () => {
+        throw new Error("EBUSY: resource busy or locked, open 'knowledge/posts.md'");
+      },
+      hire: () => Promise.reject(new Error("the team could not be counted")),
+    };
+    await expect(start(db, home(), asked, sides)).resolves.toBeUndefined();
+    const thread = said(written, "team");
+    expect(thread.filter((body) => body.startsWith("The meeting went on without"))).toEqual([
+      "The meeting went on without Matter's notes for the knowledge base: EBUSY: resource busy or locked, open 'knowledge/posts.md'.",
+      "The meeting went on without the hires: the team could not be counted.",
+    ]);
+    expect(thread.filter((body) => body.includes("Decisions for"))).toHaveLength(1);
+    expect([said(written, "matter"), count(written, "agent_runs")]).toEqual([
+      ["One decision set."],
+      1,
+    ]);
+  });
+
+  it("keeps the scorecard as posted when the knowledge base cannot be written, so the next start posts it no second time", async () => {
+    const { db, written } = recordingDb();
+    const dir = home();
+    const scorecard = () =>
+      postScorecard(
+        {
+          db,
+          dry: false,
+          today,
+          numbers: "Visits: 120 (100 the week before)",
+          analyst: { id: "id-analyst", slug: "analyst", name: "Nora", model: "sonnet" },
+          answer: {
+            text: JSON.stringify({
+              observations: ["Visits rose a fifth"],
+              knowledge: [{ subject: "posts", text: "Carousels drew the most saves this week" }],
+            }),
+          },
+          started: at("14:45").toISOString(),
+        },
+        {
+          learn: () => {
+            throw new Error("EPERM: operation not permitted, open 'knowledge/posts.md'");
+          },
+          log: () => undefined,
+        },
+      );
+    await expect(meetingDay(dir, today, false).once("the scorecard", scorecard)).resolves.toContain(
+      "Scorecard for 2026-10-27:",
+    );
+    await meetingDay(dir, today, false).once("the scorecard", scorecard);
+    const thread = said(written, "team");
+    expect(thread.filter((body) => body.startsWith("Scorecard for 2026-10-27:"))).toHaveLength(1);
+    expect(thread.filter((body) => body.startsWith("The meeting went on without"))).toEqual([
+      "The meeting went on without the scorecard's notes for the knowledge base: EPERM: operation not permitted, open 'knowledge/posts.md'.",
+    ]);
+  });
+
+  it("works out a start left from the time of the stop: a 20:45 start that runs past 21:45 has none", async () => {
+    // Cairo is UTC+3 on 2026-10-27: 17:45 UTC is the 20:45 start, 18:00 UTC a late start at 21:00
+    expect([
+      startsLeftToday(at("17:45"), at("18:10")),
+      startsLeftToday(at("17:45"), at("18:50")),
+      startsLeftToday(at("18:00"), at("18:10")),
+    ]).toEqual([true, false, false]);
+    const { db, written } = recordingDb();
+    const step = { db, dry: false, step: "the decisions", prompt: "p", startedAt: at("17:45") };
+    const clock = (() => {
+      const values = [Date.parse(`${today}T17:46:00Z`), Date.parse(`${today}T18:50:00Z`)];
+      return () => values.shift() ?? 0;
+    })();
+    await expect(
+      meetingStep(
+        step,
+        () => Promise.reject(new Error("Matter took longer than 15 minutes")),
+        () => undefined,
+        clock,
+      ),
+    ).rejects.toThrow();
+    expect(said(written, "team")[0]).toContain(
+      "No start is left today; tomorrow's meeting takes up the open decisions.",
+    );
+  });
+
+  it("refuses a start before 17:45 Cairo time, the missed start the laptop runs after midnight", () => {
+    // 21:30 UTC is 00:30 the next day in Cairo; 14:44 and 14:45 UTC are 17:44 and 17:45
+    expect([
+      beforeFirstStart(at("21:30")),
+      beforeFirstStart(at("14:44")),
+      beforeFirstStart(at("14:45")),
+    ]).toEqual([true, true, false]);
   });
 });
