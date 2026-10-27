@@ -2,7 +2,13 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { goalLine, goalSkipReason, nextGoalStep } from "../../scripts/matter/live";
+import {
+  GOAL_GAP_MAX_MS,
+  goalGapMs,
+  goalLine,
+  goalSkipReason,
+  nextGoalStep,
+} from "../../scripts/matter/live";
 import { readablePath } from "../../scripts/matter/read";
 import { matterPrompt } from "../../scripts/matter/run";
 import { decision } from "../../scripts/workforce/daemon";
@@ -86,6 +92,37 @@ describe("Matter keeps going on his goal", () => {
       "the staff policy has self-started work off",
       null,
     ]);
+  });
+
+  // operator, 2026-10-27: 31 "nothing new, still waiting" lines in two hours, each a goal line re-handed every ten
+  // minutes while his own builders ran
+  it("waits while his own background work runs, and doubles the gap after each goal turn that did no work", () => {
+    const at = 1_000_000_000;
+    const ready = {
+      hasSession: true,
+      active: 0,
+      now: at,
+      lastResultAt: at - 60_000,
+      goalAt: at - 600_000,
+      backlog: "all" as const,
+    };
+    expect(goalSkipReason({ ...ready, open: 2 })).toBe(
+      "2 background task(s) of his running; their end wakes him",
+    );
+    expect(goalSkipReason({ ...ready, open: 0, quiet: 0 })).toBeNull();
+    expect(goalSkipReason({ ...ready, quiet: 1 })).toBe(
+      "his last 1 goal turn(s) did no work; the next waits 20 minutes",
+    );
+    expect(goalSkipReason({ ...ready, quiet: 1, goalAt: at - 1_200_000 })).toBeNull();
+    expect([0, 1, 2, 3, 4, 9].map(goalGapMs)).toEqual([
+      600_000,
+      1_200_000,
+      2_400_000,
+      4_800_000,
+      GOAL_GAP_MAX_MS,
+      GOAL_GAP_MAX_MS,
+    ]);
+    expect(GOAL_GAP_MAX_MS).toBe(2 * 60 * 60_000);
   });
 
   it("names the first open step of his list, none when every step passes, none without a list", () => {

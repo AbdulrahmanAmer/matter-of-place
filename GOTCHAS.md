@@ -9354,3 +9354,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: post to a colleague only through `workforce_post_message`, never a raw insert; then check that a run row exists with that `message_id`.
 - proof: `select count(*) from agent_runs where message_id = '<the new message id>'` → 1 (re-sent ruling f6a3807c, 2026-10-26 22:03:29 UTC).
 - added: 2026-10-27
+
+## P-4680 · Matter's goal line is re-handed every ten minutes while he waits on his own background work
+- symptom: 2026-10-27 18:03-18:39 UTC, Matter posted "Nothing new ... still building" six times, 31 lines in two hours, while a builder ran in the background and the meeting rerun was due at 18:45.
+- cause: `continueGoal` (scripts/matter/live.ts) handed the first unticked step every ten minutes whatever he was waiting on; `goalSkipReason` ignored his open background tasks, and a turn that only answered cost nothing to repeat.
+- rule: no goal line while a background task of his is open (its end wakes the session itself); after each goal turn that used no tool the gap doubles, ten minutes to two hours; a person's line or a finished task starts the pace over.
+- proof: `cd app && bunx vitest run --project unit tests/unit/matter-autonomy.test.ts` (registry ma-d-*); live: `select count(*) from agent_messages where thread='matter' and author_name='Matter' and created_at > now() - interval '2 hours'` after the merge.
+- added: 2026-10-27
