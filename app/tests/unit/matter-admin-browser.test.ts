@@ -26,6 +26,15 @@ describe("Matter's admin browser (H151)", () => {
     ]).toEqual([null, null, null, null, null, null]);
   });
 
+  it("refuses an escaped dot segment and any escape at all (review finding 6)", () => {
+    expect([
+      adminPagePath("/admin/%2e%2e/stories"),
+      adminPagePath("/admin/%2E%2E"),
+      adminPagePath("/admin/office%20x"),
+      adminPagePath("/admin/./office"),
+    ]).toEqual([null, null, null, null]);
+  });
+
   it("lands the token on the admin's own confirm page as the mailed link does", () => {
     expect(confirmUrl("pkce_abc")).toBe(
       "https://matterofplace.com/admin/auth/confirm?token_hash=pkce_abc&type=email&next=%2Fadmin",

@@ -30,8 +30,8 @@
     "id": "h151-d-revoked-key-ignored",
     "test": "tests/unit/agent-session.test.ts",
     "file": "src/server/lib/actor.ts",
-    "find": "keyRows.data.filter((row) => row.revoked_at === null)",
-    "replace": "keyRows.data.filter(() => true)",
+    "find": "    .filter((row) => row.revoked_at === null)",
+    "replace": "    .filter(() => true)",
     "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/agent-session.test.ts",
     "expect": "× .*acts only within the scopes every live key shares"
   },
@@ -48,8 +48,8 @@
     "id": "h151-f-agent-kind",
     "test": "tests/unit/agent-session.test.ts",
     "file": "src/server/lib/actor.ts",
-    "find": "  return { kind: \"agent\", roles, scopes };",
-    "replace": "  return { kind: \"human\", roles, scopes };",
+    "find": "  return {\n    kind: \"agent\",\n    roles,",
+    "replace": "  return {\n    kind: \"human\",\n    roles,",
     "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/agent-session.test.ts",
     "expect": "× .*is the agent, with its roles"
   },
@@ -57,8 +57,8 @@
     "id": "h151-g-me-kind",
     "test": "tests/unit/agent-session.test.ts",
     "file": "src/server/lib/actor.ts",
-    "find": "  return { kind: \"agent\", roles, scopes };",
-    "replace": "  return { kind: \"human\", roles, scopes };",
+    "find": "  return {\n    kind: \"agent\",\n    roles,",
+    "replace": "  return {\n    kind: \"human\",\n    roles,",
     "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/agent-session.test.ts",
     "expect": "× .*answers the me route as an agent"
   },
@@ -66,8 +66,8 @@
     "id": "h151-h-human-only-refused",
     "test": "tests/unit/agent-session.test.ts",
     "file": "src/server/lib/actor.ts",
-    "find": "  return { kind: \"agent\", roles, scopes };",
-    "replace": "  return { kind: \"human\", roles, scopes };",
+    "find": "  return {\n    kind: \"agent\",\n    roles,",
+    "replace": "  return {\n    kind: \"human\",\n    roles,",
     "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/agent-session.test.ts",
     "expect": "× .*refuses a person-only action 403 human_only"
   },
@@ -88,6 +88,24 @@
     "replace": "      ...(principal.kind === \"agent\" ? {} : { session: { id: user.sessionId, signedInAt: user.signedInAt } }),",
     "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/agent-session.test.ts",
     "expect": "× .*still needs the CSRF token on a write"
+  },
+  {
+    "id": "h151-w-session-metered",
+    "test": "tests/unit/agent-session.test.ts",
+    "file": "src/server/lib/actor.ts",
+    "find": "    if (meteredKey !== undefined) await meterKey(db, meteredKey.id, meteredKey.lastUsedAt);",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/agent-session.test.ts",
+    "expect": "× .*is refused 429 when its key's per-minute limit is spent"
+  },
+  {
+    "id": "h151-x-metered-first-key",
+    "test": "tests/unit/agent-session.test.ts",
+    "file": "src/server/lib/actor.ts",
+    "find": "    .sort((a, b) => (a.id < b.id ? -1 : 1));",
+    "replace": ";",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/agent-session.test.ts",
+    "expect": "× .*counts against its first live key by id"
   },
   {
     "id": "h151-k-gate-revoked",
@@ -117,6 +135,69 @@
     "expect": "× .*sends a user whose rows are all disabled to sign-in with state=disabled"
   },
   {
+    "id": "h151-m2-verify-agent-revoked",
+    "test": "tests/unit/auth-verify.test.ts",
+    "file": "src/server/lib/actor.ts",
+    "find": "  if (first === undefined) return null;",
+    "replace": "  if (first === undefined) return { kind: \"agent\", roles, scopes: [] };",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/auth-verify.test.ts",
+    "expect": "× .*sends an agent account whose only key is revoked to state=disabled"
+  },
+  {
+    "id": "h151-m3-password-agent-revoked",
+    "test": "tests/unit/auth-password.test.ts",
+    "file": "src/server/lib/actor.ts",
+    "find": "  if (first === undefined) return null;",
+    "replace": "  if (first === undefined) return { kind: \"agent\", roles, scopes: [] };",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/auth-password.test.ts",
+    "expect": "× .*refuses an agent account whose only key is revoked 401"
+  },
+  {
+    "id": "h151-z1-sign-in-person",
+    "test": "tests/unit/agent-sign-in.test.ts",
+    "file": "src/server/team/service.ts",
+    "find": "  if (actor.kind !== \"agent\" || actor.session !== undefined) throw new ForbiddenError(\"forbidden\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/agent-sign-in.test.ts",
+    "expect": "× .*refuses a person's session 403 and issues nothing"
+  },
+  {
+    "id": "h151-z2-sign-in-agent-session",
+    "test": "tests/unit/agent-sign-in.test.ts",
+    "file": "src/server/team/service.ts",
+    "find": "  if (actor.kind !== \"agent\" || actor.session !== undefined) throw new ForbiddenError(\"forbidden\");",
+    "replace": "  if (actor.kind !== \"agent\") throw new ForbiddenError(\"forbidden\");",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/agent-sign-in.test.ts",
+    "expect": "× .*refuses an agent's own browser session 403 and issues nothing"
+  },
+  {
+    "id": "h151-z3-sign-in-limit",
+    "test": "tests/unit/agent-sign-in.test.ts",
+    "file": "src/server/team/service.ts",
+    "find": "  if (!verdict.ok) throw new KeyRateLimited(verdict.retryAfter);",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/agent-sign-in.test.ts",
+    "expect": "× .*refuses 429 once the account's hourly sign-ins are spent"
+  },
+  {
+    "id": "h151-z4-sign-in-own-account",
+    "test": "tests/unit/agent-sign-in.test.ts",
+    "file": "src/server/team/service.ts",
+    "find": "  const found = await db.auth.admin.getUserById(actor.userId);",
+    "replace": "  const found = await db.auth.admin.getUserById(\"00000000-0000-4000-8000-000000000000\");",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/agent-sign-in.test.ts",
+    "expect": "× .*issues a token for the calling key's own account"
+  },
+  {
+    "id": "h151-z5-sign-in-audit-first",
+    "test": "tests/unit/agent-sign-in.test.ts",
+    "file": "src/server/team/service.ts",
+    "find": "      p_after: { sign_in_token: \"issued\" },\n    }),\n  );\n  const link = await db.auth.admin.generateLink({ type: \"magiclink\", email });",
+    "replace": "      p_after: { sign_in_token: \"issued\" },\n    }),\n  ).catch(() => undefined);\n  const link = await db.auth.admin.generateLink({ type: \"magiclink\", email });",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/agent-sign-in.test.ts",
+    "expect": "× .*issues nothing when the audit row is refused"
+  },
+  {
     "id": "h151-n-path-git-bash",
     "test": "tests/unit/matter-admin-browser.test.ts",
     "file": "scripts/matter/admin-browser.ts",
@@ -138,10 +219,28 @@
     "id": "h151-p-path-traversal",
     "test": "tests/unit/matter-admin-browser.test.ts",
     "file": "scripts/matter/admin-browser.ts",
-    "find": "  return path.includes(\"..\") || path.includes(\"//\") || /\\s/.test(path) ? null : path;",
-    "replace": "  return path;",
+    "find": "  if (path.includes(\"%\") || path.includes(\"..\") || path.includes(\"//\") || /\\s/.test(path))\n    return null;",
+    "replace": "",
     "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/matter-admin-browser.test.ts",
     "expect": "× .*refuses a host, another path holding /admin"
+  },
+  {
+    "id": "h151-p2-path-escape",
+    "test": "tests/unit/matter-admin-browser.test.ts",
+    "file": "scripts/matter/admin-browser.ts",
+    "find": "path.includes(\"%\") || ",
+    "replace": "",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/matter-admin-browser.test.ts",
+    "expect": "× .*refuses an escaped dot segment and any escape at all"
+  },
+  {
+    "id": "h151-p3-path-normalised",
+    "test": "tests/unit/matter-admin-browser.test.ts",
+    "file": "scripts/matter/admin-browser.ts",
+    "find": "  return url.origin === ADMIN_BASE && `${url.pathname}${url.search}${url.hash}` === path",
+    "replace": "  return true",
+    "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/matter-admin-browser.test.ts",
+    "expect": "× .*refuses an escaped dot segment and any escape at all"
   },
   {
     "id": "h151-q-confirm-type",
@@ -181,9 +280,25 @@
     "id": "h151-u-db-key-holder",
     "kind": "sql",
     "test": "tests/db/agent-token.db.test.ts",
-    "sql": "create or replace function app.role_in(variadic p_roles public.app_role[]) returns boolean language sql stable security definer set search_path = '' as $$ select exists (select 1 from public.user_roles r where r.user_id = auth.uid() and r.role = any (p_roles) and r.disabled_at is null and r.actor_kind = 'human') $$; create or replace function app.is_staff() returns boolean language sql stable security definer set search_path = '' as $$ select exists (select 1 from public.user_roles r where r.user_id = auth.uid() and r.disabled_at is null and r.actor_kind = 'human') $$",
+    "sql": "create or replace function app.role_in(variadic p_roles public.app_role[]) returns boolean language sql stable security definer set search_path = '' as $$ select exists (select 1 from public.user_roles r where r.user_id = auth.uid() and r.role = any (p_roles) and r.disabled_at is null) and not exists (select 1 from public.user_roles a where a.user_id = auth.uid() and a.actor_kind = 'agent') $$; create or replace function app.is_staff() returns boolean language sql stable security definer set search_path = '' as $$ select exists (select 1 from public.user_roles r where r.user_id = auth.uid() and r.disabled_at is null) and not exists (select 1 from public.user_roles a where a.user_id = auth.uid() and a.actor_kind = 'agent') $$",
     "run": "bunx vitest run --project db tests/db/agent-token.db.test.ts",
     "expect": "× .*holds no role and is not staff when it holds a key"
+  },
+  {
+    "id": "h151-u2-db-mixed-rows",
+    "kind": "sql",
+    "test": "tests/db/agent-token.db.test.ts",
+    "sql": "create or replace function app.role_in(variadic p_roles public.app_role[]) returns boolean language sql stable security definer set search_path = '' as $$ select exists (select 1 from public.user_roles r where r.user_id = auth.uid() and r.role = any (p_roles) and r.disabled_at is null and r.actor_kind = 'human' and not exists (select 1 from public.agent_keys k where k.user_id = r.user_id)) $$; create or replace function app.is_staff() returns boolean language sql stable security definer set search_path = '' as $$ select exists (select 1 from public.user_roles r where r.user_id = auth.uid() and r.disabled_at is null and r.actor_kind = 'human' and not exists (select 1 from public.agent_keys k where k.user_id = r.user_id)) $$",
+    "run": "bunx vitest run --project db tests/db/agent-token.db.test.ts",
+    "expect": "× .*holds no role through its person row when another of its rows says agent"
+  },
+  {
+    "id": "h151-u3-db-last-admin",
+    "kind": "sql",
+    "test": "tests/db/agent-token.db.test.ts",
+    "sql": "create or replace function public.is_last_admin(p_user_id uuid) returns boolean language sql stable security definer set search_path = '' as $$ select exists (select 1 from public.user_roles r where r.user_id = p_user_id and r.role = 'admin' and r.disabled_at is null and r.actor_kind = 'human') and not exists (select 1 from public.user_roles r where r.user_id <> p_user_id and r.role = 'admin' and r.disabled_at is null and r.actor_kind = 'human') $$",
+    "run": "bunx vitest run --project db tests/db/agent-token.db.test.ts",
+    "expect": "× .*is not counted as the other admin by is_last_admin when it holds a key"
   },
   {
     "id": "h151-v-db-person-kept",

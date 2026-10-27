@@ -1,12 +1,13 @@
 // Matter sees the live admin as himself (operator, 2026-10-27: "lets give matter access to the admin login page under his
 // account so he can do all those checks"; ruling H151). It signs his own agent account into a Chrome profile that only
-// he uses, with no mailbox: the service role on this laptop makes a one-time sign-in token for that account, and the
-// admin's own confirm page spends it, as a mailed link would. The server treats that session as the agent it is, so
-// every person-only action is refused to it.
+// he uses, with no mailbox: his key asks the admin for a one-time sign-in token for its own account
+// (`POST /api/admin/auth/agent-sign-in`, which only a bearer key may call), and the admin's own confirm page spends
+// it, as a mailed link would. No service role is read here. The server treats that session as the agent it is, so
+// every person-only action is refused to it; a release without that route cannot sign him in at all.
 //   bun scripts/matter/admin-browser.ts                               signs in if needed and checks /admin loads
 //   bun scripts/matter/admin-browser.ts --visit /admin/office --shot office.png
 //   bun scripts/matter/admin-browser.ts --text /admin/proposed-posts
-// The account is the one his key belongs to (MATTER_AGENT_KEY), so it can only ever be his. No link, token, key or
+// The server issues the token for the key's own account only, so it can only ever be his. No link, token, key or
 // cookie is printed. Exit 0 when the page was read; 1 on any refusal or failure.
 import { spawn } from "node:child_process";
 import { homedir } from "node:os";
@@ -14,8 +15,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { z } from "zod";
-import { hashAgentKey } from "../../src/server/lib/agent-keys.ts";
-import { childEnv, loadEnvFile, serviceDb } from "../workforce/env.ts";
+import { childEnv, loadEnvFile } from "../workforce/env.ts";
 import { ADMIN_BASE } from "./actions.ts";
 import { DESK } from "./run.ts";
 
@@ -25,6 +25,7 @@ const PROFILE = join(homedir(), ".mop-workforce", "matter", "admin-profile");
 const DRIVER_MS = 150_000;
 // The driver's exit when the profile holds no session: the one case that makes a sign-in token.
 const SIGNED_OUT = 3;
+const SIGN_IN_MS = 20_000;
 
 /**
  * The admin page a run may open: a path under /admin, no traversal, no space; null when refused. Git Bash turns a
@@ -38,7 +39,13 @@ export function adminPagePath(arg: string | undefined): string | null {
   if (at > 0 && !/^[A-Za-z]:\/.*\/Git$/.test(text.slice(0, at))) return null;
   const path = text.slice(at);
   if (!/^\/admin(?:[/?#]|$)/.test(path)) return null;
-  return path.includes("..") || path.includes("//") || /\s/.test(path) ? null : path;
+  if (path.includes("%") || path.includes("..") || path.includes("//") || /\s/.test(path))
+    return null;
+  // What the browser will ask for must be exactly what was given: no dot segment or escape survives normalising.
+  const url = new URL(path, ADMIN_BASE);
+  return url.origin === ADMIN_BASE && `${url.pathname}${url.search}${url.hash}` === path
+    ? path
+    : null;
 }
 
 /** The admin's own confirm page for a token hash, the address the mailed sign-in link has (B5's template). */
@@ -47,36 +54,30 @@ export function confirmUrl(tokenHash: string): string {
   return `${ADMIN_BASE}/admin/auth/confirm?${query.toString()}`;
 }
 
-const keyRowSchema = z.object({
-  user_id: z.string(),
-  revoked_at: z.string().nullable(),
-  roles: z.array(z.string()),
-});
+const issuedSchema = z.object({ token_hash: z.string().min(1) });
 
-/** A confirm address for Matter's own account: the account behind his live key, and only an agent's `.invalid` one. */
+/**
+ * A confirm address for Matter's own account, from the admin itself: his key asks for a one-time token, and the server
+ * issues it only for the key's own account. A 404 is a release without agent sign-in (H151): nothing is signed in.
+ */
 async function signInLink(): Promise<string> {
   const key = process.env["MATTER_AGENT_KEY"];
   if (key === undefined || key === "") throw new Error("This laptop holds no Matter key.");
-  const db = serviceDb();
-  const found = await db.rpc("agent_key_by_hash", { p_hash: await hashAgentKey(key) });
-  if (found.error !== null) throw new Error("The key could not be looked up; try again shortly.");
-  const row = keyRowSchema.array().parse(found.data)[0];
-  if (row === undefined || row.revoked_at !== null || row.roles.length === 0) {
-    throw new Error("Matter's key is not live, so his account may not sign in.");
+  const response = await fetch(`${ADMIN_BASE}/api/admin/auth/agent-sign-in`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
+    body: "{}",
+    signal: AbortSignal.timeout(SIGN_IN_MS),
+  });
+  if (response.status === 404) {
+    throw new Error("The live admin does not offer agent sign-in yet (H151 is not deployed).");
   }
-  const user = await db.auth.admin.getUserById(row.user_id);
-  const email = user.data.user?.email;
-  if (user.error !== null || email === undefined)
-    throw new Error("Matter's account was not found.");
-  if (!email.endsWith("@matterofplace.invalid")) {
-    throw new Error("The key's account is not an agent account; nothing was signed in.");
+  if (!response.ok) {
+    throw new Error(`The admin refused a sign-in token (HTTP ${String(response.status)}).`);
   }
-  const link = await db.auth.admin.generateLink({ type: "magiclink", email });
-  const hash = link.data.properties?.hashed_token;
-  if (link.error !== null || hash === undefined || hash === "") {
-    throw new Error("Supabase Auth made no sign-in token; nothing was signed in.");
-  }
-  return confirmUrl(hash);
+  const issued = issuedSchema.safeParse(await response.json());
+  if (!issued.success) throw new Error("The admin answered no sign-in token.");
+  return confirmUrl(issued.data.token_hash);
 }
 
 const resultSchema = z.object({
@@ -107,8 +108,11 @@ interface DriverInput {
 function drive(input: DriverInput): Promise<DriverResult> {
   return new Promise((done, fail) => {
     // The driver gets no key, token or secret (childEnv); the sign-in address reaches it on stdin, never in argv.
+    const env = childEnv();
+    // A DEBUG name would make puppeteer log its protocol traffic, which carries the confirm address.
+    delete env["DEBUG"];
     const child = spawn("node", [DRIVER], {
-      env: childEnv(),
+      env,
       stdio: ["pipe", "pipe", "inherit"],
       windowsHide: true,
     });

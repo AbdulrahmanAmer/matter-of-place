@@ -137,6 +137,7 @@ import { Route as ApiAdminAuditNotfoundRouteImport } from './routes/api/admin/au
 import { Route as ApiAdminAuditRecordRunRouteImport } from './routes/api/admin/audit.record-run'
 import { Route as ApiAdminAuditSubjectRequestsRouteImport } from './routes/api/admin/audit.subject-requests'
 import { Route as ApiAdminAuditUsageRouteImport } from './routes/api/admin/audit.usage'
+import { Route as ApiAdminAuthAgentSignInRouteImport } from './routes/api/admin/auth.agent-sign-in'
 import { Route as ApiAdminAuthPasswordRouteImport } from './routes/api/admin/auth.password'
 import { Route as ApiAdminAuthSendLinkRouteImport } from './routes/api/admin/auth.send-link'
 import { Route as ApiAdminAuthSignOutRouteImport } from './routes/api/admin/auth.sign-out'
@@ -980,6 +981,11 @@ const ApiAdminAuditSubjectRequestsRoute =
 const ApiAdminAuditUsageRoute = ApiAdminAuditUsageRouteImport.update({
   id: '/api/admin/audit/usage',
   path: '/api/admin/audit/usage',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminAuthAgentSignInRoute = ApiAdminAuthAgentSignInRouteImport.update({
+  id: '/api/admin/auth/agent-sign-in',
+  path: '/api/admin/auth/agent-sign-in',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAdminAuthPasswordRoute = ApiAdminAuthPasswordRouteImport.update({
@@ -2026,6 +2032,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/audit/record-run': typeof ApiAdminAuditRecordRunRoute
   '/api/admin/audit/subject-requests': typeof ApiAdminAuditSubjectRequestsRouteWithChildren
   '/api/admin/audit/usage': typeof ApiAdminAuditUsageRoute
+  '/api/admin/auth/agent-sign-in': typeof ApiAdminAuthAgentSignInRoute
   '/api/admin/auth/password': typeof ApiAdminAuthPasswordRoute
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
@@ -2314,6 +2321,7 @@ export interface FileRoutesByTo {
   '/api/admin/audit/record-run': typeof ApiAdminAuditRecordRunRoute
   '/api/admin/audit/subject-requests': typeof ApiAdminAuditSubjectRequestsRouteWithChildren
   '/api/admin/audit/usage': typeof ApiAdminAuditUsageRoute
+  '/api/admin/auth/agent-sign-in': typeof ApiAdminAuthAgentSignInRoute
   '/api/admin/auth/password': typeof ApiAdminAuthPasswordRoute
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
@@ -2608,6 +2616,7 @@ export interface FileRoutesById {
   '/api/admin/audit/record-run': typeof ApiAdminAuditRecordRunRoute
   '/api/admin/audit/subject-requests': typeof ApiAdminAuditSubjectRequestsRouteWithChildren
   '/api/admin/audit/usage': typeof ApiAdminAuditUsageRoute
+  '/api/admin/auth/agent-sign-in': typeof ApiAdminAuthAgentSignInRoute
   '/api/admin/auth/password': typeof ApiAdminAuthPasswordRoute
   '/api/admin/auth/send-link': typeof ApiAdminAuthSendLinkRoute
   '/api/admin/auth/sign-out': typeof ApiAdminAuthSignOutRoute
@@ -2902,6 +2911,7 @@ export interface FileRouteTypes {
     | '/api/admin/audit/record-run'
     | '/api/admin/audit/subject-requests'
     | '/api/admin/audit/usage'
+    | '/api/admin/auth/agent-sign-in'
     | '/api/admin/auth/password'
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
@@ -3190,6 +3200,7 @@ export interface FileRouteTypes {
     | '/api/admin/audit/record-run'
     | '/api/admin/audit/subject-requests'
     | '/api/admin/audit/usage'
+    | '/api/admin/auth/agent-sign-in'
     | '/api/admin/auth/password'
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
@@ -3483,6 +3494,7 @@ export interface FileRouteTypes {
     | '/api/admin/audit/record-run'
     | '/api/admin/audit/subject-requests'
     | '/api/admin/audit/usage'
+    | '/api/admin/auth/agent-sign-in'
     | '/api/admin/auth/password'
     | '/api/admin/auth/send-link'
     | '/api/admin/auth/sign-out'
@@ -3691,6 +3703,7 @@ export interface RootRouteChildren {
   ApiAdminAuditRecordRunRoute: typeof ApiAdminAuditRecordRunRoute
   ApiAdminAuditSubjectRequestsRoute: typeof ApiAdminAuditSubjectRequestsRouteWithChildren
   ApiAdminAuditUsageRoute: typeof ApiAdminAuditUsageRoute
+  ApiAdminAuthAgentSignInRoute: typeof ApiAdminAuthAgentSignInRoute
   ApiAdminAuthPasswordRoute: typeof ApiAdminAuthPasswordRoute
   ApiAdminAuthSendLinkRoute: typeof ApiAdminAuthSendLinkRoute
   ApiAdminAuthSignOutRoute: typeof ApiAdminAuthSignOutRoute
@@ -4666,6 +4679,13 @@ declare module '@tanstack/react-router' {
       path: '/api/admin/audit/usage'
       fullPath: '/api/admin/audit/usage'
       preLoaderRoute: typeof ApiAdminAuditUsageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/auth/agent-sign-in': {
+      id: '/api/admin/auth/agent-sign-in'
+      path: '/api/admin/auth/agent-sign-in'
+      fullPath: '/api/admin/auth/agent-sign-in'
+      preLoaderRoute: typeof ApiAdminAuthAgentSignInRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/auth/password': {
@@ -6692,6 +6712,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminAuditSubjectRequestsRoute:
     ApiAdminAuditSubjectRequestsRouteWithChildren,
   ApiAdminAuditUsageRoute: ApiAdminAuditUsageRoute,
+  ApiAdminAuthAgentSignInRoute: ApiAdminAuthAgentSignInRoute,
   ApiAdminAuthPasswordRoute: ApiAdminAuthPasswordRoute,
   ApiAdminAuthSendLinkRoute: ApiAdminAuthSendLinkRoute,
   ApiAdminAuthSignOutRoute: ApiAdminAuthSignOutRoute,

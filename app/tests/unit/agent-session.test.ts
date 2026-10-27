@@ -3,10 +3,12 @@ import { createHmac } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import type { Database } from "../../src/db";
-import type { FakeDb } from "../fixtures/fake-db";
+import type { FakeDb, FakeDbOptions } from "../fixtures/fake-db";
 import {
+  agentKeyRow,
   CSRF_KEY,
   fakeAuth,
+  meteringRpc,
   rolesDb,
   routeHandler,
   SESSION_ID,
@@ -24,23 +26,13 @@ import { SUBMISSION_ID } from "./automation/fixtures/entity-rows";
 
 type KeyRow = Database["public"]["Tables"]["agent_keys"]["Row"];
 
-const STAMP = "2026-10-05T08:00:00.000Z";
+const key = (scopes: string[], revoked = false) => agentKeyRow(scopes, { revoked });
 
-function key(scopes: string[], revoked = false): KeyRow {
-  return {
-    id: crypto.randomUUID(),
-    user_id: USER_ID,
-    key_hash: "0".repeat(64),
-    label: "Matter",
-    scopes,
-    last_used_at: null,
-    revoked_at: revoked ? STAMP : null,
-    created_at: STAMP,
-  };
-}
-
-const agentDb = (keys: KeyRow[], kind: "human" | "agent" = "agent") =>
-  rolesDb([{ role: "admin", disabled: false, kind }], { tables: { agent_keys: keys } });
+const agentDb = (
+  keys: KeyRow[],
+  kind: "human" | "agent" = "agent",
+  rpc: NonNullable<FakeDbOptions["rpc"]> = meteringRpc,
+) => rolesDb([{ role: "admin", disabled: false, kind }], { tables: { agent_keys: keys }, rpc });
 
 async function session() {
   const signing = await signer("kid-agent");
@@ -105,6 +97,29 @@ describe("a session of an agent account (H151)", () => {
     });
   });
 
+  it("counts against its first live key by id: the key's per-minute bucket, then its last_used_at", async () => {
+    const first = "00000000-0000-4000-8000-0000000000c1";
+    const second = "00000000-0000-4000-8000-0000000000c2";
+    const db = agentDb([
+      agentKeyRow(["workforce"], { id: second }),
+      agentKeyRow(["workforce"], { id: first }),
+    ]);
+    await actorOf(db);
+    const rpc = db.calls.filter((call) => call.kind === "rpc");
+    expect([
+      rpc.map((call) => call.name),
+      JSON.stringify(rpc[0]?.args).includes(`agent:${first}`),
+      rpc[1]?.args,
+    ]).toEqual([["rate_limit_check", "touch_agent_key"], true, [{ p_key_id: first }]]);
+  });
+
+  it("is refused 429 when its key's per-minute limit is spent, as the key itself would be", async () => {
+    const db = agentDb([key(["workforce"])], "agent", {
+      rate_limit_check: () => [{ allowed: false, retry_after: 30 }],
+    });
+    await expect(actorOf(db)).rejects.toMatchObject({ code: "rate_limited", status: 429 });
+  });
+
   it("leaves a person's session a person's, with no scopes", async () => {
     const actor = await actorOf(rolesDb([{ role: "admin", disabled: false }]));
     expect([actor.kind, actor.scopes]).toEqual(["human", []]);
@@ -155,7 +170,11 @@ describe("what an agent's session may do (H151)", () => {
       .object({ error: z.object({ code: z.string() }) })
       .safeParse(await response.json());
     expect([response.status, body.data?.error.code]).toEqual([403, "human_only"]);
-    expect(db.calls.filter((call) => call.kind === "rpc")).toEqual([]);
+    // Only the key's metering ran (H151 review finding 3); the person-only action never did.
+    expect(db.calls.filter((call) => call.kind === "rpc").map((call) => call.name)).toEqual([
+      "rate_limit_check",
+      "touch_agent_key",
+    ]);
   }, 30_000);
 
   it("still needs the CSRF token on a write, as every cookie session does", async () => {

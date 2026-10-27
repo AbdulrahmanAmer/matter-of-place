@@ -32,6 +32,17 @@ const meSchema = z.object({
   scopes: z.array(z.string()),
 });
 
+// Ends the session at the site through its own sign-out route, with the CSRF token the page holds in `mop_csrf`.
+const SIGN_OUT = `(() => {
+  const token = document.cookie.split("; ").find((part) => part.startsWith("mop_csrf="))?.slice(9) ?? "";
+  return fetch("/api/admin/auth/sign-out", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "content-type": "application/json", "x-mop-csrf": token },
+    body: "{}",
+  }).then((r) => r.status);
+})()`;
+
 /** @param {Record<string, unknown>} result */
 function answer(result) {
   process.stdout.write(`${JSON.stringify(result)}\n`);
@@ -121,8 +132,9 @@ async function main() {
     );
     const me = meSchema.safeParse(asked.success ? asked.data.body : null);
     if (!me.success || me.data.kind !== "agent") {
-      // A server without H151 would take this session for a person's: drop it rather than act as one. A session past
-      // its 12 hours answers 401: dropped too, and the caller signs in afresh.
+      // A server without H151 would take this session for a person's: end it at the site, then drop its cookies,
+      // rather than act as one. A session past its 12 hours answers 401: dropped too, and the caller signs in afresh.
+      await page.evaluate(SIGN_OUT).catch(() => undefined);
       const session = await page.createCDPSession();
       await session.send("Network.clearBrowserCookies");
       if (asked.success && asked.data.status === 401) {

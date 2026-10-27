@@ -1,4 +1,4 @@
-import { verifyKey } from "./agent-keys.ts";
+import { meterKey, verifyKey } from "./agent-keys.ts";
 import type { Actor } from "./actor-types.ts";
 import type { AppRole, Principal } from "./authz.ts";
 import type { Db } from "./db.ts";
@@ -11,6 +11,11 @@ import { getSessionUser } from "./session.ts";
 // call (invariant 17 (e)).
 
 export type { Actor };
+
+/** A session's principal, and for an agent the live key its requests are counted against. */
+export interface SessionPrincipal extends Principal {
+  readonly meteredKey?: { readonly id: string; readonly lastUsedAt: string | null };
+}
 
 const BEARER = /^Bearer\s+(\S+)$/i;
 
@@ -36,12 +41,14 @@ export async function enabledRoles(db: Db, userId: string): Promise<AppRole[]> {
  * `agent` (the kind `write_audit` checks) or when it has ever held an `agent_keys` row, so either record alone fails
  * closed. Such a session acts only while the account holds a live key, with the roles that key gets and the scopes
  * every live key shares. Null is a session that may not act: no enabled role, or an agent account without a live key.
- * Both rows are read in parallel, on every request, like the key path.
+ * Both rows are read in parallel, on every request, like the key path. Holding a key makes an account an agent for
+ * good: revoking every key leaves it an agent that may not act. `meteredKey` is the agent's first live key by id, the
+ * one its session's requests count against.
  */
-export async function sessionPrincipal(db: Db, userId: string): Promise<Principal | null> {
+export async function sessionPrincipal(db: Db, userId: string): Promise<SessionPrincipal | null> {
   const [roleRows, keyRows] = await Promise.all([
     db.from("user_roles").select("role, disabled_at, actor_kind").eq("user_id", userId),
-    db.from("agent_keys").select("scopes, revoked_at").eq("user_id", userId),
+    db.from("agent_keys").select("id, scopes, revoked_at, last_used_at").eq("user_id", userId),
   ]);
   if (roleRows.error !== null || keyRows.error !== null) throw busy();
   const roles = roleRows.data
@@ -50,19 +57,29 @@ export async function sessionPrincipal(db: Db, userId: string): Promise<Principa
   if (roles.length === 0) return null;
   const agent = keyRows.data.length > 0 || roleRows.data.some((row) => row.actor_kind === "agent");
   if (!agent) return { kind: "human", roles, scopes: [] };
-  const [first, ...others] = keyRows.data.filter((row) => row.revoked_at === null);
+  const [first, ...others] = keyRows.data
+    .filter((row) => row.revoked_at === null)
+    .sort((a, b) => (a.id < b.id ? -1 : 1));
   if (first === undefined) return null;
   const scopes = first.scopes.filter((scope) => others.every((key) => key.scopes.includes(scope)));
-  return { kind: "agent", roles, scopes };
+  return {
+    kind: "agent",
+    roles,
+    scopes,
+    meteredKey: { id: first.id, lastUsedAt: first.last_used_at },
+  };
 }
 
 export async function requireActor(request: Request, db: Db): Promise<Actor> {
   const user = await getSessionUser(request);
   if (user !== null) {
-    const principal = await sessionPrincipal(db, user.userId);
-    if (principal === null) {
+    const found = await sessionPrincipal(db, user.userId);
+    if (found === null) {
       throw new AppError("account_disabled", undefined, "This account is not active.");
     }
+    const { meteredKey, ...principal } = found;
+    // H151: an agent's session counts against its key's limits, as the key itself would.
+    if (meteredKey !== undefined) await meterKey(db, meteredKey.id, meteredKey.lastUsedAt);
     // An agent's session keeps its cookie session: CSRF and the session-age rules bind every cookie session alike.
     return {
       userId: user.userId,

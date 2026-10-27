@@ -9383,3 +9383,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: an answer the runner cannot read is never posted raw and never dropped in silence: retry once with the parse error, and if it still fails say plainly that nothing from the run was filed (fix round `overdrive/answer-not-json`). A live proof that waits on a proposal checks `agent_approvals` for the run, not the colleague's own words.
 - proof: `bun .tmp/parse-line.ts editor 2026-10-27T19:29:00Z` from the live checkout → `JSON.parse: JSON Parse error: Expected '}'` and `readJsonAnswer: {"reply":"```json ...`; `bun .tmp/bounce-run.ts 6396fcf1-...` → `proposals: []`.
 - added: 2026-10-27
+
+## P-4682 · A new admin route needs `routeTree.gen.ts` regenerated, and the laptop may not build: run `vite dev` for 90 s on a linked node_modules
+- symptom: 2026-10-27, H151 review round: the new `src/routes/api/admin/auth.agent-sign-in.ts` is typed by `createFileRoute("/api/admin/auth/agent-sign-in")`, which `tsc` refuses until the generated route tree names it (G-001), and the worktree had no node_modules while local builds are off (no local CI).
+- cause: only the router plugin writes `src/routeTree.gen.ts`, during `vite build` or `vite dev`; a lane worktree is never installed.
+- rule: link the live checkout's install (`New-Item -ItemType Junction -Path <worktree>/app/node_modules -Target E:/mop-build/live/app/node_modules`, only when both lockfiles match: `git diff --stat <live head> -- app/package.json app/bun.lock` is empty), run `timeout 90 node node_modules/vite/bin/vite.js dev --port 8899 --strictPort` once, and commit the regenerated file with the route; never hand-edit it. The same link lets `bun scripts/gen-action-roles.mjs` and `bun run db:fn` run for a matrix or function change.
+- proof: `git diff --stat app/src/routeTree.gen.ts` → `21 insertions(+)`, every added line naming `/api/admin/auth/agent-sign-in` (2026-10-27).
+- added: 2026-10-27

@@ -1,7 +1,9 @@
 import "../fixtures/worker-env";
 import { createHmac } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { Database } from "../../src/db";
 import {
+  agentKeyRow,
   CSRF_KEY,
   fakeAuth,
   rolesDb,
@@ -25,6 +27,12 @@ async function passwordRoute({
   disabled = false,
   rightPassword = "correct horse battery",
   turnstile = true,
+  agentKeys,
+}: {
+  disabled?: boolean;
+  rightPassword?: string;
+  turnstile?: boolean;
+  agentKeys?: Database["public"]["Tables"]["agent_keys"]["Row"][];
 } = {}) {
   const key = await signer("kid-a");
   const token = await key.token({ now: Date.now() });
@@ -48,9 +56,14 @@ async function passwordRoute({
   vi.resetModules();
   const { setDbForTests } = await import("../../src/server/lib/db");
   setDbForTests(
-    rolesDb([{ role: "managing_editor", disabled }], {
-      rpc: { rate_limit_check: () => [{ allowed: true, retry_after: 0 }] },
-    }),
+    // H151: given keys, the account is an agent's.
+    rolesDb(
+      [{ role: "managing_editor", disabled, kind: agentKeys === undefined ? "human" : "agent" }],
+      {
+        rpc: { rate_limit_check: () => [{ allowed: true, retry_after: 0 }] },
+        tables: { agent_keys: agentKeys ?? [] },
+      },
+    ),
   );
   const handler = routeHandler(await import("../../src/routes/api/admin/auth.password"), "POST");
   const post = (
@@ -157,5 +170,17 @@ describe("POST auth/password", () => {
     expect(await response.json()).toMatchObject({ error: { code: "account_disabled" } });
     expect(sessionCookies(response)).toEqual([]);
     expect(auth.calls.map((call) => new URL(call.url).pathname)).toContain("/auth/v1/logout");
+  });
+  it("refuses an agent account whose only key is revoked 401 and sets no session (H151)", async () => {
+    const { post } = await passwordRoute({
+      agentKeys: [agentKeyRow(["workforce"], { revoked: true })],
+    });
+    const response = await post({ email: "agent@example.test", password: "correct horse battery" });
+    const body: unknown = await response.json();
+    expect({ status: response.status, body, session: sessionCookies(response) }).toMatchObject({
+      status: 401,
+      body: { error: { code: "account_disabled" } },
+      session: [],
+    });
   });
 });

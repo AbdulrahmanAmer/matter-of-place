@@ -108,6 +108,30 @@ export const authApiCalls = (fake: AuthFake) =>
 
 type Role = Database["public"]["Enums"]["app_role"];
 
+/** An `agent_keys` row of the signed-in user (H151): live unless `revoked`; `id` orders keys for metering. */
+export function agentKeyRow(
+  scopes: string[],
+  { revoked = false, id = crypto.randomUUID() }: { revoked?: boolean; id?: string } = {},
+): Database["public"]["Tables"]["agent_keys"]["Row"] {
+  const stamp = "2026-10-05T08:00:00.000Z";
+  return {
+    id,
+    user_id: USER_ID,
+    key_hash: "0".repeat(64),
+    label: "Matter",
+    scopes,
+    last_used_at: null,
+    revoked_at: revoked ? stamp : null,
+    created_at: stamp,
+  };
+}
+
+/** Allows every rate-limit check and every `last_used_at` touch an agent session makes (H151). */
+export const meteringRpc: NonNullable<FakeDbOptions["rpc"]> = {
+  rate_limit_check: () => [{ allowed: true, retry_after: 0 }],
+  touch_agent_key: () => undefined,
+};
+
 /**
  * A fake database whose `user_roles` read answers `rows` for the signed-in user, as a person unless `kind` says agent.
  * Its `agent_keys` read answers none unless `options.tables` gives some (H151 reads both for every session).

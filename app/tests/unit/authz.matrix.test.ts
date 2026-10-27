@@ -144,6 +144,7 @@ reports.get                        CE ME VE MO CO AD
 reports.export                     CE ME VE MO CO AD
 reports.email                      CE ME | H
 me                                 CE ME VE MO CO AD | S
+dashboard.agent_sign_in            CE ME VE MO CO AD | S
 dashboard.password                 CE ME VE MO CO AD | H R
 people.list                        CE ME VE MO CO AD
 people.get                         CE ME VE MO CO AD

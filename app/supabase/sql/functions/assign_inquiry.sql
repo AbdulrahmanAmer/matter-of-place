@@ -29,8 +29,10 @@ begin
     join public.action_roles a on a.action = 'inquiries.assign'
     where r.user_id = p_assignee
       and r.disabled_at is null
-      and r.actor_kind = 'human'
       and r.role = any (a.roles)
+      -- H151: a person by account: no agent row and no key.
+      and not exists (select 1 from public.user_roles g where g.user_id = r.user_id and g.actor_kind = 'agent')
+      and not exists (select 1 from public.agent_keys k where k.user_id = r.user_id)
   ) then
     raise exception 'validation' using errcode = '22023', detail = 'Choose an editor who can act on inquiries.';
   end if;

@@ -40,6 +40,37 @@ describe("an agent account's own token (H151)", () => {
     expect(answers).toEqual({ admin: false, staff: false, visible: 0 });
   });
 
+  it("holds no role through its person row when another of its rows says agent (mixed rows)", async () => {
+    const answers = await withRollback(async (db) => {
+      const id = await createStaffUser(db, ["admin", "chief_editor"]);
+      await db.query(
+        "update public.user_roles set actor_kind = 'agent' where user_id = $1 and role = 'chief_editor'",
+        [id],
+      );
+      return answersAs(db, id);
+    });
+    expect(answers).toEqual({ admin: false, staff: false, visible: 0 });
+  });
+
+  it("is not counted as the other admin by is_last_admin when it holds a key", async () => {
+    const last = await withRollback(async (db) => {
+      const person = await createStaffUser(db, ["admin"]);
+      // A second admin whose rows say person but who holds a key, and every seeded admin given a key too, so only
+      // the account test can tell the person from the rest.
+      await createStaffUser(db, ["admin"]);
+      await db.query(
+        `insert into public.agent_keys (user_id, key_hash, label, scopes)
+         select r.user_id, md5(random()::text), 'probe', '{}' from public.user_roles r
+         where r.role = 'admin' and r.user_id <> $1`,
+        [person],
+      );
+      return (
+        await db.query<{ last: boolean }>("select public.is_last_admin($1) as last", [person])
+      ).rows[0]?.last;
+    });
+    expect(last).toBe(true);
+  });
+
   it("leaves a person admin an admin who reads the role rows", async () => {
     const answers = await withRollback(async (db) => {
       const id = await createStaffUser(db, ["admin"]);

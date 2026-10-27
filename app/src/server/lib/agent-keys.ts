@@ -88,17 +88,30 @@ export async function verifyKey(
     checkMemory(FAIL_BUCKET, ip, FAIL_LIMIT, FAIL_WINDOW_MS, now);
     throw refused();
   }
-  const bucket = `agent:${row.key_id}`;
+  await meterKey(db, row.key_id, row.last_used_at, now);
+  return { keyId: row.key_id, userId: row.user_id, roles: row.roles, scopes: row.scopes };
+}
+
+/**
+ * One request of an agent key against its limits: the per-minute flood guard, then `last_used_at` at most once a
+ * minute. The bearer path and an agent account's browser session (ruling H151, keyed by its first live key) share it.
+ */
+export async function meterKey(
+  db: Db,
+  keyId: string,
+  lastUsedAt: string | null,
+  now = Date.now(),
+): Promise<void> {
+  const bucket = `agent:${keyId}`;
   // W5 (operator and Jay, 2026-10-13): only the flood guard blocks; the daily line is an alert (health check
   // `agent_requests`), never a refusal.
   const verdict = await checkDb(db, [
-    { bucket, keyHash: row.key_id, limit: PER_MINUTE, windowSeconds: 60 },
+    { bucket, keyHash: keyId, limit: PER_MINUTE, windowSeconds: 60 },
   ]);
   if (!verdict.ok) throw limited(verdict.retryAfter);
-  const lastUsed =
-    row.last_used_at === null ? Number.NEGATIVE_INFINITY : Date.parse(row.last_used_at);
+  const lastUsed = lastUsedAt === null ? Number.NEGATIVE_INFINITY : Date.parse(lastUsedAt);
   if (now - lastUsed > TOUCH_AFTER_MS) {
-    const touched = await db.rpc("touch_agent_key", { p_key_id: row.key_id });
+    const touched = await db.rpc("touch_agent_key", { p_key_id: keyId });
     if (touched.error !== null) {
       throw new AppError(
         "unavailable",
@@ -107,5 +120,4 @@ export async function verifyKey(
       );
     }
   }
-  return { keyId: row.key_id, userId: row.user_id, roles: row.roles, scopes: row.scopes };
 }
