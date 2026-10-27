@@ -10,6 +10,7 @@ import { basename, extname, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { z } from "zod";
 import { mediaKey } from "./lib/media-key.mjs";
+import { childLimit } from "./lib/pass-deadline.mjs";
 import { getObject, putIfMissing } from "./lib/media-store.mjs";
 import { extractPoster } from "./reel-poster.mjs";
 import { checkJob } from "./render-job.mjs";
@@ -170,16 +171,52 @@ function readJob(raw) {
 }
 
 /**
+ * The longest one engine script, the motion gate or `bun install` may run: the reel's capture took 836 s with the
+ * laptop loaded (P-2100) and every other one takes seconds to minutes. A child never runs past what is left of the
+ * studio pass (`spawnLimited`, `pass-deadline.mjs`), so a chain of children ends by the pass's limit, inside the
+ * sweep's PASS_CAP_MS (`sweep.ts`, "room for that watchdog to act first").
+ */
+export const CHILD_LIMIT_MS = 15 * 60_000;
+
+/** The longest ffprobe or ffmpeg may run on one reel of up to 25 s, or on its poster: a minute is slow already. */
+export const FFMPEG_LIMIT_MS = 5 * 60_000;
+
+/**
+ * `spawnSync` with a limit (W8 item 1, round 6): past `limitMs` the child is killed and this throws why, so a hung
+ * Chrome or ffmpeg is a failed step with its reason, never a pass blocked for good. A browser the killed child had
+ * started is left without its parent, and the sweep ends it ("the render that started it is gone").
+ * @param {string} command
+ * @param {string[]} args
+ * @param {import("node:child_process").SpawnSyncOptionsWithStringEncoding} options
+ * @param {number} limitMs
+ * @returns {import("node:child_process").SpawnSyncReturns<string>}
+ */
+export function spawnLimited(command, args, options, limitMs) {
+  // round 7: never past what is left of the studio pass (`pass-deadline.mjs`)
+  const limit = childLimit(limitMs);
+  const run = spawnSync(command, args, { ...options, timeout: limit, killSignal: "SIGKILL" });
+  if (run.error !== undefined && "code" in run.error && run.error.code === "ETIMEDOUT") {
+    // a flag is no name: ffprobe and ffmpeg calls start with "-v"
+    const first = args[0];
+    const what = basename(first === undefined || first.startsWith("-") ? command : first);
+    const cut = limit < limitMs ? " at the studio pass's limit" : "";
+    throw new Error(`${what} timed out after ${String(limit / 1000)} s and was ended${cut}`);
+  }
+  return run;
+}
+
+/**
  * Runs one engine script with node in the foreground, its output in this log.
  * @param {string[]} args
  * @param {NodeJS.ProcessEnv} [env] the script's environment; the runner's own when not given
  */
 function node(args, env) {
-  const run = spawnSync("node", args, {
-    cwd: APP,
-    stdio: "inherit",
-    ...(env === undefined ? {} : { env }),
-  });
+  const run = spawnLimited(
+    "node",
+    args,
+    { cwd: APP, encoding: "utf8", stdio: "inherit", ...(env === undefined ? {} : { env }) },
+    CHILD_LIMIT_MS,
+  );
   if (run.status !== 0) {
     throw new Error(`${basename(args[0] ?? "node")} exited ${String(run.status)}`);
   }
@@ -250,7 +287,7 @@ async function stage(shots, fixture) {
  */
 function motionGate(mp4) {
   const json = join(WORK, "gate.json");
-  spawnSync(
+  spawnLimited(
     "node",
     [
       join(LAUNCH, "tools/motion-gate.mjs"),
@@ -258,7 +295,8 @@ function motionGate(mp4) {
       ...["--w", String(W), "--h", String(H), "--min-s", "15", "--max-s", "25"],
       ...["--min-cuts", "3", "--max-cuts", "8", "--json", json],
     ],
-    { cwd: APP, stdio: "inherit" },
+    { cwd: APP, encoding: "utf8", stdio: "inherit" },
+    CHILD_LIMIT_MS,
   );
   let text;
   try {
@@ -274,7 +312,7 @@ function motionGate(mp4) {
  * @returns {Probe}
  */
 function probeFile(mp4) {
-  const run = spawnSync(
+  const run = spawnLimited(
     "ffprobe",
     [
       ...["-v", "error", "-of", "json", "-show_entries"],
@@ -282,6 +320,7 @@ function probeFile(mp4) {
       mp4,
     ],
     { encoding: "utf8" },
+    FFMPEG_LIMIT_MS,
   );
   if (run.status !== 0) throw new Error(`ffprobe exited ${String(run.status)}`);
   const { streams, format } = probeSchema.parse(JSON.parse(run.stdout));
