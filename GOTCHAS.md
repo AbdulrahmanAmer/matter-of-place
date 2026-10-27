@@ -9372,12 +9372,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `gh pr view 509 --json body` showed the old body before `gh pr edit 509 --body-file`; `head -1 ~/.mop-workforce/builders/w8-1-render/brief.final.md` showed "round 9" under the round 10 launch.
 - added: 2026-10-27
 
-
-## P-4680 · A colleague answer that is not valid JSON was posted raw and its proposal lost, with nothing said
-- symptom: 2026-10-27 19:29 UTC, W9 item 3's live proof: the replayed Fairfield bounce woke the Editor (run ebca4a55); his line in the thread was his whole answer, fence and JSON, and no proposal reached Approvals although his reply said "I've filed a proposal in Approvals".
-- cause: his JSON had one bracket wrong (`Expected '}'` near the end, `..."}]}], "hire": []}`); `readJsonAnswer` (`scripts/workforce/answer.ts`) tries each `{` and, when none parses, returns the raw text as the reply with no proposals, hires or actions, and the runner says nothing about it.
-- rule: an answer the runner cannot read is never posted raw and never dropped in silence: retry once with the parse error, and if it still fails say plainly that nothing from the run was filed (fix round `overdrive/answer-not-json`). A live proof that waits on a proposal checks `agent_approvals` for the run, not the colleague's own words.
-- proof: `bun .tmp/parse-line.ts editor 2026-10-27T19:29:00Z` from the live checkout → `JSON.parse: JSON Parse error: Expected '}'` and `readJsonAnswer: {"reply":"```json ...`; `bun .tmp/bounce-run.ts 6396fcf1-...` → `proposals: []`.
+## P-4680 · Matter's goal line is re-handed every ten minutes while he waits on his own background work
+- symptom: 2026-10-27 18:03-18:39 UTC, Matter posted "Nothing new ... still building" six times, 31 lines in two hours, while a builder ran in the background and the meeting rerun was due at 18:45.
+- cause: `continueGoal` (scripts/matter/live.ts) handed the first unticked step every ten minutes whatever he was waiting on; `goalSkipReason` ignored his open background tasks, and a turn that only answered cost nothing to repeat.
+- rule: no goal line while a background task of his started under an hour ago is open (its end wakes the session, and that wake turn covers the goal); after each goal turn that did no work (no Edit, Write, Agent, Task, task started or merge; a status read is not work) the gap doubles, ten minutes to an hour; a person's line or a finished task starts the pace over; an error result is not counted.
+- proof: `cd app && bunx vitest run --project unit tests/unit/matter-autonomy.test.ts` (registry ma-d-*); live: `select count(*) from agent_messages where thread='matter' and author_name='Matter' and created_at > now() - interval '2 hours'` after the merge.
 - added: 2026-10-27
 
 ## P-4681 · A new catalog event touches twelve places, and three test titles carry the count
