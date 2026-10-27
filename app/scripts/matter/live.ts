@@ -6,7 +6,15 @@
 // Only a signed-in person's line reaches this session (claim_matter_live); everything else stays a one-shot read-only
 // run (ruling H101). Run: `bun scripts/matter/live.ts` from the runner's app folder (the scheduled task "MOP Matter Live").
 import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir, hostname } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -19,6 +27,7 @@ import { proposeCalls, say } from "../workforce/daemon.ts";
 import { childEnv, serviceDb } from "../workforce/env.ts";
 import { LIVE_WORKER_PREFIX } from "../workforce/follow.ts";
 import { applyHires } from "../workforce/hiring.ts";
+import { STALL_FILE } from "../workforce/sweep.ts";
 import { HEARTBEAT_FILE, heartbeatStale } from "./live-alive.ts";
 import {
   markUsed,
@@ -35,6 +44,8 @@ const here = dirname(fileURLToPath(import.meta.url));
 const HOME = join(homedir(), ".mop-workforce");
 const MATTER_HOME = join(HOME, "matter");
 const LOCK_FILE = join(MATTER_HOME, "live.lock");
+// The process id of the CLI session this supervisor started, so the next supervisor can end one left running.
+const CHILD_FILE = join(MATTER_HOME, "live-child.pid");
 const SESSION_FILE = join(MATTER_HOME, "live-session.json");
 // Matter's goal (operator, 2026-10-15): a task-gate step list; between turns he is handed its next open step.
 const GOAL_FILE = join(MATTER_HOME, "goal.json");
@@ -306,6 +317,16 @@ export function goalLine(step: string): string {
   return `Your goal is not met. The next open step: ${step}\nDo it now, through to a merged pull request or a decided approval, then go on to the next one. If it needs the operator's hands (a password, a card, an account), say so once and take the next step instead. The daily meeting's decisions are not steps of your goal: never take one up without the operator's yes.`;
 }
 
+/**
+ * The turn handed to Matter between turns: the laptop sweep's stall report first when one waits (sweep.ts writes it
+ * once per stall), then his next goal step; null when there is neither.
+ */
+export function goalTurn(stall: string, step: string | null): string | null {
+  const report = stall === "" ? null : `MOP Sweep's stall report (said once):\n${stall}`;
+  if (step === null) return report;
+  return report === null ? goalLine(step) : `${report}\n\n${goalLine(step)}`;
+}
+
 /** The next open step of a task-gate list, or null when there is none, no list, or it cannot be read. */
 export function nextGoalStep(
   file: string,
@@ -382,6 +403,95 @@ function runnerHead(): string {
     windowsHide: true,
     timeout: 30_000,
   }).stdout.trim();
+}
+
+/** The sweep's stall report, taken once (scripts/workforce/sweep.ts writes it); empty when none waits. */
+function takeStall(): string {
+  // renamed first, so a report the sweep writes while this one is handed waits for the next turn
+  const taken = `${STALL_FILE}.taken`;
+  try {
+    renameSync(STALL_FILE, taken);
+    const text = readFileSync(taken, "utf8").trim();
+    rmSync(taken, { force: true });
+    return text;
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Ends the CLI session a supervisor before this one left running (its crash path exits without ending it), so the line
+ * releaseHeld puts back in the queue is never answered by two sessions at once. The id is checked to still be that
+ * session (its stream input) before anything is ended, since Windows reuses process ids.
+ */
+function endLostSession(): void {
+  if (!existsSync(CHILD_FILE)) return;
+  const pid = Number(readFileSync(CHILD_FILE, "utf8").trim());
+  const savedAt = statSync(CHILD_FILE).mtimeMs;
+  rmSync(CHILD_FILE, { force: true });
+  if (!Number.isInteger(pid) || pid <= 0 || !processAlive(pid)) return;
+  const found = spawnSync(
+    "powershell",
+    [
+      "-NoProfile",
+      "-Command",
+      `$p = Get-CimInstance Win32_Process -Filter 'ProcessId=${String(pid)}'; if ($p) { $p.CreationDate.ToUniversalTime().ToString('o'); $p.CommandLine }`,
+    ],
+    { encoding: "utf8", windowsHide: true, timeout: 30_000 },
+  );
+  const [started = "", ...command] = found.stdout.split(/\r?\n/);
+  if (!isLostSession(command.join(" "), Date.parse(started), savedAt)) return;
+  console.log(
+    `${new Date().toISOString()} live: ended the session ${String(pid)} the last supervisor left`,
+  );
+  killTree(pid);
+}
+
+/**
+ * Whether a process is the live session a supervisor before this one started: Matter's CLI with his full settings, fed
+ * by stream input, and started before its id was saved. The desktop app's own sessions use stream input too, and a
+ * reused id is a newer process, so neither is ever ended.
+ */
+export function isLostSession(command: string, startedMs: number, savedMs: number): boolean {
+  return (
+    /(?:^|\s)-p(?:\s|$)/.test(command) &&
+    /--input-format\s+stream-json/.test(command) &&
+    /scripts[\\/]matter[\\/]settings-full\.json/.test(command) &&
+    !Number.isNaN(startedMs) &&
+    startedMs <= savedMs
+  );
+}
+
+/**
+ * Lets go of the runs a supervisor before this one held. lockOrExit makes this process the only supervisor, so a run
+ * still `running` under its worker was lost with the process that claimed it (2026-10-27: a goal run lost at a restart
+ * sat `running` five hours under a six-hour lease, for the one-shot runner to claim when it ran out). A person's line
+ * goes back to the queue so it is still answered; any other run is closed, and the goal hands its step again.
+ */
+export async function releaseHeld(
+  client: Db,
+  worker: string,
+): Promise<{ requeued: number; closed: number }> {
+  const { data: requeued } = await client
+    .from("agent_runs")
+    .update({ state: "queued", worker: null, lease_until: null })
+    .eq("worker", worker)
+    .eq("state", "running")
+    .eq("cause", "message")
+    .select("id");
+  const { data: closed } = await client
+    .from("agent_runs")
+    .update({
+      state: "failed",
+      finished_at: new Date().toISOString(),
+      lease_until: null,
+      error: "abandoned: Matter's live supervisor restarted and lost this run",
+    })
+    .eq("worker", worker)
+    .eq("state", "running")
+    .neq("cause", "message")
+    .select("id");
+  return { requeued: requeued?.length ?? 0, closed: closed?.length ?? 0 };
 }
 
 /** Waits `ms` while touching the heartbeat every half minute, so a planned rest never reads as a stuck loop. */
@@ -485,6 +595,7 @@ export class Supervisor {
       void this.onExit(code);
     });
     this.child = child;
+    if (child.pid !== undefined) writeFileSync(CHILD_FILE, String(child.pid));
     console.log(
       `${new Date().toISOString()} live: started${session === null ? "" : ` (resuming ${session})`}`,
     );
@@ -793,13 +904,17 @@ export class Supervisor {
       goalAt: this.goalAt,
       backlog: staffPolicy().backlog,
     });
-    if (reason !== null) {
+    // the sweep's stall report waits only for an idle session, never for the staff policy or the goal's pace
+    const stallWaiting = this.child !== null && this.active.length === 0 && existsSync(STALL_FILE);
+    if (reason !== null && !stallWaiting) {
       this.noteSkip(reason, now);
       return;
     }
-    this.goalAt = now;
-    const step = nextGoalStep(GOAL_FILE);
-    if (step === null) {
+    if (reason === null) this.goalAt = now;
+    const step = reason === null ? nextGoalStep(GOAL_FILE) : null;
+    const stall = stallWaiting ? takeStall() : "";
+    const turn = goalTurn(stall, step);
+    if (turn === null) {
       this.noteSkip("the goal file has no open step", now);
       return;
     }
@@ -816,15 +931,19 @@ export class Supervisor {
       .select("id")
       .single();
     if (run === null) {
+      // the report waits for the next turn
+      if (stall !== "") writeFileSync(STALL_FILE, stall);
       this.noteSkip("the run row for the goal step could not be written", now);
       return;
     }
-    console.log(`${new Date(now).toISOString()} live: goal step ${step}`);
+    console.log(
+      `${new Date(now).toISOString()} live: ${stall === "" ? "" : "stall report, "}goal step ${step ?? "none"}`,
+    );
     this.active.push({ runId: run.id, thread: "matter" });
-    await this.setTask("Working on his goal");
+    await this.setTask(stall === "" ? "Working on his goal" : "Fixing what the sweep found stuck");
     // H143 (4): a goal turn is self-started, so it shows no decision; the session keeps those an operator turn showed,
     // so goalLine repeats that none is taken up without his yes
-    this.say(goalLine(step));
+    this.say(turn);
   }
 
   /**
@@ -849,6 +968,11 @@ export class Supervisor {
       .single();
     if (matter === null) throw new Error("live: no agent matter");
     this.matterId = matter.id;
+    const released = await releaseHeld(this.client, WORKER);
+    if (released.requeued + released.closed > 0)
+      console.log(
+        `${new Date().toISOString()} live: let go of the runs the last supervisor held: ${String(released.requeued)} line(s) back in the queue, ${String(released.closed)} goal run(s) closed`,
+      );
     for (;;) {
       writeFileSync(HEARTBEAT_FILE, new Date().toISOString());
       // Matter's panel (2026-10-15): the panel reads "online" from his row; touch it once a minute from here, so a
@@ -937,6 +1061,7 @@ export class Supervisor {
 
 if (import.meta.main) {
   lockOrExit();
+  endLostSession();
   const supervisor = new Supervisor(serviceDb());
   setInterval(() => {
     supervisor.exitIfStalled();

@@ -9224,7 +9224,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 
 ## P-4643 · Matter repeats a waiting item from its own live-state.md every pass until that file says it is closed
 - symptom: 2026-10-26, Matter posted "W8 0d still needs your one outside test message" every 10 minutes for 5 hours after the message was sent and two Admin lines said so (74 runs, the allowance spent on one sentence).
-- cause: Matter reads its own `~/.mop-workforce/matter/live-state.md` first each pass; its top UPDATE line said "DONE except W8 0d", and a line in its thread does not change that file.
+- cause (corrected 2026-10-27): the two Admin lines were written with a raw `insert into agent_messages`, which queues no run, so Matter never received them (P-4662); the goal driver (`continueGoal`, live.ts) then handed him the same first unticked step every 10 minutes, and his own read-only decision on the email never reached his live session. live-state.md was a symptom, not the cause.
 - rule: when a waiting item is done, prepend an UPDATE line to Matter's live-state.md that names it closed (and record it in POSITION.md); a thread message alone does not stop the reminder.
 - proof: `select count(*) from agent_messages where thread='matter' and body like 'W8 0d still needs%' and created_at > '<live-state edit time>'` → 0 (UNPROVEN until measured).
 - added: 2026-10-27
@@ -9332,4 +9332,25 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: knip reports an exported binding that is an alias of another export as a duplicate export, whatever the comment says.
 - rule: a second exported name for the same value is written out as its own expression (`export const PASS_LIMIT_MS = 3 * 60 * 60_000;`) and a test holds the two equal; or only one of them is exported. Run `bun run knip` in CI's place by reading for `export const X = Y` when an export is added.
 - proof: `gh api repos/AbdulrahmanAmer/matter-of-place/actions/jobs/122282355511/logs | grep -A1 "Duplicate exports"` → `STALE_MS|PASS_LIMIT_MS  scripts/workforce/reel.ts`; the fix 88041cc1 passed the check job.
+- added: 2026-10-27
+
+## P-4660 · A scheduled task's time limit ends only its hidden launcher; the pass under it runs on and a new one starts beside it
+- symptom: 2026-10-27, the laptop's CPU burned: `reel.ts --pass` was started 20 to 51 times an hour from 2026-10-26 23:00 (daemon.log "reel pass started"), 262 alive at once, and the laptop died when its internet dropped.
+- cause: every MOP task runs `wscript.exe hidden-run.vbs` → `cmd.exe /c bun <script>`. "MOP Workforce" has a 50-minute ExecutionTimeLimit; at the limit Windows ends wscript.exe only, so bun (and the Claude run or render under it) keeps running while IgnoreNew now lets the next minute's pass start. The studio pass is spawned detached with no lock, so each new pass that saw work started another.
+- rule: no MOP task but MOP Sweep has a time limit (install.ps1, tested); `scripts/workforce/sweep.ts` ("MOP Sweep", every 5 minutes) is the one thing that ends stuck work, by exact process ids: a scheduled pass past 3 h 15 min (ruling H150, its runs failed and their people told) or whose launcher is gone (its runs back in the queue), every studio pass but the one making a piece, a pass past 3 h 15 min, orphaned runner/studio/live CLI children, studio ffmpeg and renders older than 10 minutes, and an ffmpeg under a pass past an hour. Its stall report reaches Matter's live session once (`~/.mop-workforce/matter/stall.md`, read by live.ts between turns).
+- proof: `cd app && bunx vitest run --project unit tests/unit/workforce-sweep.test.ts` (registry tests/mutations/SWEEP.json, sw-a to sw-n); live: `bun scripts/workforce/sweep.ts --dry` lists what it would end.
+- added: 2026-10-27
+
+## P-4661 · A restarted live supervisor leaves the runs it held `running` under a six-hour lease
+- symptom: 2026-10-27, Matter's goal run 0951ea21 (09:07 UTC) sat `running` for five hours after live.ts restarted at 13:43; at its lease end the one-shot runner's `claim_agent_run` would have claimed it.
+- cause: live.ts keeps the runs it works on only in memory (`this.active`); a new process never looked at what the old one held.
+- rule: at start, after `lockOrExit`, `releaseHeld` puts the worker's held person lines back in the queue and closes its other runs.
+- proof: `cd app && bunx vitest run --project unit tests/unit/matter-live-release.test.ts` (lr-a to lr-d in SWEEP.json).
+- added: 2026-10-27
+
+## P-4662 · A line written straight into `agent_messages` reaches no one: no run is queued for it
+- symptom: 2026-10-26, the operator's ruling and "test sent" lines to Matter (raw SQL inserts at 15:14 and 15:21 UTC) were never answered; Matter waited on them for five hours.
+- cause: `agent_messages` has no trigger; only `public.workforce_post_message(thread, body, author_id, author_name, mentions, author_kind)` queues the run that wakes the reader.
+- rule: post to a colleague only through `workforce_post_message`, never a raw insert; then check that a run row exists with that `message_id`.
+- proof: `select count(*) from agent_runs where message_id = '<the new message id>'` → 1 (re-sent ruling f6a3807c, 2026-10-26 22:03:29 UTC).
 - added: 2026-10-27
