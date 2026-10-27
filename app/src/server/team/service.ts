@@ -24,7 +24,7 @@ import {
   type teamUsersPageSchema,
   type verifyInput,
 } from "../../domain/admin-team.ts";
-import { enabledRoles } from "../lib/actor.ts";
+import { sessionPrincipal } from "../lib/actor.ts";
 import { fromRpcError } from "../lib/admin-errors.ts";
 import type { AdminActor } from "../lib/admin-route.ts";
 import { adminJson } from "../lib/admin-response.ts";
@@ -182,8 +182,8 @@ export async function verifySignIn(
   if (error !== null && isAuthRetryableFetchError(error)) throw unavailable();
   const session = data.session;
   if (session === null) return seeOther("/admin/sign-in?state=expired");
-  const roles = await enabledRoles(db, session.user.id);
-  if (roles.length === 0) {
+  // H151: an agent account without a live key is refused here as a disabled one is, before any cookie leaves.
+  if ((await sessionPrincipal(db, session.user.id)) === null) {
     await client.signOut();
     // The session is signed out again, so none of its cookies leave the Worker.
     takeIssuedCookies(request);
@@ -231,8 +231,7 @@ export async function signInWithPassword(
   if (session === null) {
     throw new AppError("unauthorized", undefined, "That email and password do not match.");
   }
-  const roles = await enabledRoles(db, session.user.id);
-  if (roles.length === 0) {
+  if ((await sessionPrincipal(db, session.user.id)) === null) {
     await client.signOut();
     // The session is signed out again, so none of its cookies leave the Worker.
     takeIssuedCookies(request);

@@ -108,21 +108,25 @@ export const authApiCalls = (fake: AuthFake) =>
 
 type Role = Database["public"]["Enums"]["app_role"];
 
-/** A fake database whose `user_roles` read answers `rows` for the signed-in user. */
+/**
+ * A fake database whose `user_roles` read answers `rows` for the signed-in user, as a person unless `kind` says agent.
+ * Its `agent_keys` read answers none unless `options.tables` gives some (H151 reads both for every session).
+ */
 export function rolesDb(
-  rows: { role: Role; disabled: boolean }[],
+  rows: { role: Role; disabled: boolean; kind?: "human" | "agent" }[],
   options: FakeDbOptions = {},
 ): FakeDb {
   const now = "2026-10-05T09:00:00.000Z";
   return fakeDb({
     ...options,
     tables: {
+      agent_keys: [],
       ...options.tables,
-      user_roles: rows.map(({ role, disabled }, index) => ({
+      user_roles: rows.map(({ role, disabled, kind = "human" }, index) => ({
         id: `00000000-0000-4000-8000-00000000000${String(index)}`,
         user_id: USER_ID,
         role,
-        actor_kind: "human",
+        actor_kind: kind,
         display_name: null,
         disabled_at: disabled ? now : null,
         created_at: now,
