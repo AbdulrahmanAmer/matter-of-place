@@ -27,6 +27,7 @@ describe("scripts/workforce/install.ps1", () => {
       "MOP Review",
       "MOP Captions",
       "MOP Meeting",
+      "MOP Sweep",
     ]);
     for (const entry of registrations) {
       const settings = lineOf(entry.settings, "New-ScheduledTaskSettingsSet");
@@ -43,6 +44,18 @@ describe("scripts/workforce/install.ps1", () => {
     );
     const trigger = lineOf("$captionsTrigger", "New-ScheduledTaskTrigger");
     expect(trigger).toContain("-RepetitionInterval (New-TimeSpan -Minutes 10)");
+  });
+
+  it("registers MOP Sweep every five minutes under a limit shorter than its interval (2026-10-27)", () => {
+    expect(lineOf("$sweepAction", "New-ScheduledTaskAction")).toContain(
+      'scripts\\workforce\\sweep.ts sweep")',
+    );
+    expect(lineOf("$sweepTrigger", "New-ScheduledTaskTrigger")).toContain(
+      "-RepetitionInterval (New-TimeSpan -Minutes 5)",
+    );
+    expect(lineOf("$sweepSettings", "New-ScheduledTaskSettingsSet")).toContain(
+      "-ExecutionTimeLimit (New-TimeSpan -Minutes 4)",
+    );
   });
 
   it("takes off the old MatterOfPlace Captions task before it registers MOP Captions (W8 item 3 review)", () => {

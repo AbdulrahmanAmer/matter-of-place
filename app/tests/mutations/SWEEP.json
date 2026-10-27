@@ -1,0 +1,83 @@
+[
+  {
+    "id": "sw-a-detached-pass",
+    "test": "tests/unit/workforce-sweep.test.ts",
+    "file": "scripts/workforce/sweep.ts",
+    "find": "      if (parent !== undefined && isShell(parent) && (launcher === undefined || !isLauncher(launcher)))",
+    "replace": "      if (parent === undefined)",
+    "run": "bunx vitest run --project unit tests/unit/workforce-sweep.test.ts",
+    "expect": "× .*ends a scheduled pass whose launcher the task's time limit ended"
+  },
+  {
+    "id": "sw-b-one-studio-pass",
+    "test": "tests/unit/workforce-sweep.test.ts",
+    "file": "scripts/workforce/sweep.ts",
+    "find": "    else if (kept) end(pass, \"studio pass\", \"a second studio pass; the studio makes one at a time\");",
+    "replace": "    else if (kept) kept = true;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-sweep.test.ts",
+    "expect": "× .*keeps one studio pass, ends the second"
+  },
+  {
+    "id": "sw-c-only-our-claude",
+    "test": "tests/unit/workforce-sweep.test.ts",
+    "file": "scripts/workforce/sweep.ts",
+    "find": "  /\\.mop-workforce|scripts[\\\\/]matter[\\\\/]settings/i.test(proc.command);",
+    "replace": "  proc.command !== \"\";",
+    "run": "bunx vitest run --project unit tests/unit/workforce-sweep.test.ts",
+    "expect": "× .*ends orphans of ours and nothing else"
+  },
+  {
+    "id": "sw-d-reused-pid",
+    "test": "tests/unit/workforce-sweep.test.ts",
+    "file": "scripts/workforce/sweep.ts",
+    "find": "    return parent !== undefined && parent.started <= proc.started && parent.pid !== proc.pid",
+    "replace": "    return parent !== undefined && parent.pid !== proc.pid",
+    "run": "bunx vitest run --project unit tests/unit/workforce-sweep.test.ts",
+    "expect": "× .*reads a parent started after its child as a reused id"
+  },
+  {
+    "id": "sw-e-ffmpeg-cap",
+    "test": "tests/unit/workforce-sweep.test.ts",
+    "file": "scripts/workforce/sweep.ts",
+    "find": "    if (isFfmpeg(proc) && now - proc.started > FFMPEG_CAP_MS)",
+    "replace": "    if (isFfmpeg(proc) && now - proc.started < 0)",
+    "run": "bunx vitest run --project unit tests/unit/workforce-sweep.test.ts",
+    "expect": "× .*ends an ffmpeg past its cap even with its parent alive"
+  },
+  {
+    "id": "sw-f-waiting-age",
+    "test": "tests/unit/workforce-sweep.test.ts",
+    "file": "scripts/workforce/sweep.ts",
+    "find": "        return brief.state === \"queued\" && now - at > WAIT_MS ? [{ name: entry.name, at }] : [];",
+    "replace": "        return brief.state === \"queued\" ? [{ name: entry.name, at }] : [];",
+    "run": "bunx vitest run --project unit tests/unit/workforce-sweep.test.ts",
+    "expect": "× .*names queued pieces older than the wait"
+  },
+  {
+    "id": "sw-g-quiet-sweep",
+    "test": "tests/unit/workforce-sweep.test.ts",
+    "file": "scripts/workforce/sweep.ts",
+    "find": "  return lines.length === 0 ? null : lines.join(\"\\n\");",
+    "replace": "  return lines.join(\"\\n\");",
+    "run": "bunx vitest run --project unit tests/unit/workforce-sweep.test.ts",
+    "expect": "× .*says nothing when nothing was stuck"
+  },
+  {
+    "id": "lr-a-line-requeued",
+    "test": "tests/unit/matter-live-release.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "    .eq(\"cause\", \"message\")\n    .select(\"id\");",
+    "replace": "    .eq(\"cause\", \"none\")\n    .select(\"id\");",
+    "run": "bunx vitest run --project unit tests/unit/matter-live-release.test.ts",
+    "expect": "× .*puts a person's line back in the queue and closes a goal run"
+  },
+  {
+    "id": "lr-b-own-worker-only",
+    "test": "tests/unit/matter-live-release.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "    .eq(\"worker\", worker)\n    .eq(\"state\", \"running\")\n    .neq(\"cause\", \"message\")",
+    "replace": "    .eq(\"state\", \"running\")\n    .neq(\"cause\", \"message\")",
+    "run": "bunx vitest run --project unit tests/unit/matter-live-release.test.ts",
+    "expect": "× .*puts a person's line back in the queue and closes a goal run"
+  }
+]

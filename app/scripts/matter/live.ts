@@ -384,6 +384,38 @@ function runnerHead(): string {
   }).stdout.trim();
 }
 
+/**
+ * Lets go of the runs a supervisor before this one held. lockOrExit makes this process the only supervisor, so a run
+ * still `running` under its worker was lost with the process that claimed it (2026-10-27: a goal run lost at a restart
+ * sat `running` five hours under a six-hour lease, for the one-shot runner to claim when it ran out). A person's line
+ * goes back to the queue so it is still answered; any other run is closed, and the goal hands its step again.
+ */
+export async function releaseHeld(
+  client: Db,
+  worker: string,
+): Promise<{ requeued: number; closed: number }> {
+  const { data: requeued } = await client
+    .from("agent_runs")
+    .update({ state: "queued", worker: null, lease_until: null })
+    .eq("worker", worker)
+    .eq("state", "running")
+    .eq("cause", "message")
+    .select("id");
+  const { data: closed } = await client
+    .from("agent_runs")
+    .update({
+      state: "failed",
+      finished_at: new Date().toISOString(),
+      lease_until: null,
+      error: "abandoned: Matter's live supervisor restarted and lost this run",
+    })
+    .eq("worker", worker)
+    .eq("state", "running")
+    .neq("cause", "message")
+    .select("id");
+  return { requeued: requeued?.length ?? 0, closed: closed?.length ?? 0 };
+}
+
 /** Waits `ms` while touching the heartbeat every half minute, so a planned rest never reads as a stuck loop. */
 async function rest(ms: number): Promise<void> {
   for (let left = ms; left > 0; left -= 30_000) {
@@ -849,6 +881,11 @@ export class Supervisor {
       .single();
     if (matter === null) throw new Error("live: no agent matter");
     this.matterId = matter.id;
+    const released = await releaseHeld(this.client, WORKER);
+    if (released.requeued + released.closed > 0)
+      console.log(
+        `${new Date().toISOString()} live: let go of the runs the last supervisor held: ${String(released.requeued)} line(s) back in the queue, ${String(released.closed)} goal run(s) closed`,
+      );
     for (;;) {
       writeFileSync(HEARTBEAT_FILE, new Date().toISOString());
       // Matter's panel (2026-10-15): the panel reads "online" from his row; touch it once a minute from here, so a

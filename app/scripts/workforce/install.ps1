@@ -78,6 +78,19 @@ Register-ScheduledTask -TaskName "MOP Meeting" -Action $meetingAction -Trigger $
   -Description "Matter of Place: the AI team's daily meeting (scorecard, three lines each, Matter's decisions)." -Force | Out-Null
 Write-Output "task: MOP Meeting registered (daily 17:45 local)"
 
+# 7. The scheduled task "MOP Sweep": the laptop's cleaner every five minutes (scripts/workforce/sweep.ts), apart from
+#    the runner so a runner that hangs cannot stop it. A task's time limit ends only its hidden launcher, never the pass
+#    under it, so passes ran on beside new ones and a studio pass was started every minute (2026-10-27); the sweep ends
+#    those with all they started, fails the runs they held and names what waits in the queue.
+$sweepAction = New-ScheduledTaskAction -Execute "wscript.exe" `
+  -Argument ("`"" + $vbs + "`" `"" + $app + "`" scripts\workforce\sweep.ts sweep")
+$sweepTrigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 5)
+$sweepSettings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -StartWhenAvailable -AllowStartIfOnBatteries -Priority 5 `
+  -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 4)
+Register-ScheduledTask -TaskName "MOP Sweep" -Action $sweepAction -Trigger $sweepTrigger -Settings $sweepSettings `
+  -Description "Matter of Place: ends stuck and doubled workforce processes, fails the runs they held, names what waits." -Force | Out-Null
+Write-Output "task: MOP Sweep registered (every five minutes, hidden)"
+
 $chrome = @(
   (Join-Path $env:ProgramFiles "Google\Chrome\Application\chrome.exe"),
   (Join-Path ${env:ProgramFiles(x86)} "Google\Chrome\Application\chrome.exe"),
