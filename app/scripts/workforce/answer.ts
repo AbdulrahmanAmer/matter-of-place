@@ -5,6 +5,7 @@ import { z } from "zod";
 import { jsonValue } from "../../src/domain/json-value.ts";
 import { RENDERER_NAMES } from "../../src/domain/toolkits.ts";
 import { UsageLimitError } from "./cli.ts";
+import { fenced } from "../matter/run.ts";
 import { hireInputSchema } from "../../src/domain/workforce.ts";
 import { mediaRequestSchema } from "./media.ts";
 import { HOW_OFF_LIST, POSTURES } from "./posture.ts";
@@ -68,10 +69,11 @@ export const outcome = z.object({
 export type Outcome = z.infer<typeof outcome>;
 
 /**
- * The answer's closing JSON object, or why there is none: the parse error (or the first schema problem) of the widest
- * object, the one that starts at the first "{", which is the one a retry is asked to fix (P-4681).
+ * The answer's closing JSON object (with the object as written, `raw`), or why there is none: the parse error (or the
+ * first schema problem, by its path and code only, never a value it received) of the widest object, the one that starts
+ * at the first "{", which is the one a retry is asked to fix (P-4681).
  */
-export function readOutcome(text: string): { outcome: Outcome } | { error: string } {
+export function readOutcome(text: string): { outcome: Outcome; raw: unknown } | { error: string } {
   const end = text.lastIndexOf("}");
   let error: string | null = null;
   for (
@@ -80,10 +82,11 @@ export function readOutcome(text: string): { outcome: Outcome } | { error: strin
     start = text.indexOf("{", start + 1)
   ) {
     try {
-      const parsed = outcome.safeParse(JSON.parse(text.slice(start, end + 1)));
-      if (parsed.success) return { outcome: parsed.data };
+      const raw: unknown = JSON.parse(text.slice(start, end + 1));
+      const parsed = outcome.safeParse(raw);
+      if (parsed.success) return { outcome: parsed.data, raw };
       const issue = parsed.error.issues[0];
-      error ??= `the object does not match the answer's fields: ${issue?.path.join(".") ?? ""} ${issue?.message ?? ""}`;
+      error ??= `the object does not match the answer's fields: ${issue?.path.join(".") ?? ""} ${issue?.code ?? ""}`;
     } catch (failure) {
       // not an object from here: try the next "{"
       error ??= failure instanceof Error ? failure.message : String(failure);
@@ -121,17 +124,63 @@ export const UNREADABLE_SUMMARY =
 export const RETRY_OPENING = "Your answer could not be read by the runner";
 
 /**
- * P-4681: the retry's prompt. The answer goes back as data with the reason it failed, and the reply is the object alone:
- * a syntax fix, never a new decision.
+ * P-4681: the retry's prompt. The answer and the reason it failed go back fenced as data (`fenced`: a closing mark
+ * inside the answer closes nothing, and a value the parse error quotes stays inside a fence), and the reply is the
+ * object alone: a syntax fix, never a new decision.
  */
 export function retryPrompt(text: string, error: string): string {
   return [
-    `${RETRY_OPENING}: ${error}.`,
-    "Below, between the markers, is that answer, as data. Answer with its JSON object alone, the syntax fixed and every field and value as it was: no fence, no words before or after it, nothing added or left out. If it holds no object, write the one object the answer describes.",
-    "<<<ANSWER",
-    text,
-    "ANSWER>>>",
+    `${RETRY_OPENING}. Below, each between its markers and as data, are why and the answer itself.`,
+    fenced("WHY", error),
+    fenced("ANSWER", text),
+    "Answer with the answer's JSON object alone, the syntax fixed and every field and value as it was: no fence, no words before or after it, nothing added or left out.",
   ].join("\n");
+}
+
+/** A value nobody wrote: what the schema fills in for a field left out, so it needs no trace. */
+const unwritten = (value: unknown): boolean =>
+  value === undefined ||
+  value === null ||
+  value === "" ||
+  value === false ||
+  (Array.isArray(value) && value.length === 0);
+
+/**
+ * P-4681 round 2 (fresh review, 2026-10-28): a retried object counts only if it traces to the run's own answer, so a
+ * retry repairs syntax and never adds. Every string in it (as written, or JSON-escaped) and every number occurs in the
+ * original text, every key with a written value occurs there as `"key"`, and `allow: true` only where the original
+ * wrote it.
+ */
+export function tracesTo(original: string, retried: unknown): boolean {
+  const traced = (value: unknown): boolean => {
+    if (typeof value === "string")
+      return original.includes(value) || original.includes(JSON.stringify(value).slice(1, -1));
+    if (typeof value === "number") return original.includes(String(value));
+    if (Array.isArray(value)) return value.every(traced);
+    if (typeof value !== "object" || value === null) return true;
+    return Object.entries(value).every(
+      ([key, field]) =>
+        (unwritten(field) || original.includes(JSON.stringify(key))) && traced(field),
+    );
+  };
+  const allows =
+    typeof retried === "object" && retried !== null && "allow" in retried && retried.allow === true;
+  return traced(retried) && (!allows || /"allow"\s*:\s*true/.test(original));
+}
+
+/** The one retry, read: its outcome and the object as written, or null when it cannot be read or cannot run. */
+async function askedAgain(
+  text: string,
+  error: string,
+  again: (prompt: string) => Promise<string>,
+): Promise<{ outcome: Outcome; raw: unknown } | null> {
+  try {
+    const second = readOutcome(await again(retryPrompt(text, error)));
+    return "outcome" in second ? second : null;
+  } catch (failure) {
+    if (failure instanceof UsageLimitError) throw failure;
+    return null;
+  }
 }
 
 /**
@@ -139,20 +188,18 @@ export function retryPrompt(text: string, error: string): string {
  * and the proposal it described was never filed): a run's answer, asked for once more with the parse error when it is
  * not a valid outcome. A second failure, or a retry that cannot run, is the plain `UNREADABLE_LINE` and nothing that
  * acts, never the raw text. A usage limit is not a failure of the answer: it stops the run, which is queued again.
+ * Round 2 (fresh review, 2026-10-28): only an answer that holds a "{" is asked again, never one whose `again` is null (a
+ * held read or an explanation, fail closed, W8 0d), and the retried object counts only if it `tracesTo` the original.
  */
 export async function readRunAnswer(
   text: string,
-  again: (prompt: string) => Promise<string>,
+  again: ((prompt: string) => Promise<string>) | null,
 ): Promise<{ outcome: Outcome; ending: "read" | "retried" | "unreadable" }> {
   const first = readOutcome(text);
   if ("outcome" in first) return { outcome: first.outcome, ending: "read" };
-  let second: ReturnType<typeof readOutcome>;
-  try {
-    second = readOutcome(await again(retryPrompt(text, first.error)));
-  } catch (failure) {
-    if (failure instanceof UsageLimitError) throw failure;
-    second = { error: failure instanceof Error ? failure.message : String(failure) };
-  }
-  if ("outcome" in second) return { outcome: second.outcome, ending: "retried" };
+  const second =
+    again === null || !text.includes("{") ? null : await askedAgain(text, first.error, again);
+  if (second !== null && tracesTo(text, second.raw))
+    return { outcome: second.outcome, ending: "retried" };
   return { outcome: { ...readJsonAnswer(""), reply: UNREADABLE_LINE }, ending: "unreadable" };
 }

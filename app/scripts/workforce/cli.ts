@@ -44,6 +44,18 @@ export const usageSchema = z.object({
 });
 export type CliUsage = z.infer<typeof usageSchema>;
 
+/** Two calls of one run counted as one (P-4681: an unreadable answer's retry is the run's usage too). */
+export function addUsage(a: CliUsage | undefined, b: CliUsage | undefined): CliUsage | undefined {
+  if (a === undefined || b === undefined) return a ?? b;
+  return {
+    input_tokens: a.input_tokens + b.input_tokens,
+    output_tokens: a.output_tokens + b.output_tokens,
+    cache_creation_input_tokens:
+      (a.cache_creation_input_tokens ?? 0) + (b.cache_creation_input_tokens ?? 0),
+    cache_read_input_tokens: (a.cache_read_input_tokens ?? 0) + (b.cache_read_input_tokens ?? 0),
+  };
+}
+
 const cliAnswer = z.object({
   is_error: z.boolean().optional(),
   result: z.string(),

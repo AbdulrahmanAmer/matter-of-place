@@ -51,7 +51,14 @@ import {
   startStudioPass,
   withReel,
 } from "./reel.ts";
-import { breakerUntil, type CliUsage, retryArgs, runClaude, UsageLimitError } from "./cli.ts";
+import {
+  addUsage,
+  breakerUntil,
+  type CliUsage,
+  retryArgs,
+  runClaude,
+  UsageLimitError,
+} from "./cli.ts";
 import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } from "./growth.ts";
 import { followMain, mapDue, runnerBusy } from "./follow.ts";
 import { readRunAnswer, type Outcome, UNREADABLE_SUMMARY } from "./answer.ts";
@@ -1055,17 +1062,29 @@ export async function runOnce(client: Db): Promise<boolean> {
     // P-4681: an answer that is not a valid outcome is asked for once more, with its parse error, and a second failure
     // is said plainly, never posted raw. The retry is a call of its own, not a resume: the run's folder (where an outside
     // run's session is kept) and its settings file are gone by now, and a resume would hand the retry the run's tools.
-    const read = await readRunAnswer(answer.text, async (prompt) => {
-      const asked = await runClaude({
-        args: retryArgs(join(HOME, "answer"), model),
-        cwd: join(HOME, "answer"),
-        env: childEnv(),
-        prompt,
-        timeoutMs: RETRY_TIMEOUT_MS,
-        who: isMatter ? "Matter" : "the colleague",
-      });
-      return asked.text;
-    });
+    // Round 2 (fresh review, 2026-10-28, W8 0d stays fail-closed): Matter's read of a held line and its owner's
+    // explanation are never asked again, so a retry never decides `allow` or `how`; unreadable, they are the plain line.
+    const failClosed = shape.rule === "held" || shape.rule === "explain";
+    let retryUsage: CliUsage | undefined;
+    const read = await readRunAnswer(
+      answer.text,
+      failClosed
+        ? null
+        : async (prompt) => {
+            const asked = await runClaude({
+              args: retryArgs(join(HOME, "answer"), model),
+              cwd: join(HOME, "answer"),
+              env: childEnv(),
+              prompt,
+              timeoutMs: RETRY_TIMEOUT_MS,
+              who: isMatter ? "Matter" : "the colleague",
+            });
+            retryUsage = asked.usage;
+            return asked.text;
+          },
+    );
+    // the retry's tokens are the run's too
+    const usage = addUsage(answer.usage, retryUsage);
     if (read.ending !== "read")
       console.log(`${new Date().toISOString()} ${agent.slug}'s answer was ${read.ending}`);
     const plan = decided.plan(read.outcome, power, run.cause);
@@ -1219,12 +1238,12 @@ export async function runOnce(client: Db): Promise<boolean> {
       session_id: "session" in answer && typeof answer.session === "string" ? answer.session : null,
       turns: 1,
       lessons_used: shown.map((lesson) => lesson.id),
-      ...(answer.usage === undefined
+      ...(usage === undefined
         ? {}
         : {
-            input_tokens: inputTokens(answer.usage),
-            output_tokens: answer.usage.output_tokens,
-            cost_microusd: costMicroUsd(agent.model, answer.usage),
+            input_tokens: inputTokens(usage),
+            output_tokens: usage.output_tokens,
+            cost_microusd: costMicroUsd(agent.model, usage),
           }),
     };
     // W8 0d second review: the line this run wrote as its reply, which Matter's read shows as the explanation.
