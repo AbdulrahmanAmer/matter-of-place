@@ -5,7 +5,7 @@ const MAIN = ["20261001090000", "20261002100000"];
 const DIR = "supabase/migrations";
 const FILE = `${DIR}/20261002110000_change.sql`;
 const CREATE =
-  "-- down: drop table notes\nset lock_timeout = '5s';\ncreate table notes (id uuid);\n";
+  "-- down: drop table notes\nset lock_timeout = '5s';\ncreate table notes (id uuid);\ngrant all on table notes to service_role;\n";
 const DROP =
   "-- irreversible: data goes\nset lock_timeout = '5s';\nalter table notes drop column body;\n";
 const NEW_F = "create function f(a text) returns int language sql as $$ select 1 $$;";
@@ -194,7 +194,7 @@ const ALLOWED = [
   { name: "an added check on not null", sql: "alter table notes add check (body is not null);" },
   {
     name: "a new table with NOT NULL columns",
-    sql: "create table memos (id uuid not null, body text not null);",
+    sql: "create table memos (id uuid not null, body text not null); grant all on memos to service_role;",
   },
   { name: "a new serial NOT NULL column", sql: "alter table notes add column y serial not null;" },
   {
@@ -222,7 +222,7 @@ const ALLOWED = [
   },
   {
     name: "a drop inside a nested block comment",
-    sql: "/* a /* b */ drop table notes; */ create table memos (id uuid);",
+    sql: "/* a /* b */ drop table notes; */ create table memos (id uuid); grant all on memos to service_role;",
   },
   {
     name: "a drop inside an escape string",
@@ -289,7 +289,7 @@ const ALLOWED = [
   // Ruling ASSUMED H44 (2): the word in a comment or a string is not a statement.
   {
     name: "a truncate inside a comment",
-    sql: "create table memos (id uuid); -- kept; truncate notes",
+    sql: "create table memos (id uuid); grant all on memos to service_role; -- kept; truncate notes",
   },
   { name: "a truncate inside a string", sql: "comment on table notes is 'kept; truncate notes';" },
 ];
@@ -356,5 +356,85 @@ describe("checkMigrations", () => {
   it("refuses a contract-of header below line 30", () => {
     const late = `${DROP}${"--\n".repeat(30)}-- contract-of: 20261001090000\n`;
     expect(run({ [`${DIR}/20261002110000_drop_body.sql`]: late })).toHaveLength(1);
+  });
+});
+
+// W8 0h (Supabase's notice of 2026-10-20): from 2026-10-30 a new table in `public` is not reachable through the Data
+// API without an explicit grant, so a migration that creates one grants it in the same file.
+describe("checkMigrations: a new table in public is granted in its own file", () => {
+  const MATRIX = { memos: { select: ["chief_editor", "admin"] }, ledger: {} };
+  const granting = (sql: string) =>
+    checkMigrations({
+      changed: [],
+      added: [FILE],
+      mainPrefixes: MAIN,
+      readFile: () => `-- down: drop table memos\nset lock_timeout = '5s';\n${sql}\n`,
+      matrix: MATRIX,
+    });
+
+  it("refuses a table in public with no grant to service_role", () => {
+    expect(granting("create table public.ledger (id uuid);")).toEqual([
+      `public.ledger is not granted to service_role in its own file (the Data API needs it): ${FILE}`,
+    ]);
+  });
+
+  it("refuses a table whose RLS matrix row reads it when authenticated is not granted select", () => {
+    expect(
+      granting("create table memos (id uuid);\ngrant all on table public.memos to service_role;"),
+    ).toEqual([
+      `public.memos is not granted select to authenticated in its own file (its RLS matrix row says so): ${FILE}`,
+    ]);
+  });
+
+  it("passes the grants our migrations write, and a table outside public or a partition", () => {
+    expect([
+      granting(
+        "create table if not exists public.memos (id uuid);\nrevoke all on table public.memos from anon, authenticated;\ngrant select on table public.memos to authenticated;\ngrant all on table public.memos to service_role;",
+      ),
+      granting(
+        "create table public.ledger (id uuid);\ngrant select, insert on public.ledger, public.other to authenticated, service_role;",
+      ),
+      granting("create table app.secrets (id uuid);"),
+      granting("create table public.ledger_2026 partition of public.ledger for values in (2026);"),
+      granting(
+        "create table public.ledger (id uuid);\ngrant all on all tables in schema public to service_role;",
+      ),
+    ]).toEqual([[], [], [], [], []]);
+  });
+
+  it("reads quoted names and roles as written, and a column grant as its privilege", () => {
+    expect([
+      granting(
+        'create table public."Ledger" (id uuid);\ngrant all on public."Ledger" to "service_role";',
+      ),
+      granting(
+        'create table "public"."memos" (id uuid);\ngrant select (id) on "public"."memos" to "authenticated";\ngrant all on public.memos to service_role;',
+      ),
+      granting('create table public."Ledger" (id uuid);'),
+    ]).toEqual([
+      [],
+      [],
+      [
+        `public.ledger is not granted to service_role in its own file (the Data API needs it): ${FILE}`,
+      ],
+    ]);
+  });
+
+  it("never counts a grant to another role, or one inside a comment, as the service role's", () => {
+    expect([
+      granting(
+        "create table public.ledger (id uuid);\ngrant all on public.ledger to authenticated;",
+      ),
+      granting(
+        "create table public.ledger (id uuid);\n-- grant all on public.ledger to service_role;",
+      ),
+    ]).toEqual([
+      [
+        `public.ledger is not granted to service_role in its own file (the Data API needs it): ${FILE}`,
+      ],
+      [
+        `public.ledger is not granted to service_role in its own file (the Data API needs it): ${FILE}`,
+      ],
+    ]);
   });
 });

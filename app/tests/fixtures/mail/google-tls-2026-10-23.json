@@ -1,0 +1,24 @@
+{
+  "folder": {
+    "folderId": "8580671000000008008",
+    "folderName": "Inbox",
+    "folderType": "Inbox"
+  },
+  "message": {
+    "messageId": "1792767377465153400",
+    "folderId": "8580671000000008008",
+    "receivedTime": "1792767377460",
+    "fromAddress": "noreply-smtp-tls-reporting@google.com",
+    "sender": "noreply-smtp-tls-reporting@google.com",
+    "subject": "Report Domain: matterofplace.com Submitter: google.com Report-ID: &lt;2026.10.22T00.00.00Z+matterofplace.com@google.com&gt;"
+  },
+  "header": "Delivered-To: admin@matterofplace.com\r\nReceived-SPF: pass (zohomail.com: domain of _spf.google.com designates 209.85.210.70 as permitted sender) client-ip=209.85.210.70; envelope-from=3jnXbahoKAEUuvylws5-zt0w-0sz-ylwvy0punnvvnsl.jvt@smtp-tls-reporting.bounces.google.com; helo=mail-ot1-f70.google.com;\r\nAuthentication-Results: mx.zohomail.com;\r\n\tdkim=pass;\r\n\tspf=pass (zohomail.com: domain of _spf.google.com designates 209.85.210.70 as permitted sender)  smtp.mailfrom=3jnXbahoKAEUuvylws5-zt0w-0sz-ylwvy0punnvvnsl.jvt@smtp-tls-reporting.bounces.google.com;\r\n\tdmarc=pass(p=reject dis=none)  header.from=google.com\r\nARC-Seal: i=1; a=rsa-sha256; t=1792767376; cv=none; \r\n\td=zohomail.com; s=zohoarc; \r\n\tb=[signature]\r\nARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=zohomail.com; s=zohoarc; \r\n\tt=1792767376; h=Content-Type:Date:Date:From:From:MIME-Version:Message-ID:Subject:Subject:To:To:Message-Id:Reply-To:Cc; \r\n\tbh=[hash]; \r\n\tb=[signature]\r\nARC-Authentication-Results: i=1; mx.zohomail.com;\r\n\tdkim=pass;\r\n\tspf=pass (zohomail.com: domain of _spf.google.com designates 209.85.210.70 as permitted sender)  smtp.mailfrom=3jnXbahoKAEUuvylws5-zt0w-0sz-ylwvy0punnvvnsl.jvt@smtp-tls-reporting.bounces.google.com;\r\n\tdmarc=pass header.from=<noreply-smtp-tls-reporting@google.com> (p=reject dis=none)\r\nReturn-Path: <3jnXbahoKAEUuvylws5-zt0w-0sz-ylwvy0punnvvnsl.jvt@smtp-tls-reporting.bounces.google.com>\r\nReceived: from mail-ot1-f70.google.com (mail-ot1-f70.google.com [209.85.210.70]) by mx.zohomail.com\r\n\twith SMTPS id 1792767376022725.1603556939921; Fri, 23 Oct 2026 07:56:16 -0700 (PDT)\r\nReceived: by mail-ot1-f70.google.com with SMTP id 46e09a7af769-843c6807307so1275508a34.3\r\n        for <admin@matterofplace.com>; Fri, 23 Oct 2026 07:56:15 -0700 (PDT)\r\nDKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;\r\n        d=google.com; s=20251104; t=1792767375; x=1793372175; darn=matterofplace.com;\r\n        h=content-type:to:from:subject:message-id:tls-report-submitter\r\n         :tls-report-domain:date:mime-version:from:to:cc:subject:date\r\n         :message-id:reply-to:content-type;\r\n        bh=[hash];\r\n        b=[signature]\r\nX-Google-DKIM-Signature: [redacted]\r\nX-Gm-Message-State: [redacted]\r\nMIME-Version: 1.0\r\nX-Received: [redacted]\r\nDate: Fri, 23 Oct 2026 07:56:14 -0700\r\nTLS-Report-Domain: [redacted]\r\nTLS-Report-Submitter: [redacted]\r\nMessage-ID: [redacted]\r\nSubject: Report Domain: matterofplace.com Submitter: google.com Report-ID: <2026.10.22T00.00.00Z+matterofplace.com@google.com>\r\nFrom: noreply-smtp-tls-reporting@google.com\r\nTo: admin@matterofplace.com\r\nContent-Type: multipart/report; boundary=\"0000000000008cdbad065e832e3f\"; report-type=tlsrpt\r\nX-Zoho-Virus-Status: [redacted]\r\nX-Zoho-AV-Stamp: [redacted]\r\nX-ZohoMail-DKIM: pass (identity @google.com)\r\n",
+  "content": "<div>This is an aggregate TLS report from google.com\r<br></div>",
+  "attachments": [
+    {
+      "attachmentId": "140120601775980300",
+      "attachmentName": "google.com!matterofplace.com!1792627200!1792713599!001.json.gz",
+      "base64": "H4sIAAAAAAAAAHWPQW/CMAyF/0rlc4NKGWjktNu0M5xACEWp20Vq4ip2UQH1v09tYdrYkHyIX571vXcFipUJ7mLEUVDBeAQN70RVjclHsDNIoTCCKppQIegrsJgoatDEjeY8y1dqnqk832aZHmcHKWAonrjyhV6u9XK9gz4FS0GMFeVCSaCBvTRKalYRG4riQvVWjWFmljykMMnKFU/AR29EMFLZ1MbejxqqnXXIoPfXaTkPTaaXknMzBGThu/WsWKILFeg9nDCyo6CTzXZzmkMKngrUiSAP4Ya904nvZhf6pBtuUvK/0uKXZLqjqVAnr6uXLIPDN7sgb1wADf9V8Z36JJYh2SP0AfgDduhT4NZ7E8feQmJqxa21yFy2tWLkoaOy1AYBPU9vltK4uo34+J/1/aH/AlqjUr05AgAA"
+    }
+  ]
+}

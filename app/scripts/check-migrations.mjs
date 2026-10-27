@@ -75,6 +75,16 @@ const DECLARES = new RegExp(
   String.raw`${START}(?:create\s+(?:or\s+replace\s+)?(?:function|procedure)|(?:alter|drop)\s+(?:function|procedure|routine)|grant|revoke|comment)\b`,
   "i",
 );
+// W8 0h (Supabase's notice of 2026-10-20): from 2026-10-30 a new table in `public` is not reachable through the Data
+// API without an explicit grant. A table an added file creates in `public` (a partition aside, it is read through its
+// parent) is granted to `service_role` in the same file, and to `authenticated` for every operation its row of
+// `tests/db/rls-matrix.ts` names. A temporary table lives in no schema the API serves.
+const CREATE_TABLE =
+  /^create\s+(?:unlogged\s+)?table\s+(?:if\s+not\s+exists\s+)?(?:([\w$]+)\s*\.\s*)?([A-Za-z_][\w$]*)/i;
+const PARTITION_OF = /^create\s+(?:unlogged\s+)?table\s+[^(]*\bpartition\s+of\b/i;
+const GRANT =
+  /^grant\s+([\s\S]+?)\s+on\s+([\s\S]+?)\s+to\s+([\s\S]+?)(?:\s+with\s+grant\s+option)?$/i;
+const ALL_IN_SCHEMA = /^all\s+tables\s+in\s+schema\s+([\w$]+)$/i;
 const DOLLAR_TAG = /\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$/y;
 const WORD_CHAR = /[A-Za-z0-9_$]/;
 
@@ -134,16 +144,18 @@ function quoted(sql, start, backslash) {
  * Splits SQL into statements. Comments go; every string, quoted name and dollar-quoted body is
  * replaced by an empty one in `text`, and the string and body texts are kept in `literals`.
  * Each run of blanks in `text` becomes one space, so a rule's lookahead after `\s+` cannot be
- * met by backtracking into the run.
+ * met by backtracking into the run. The quoted names are kept in `names`, in order.
  * @param {string} sql
- * @returns {{ text: string, literals: string[] }[]}
+ * @returns {{ text: string, literals: string[], names: string[] }[]}
  */
 function statementsOf(sql) {
-  /** @type {{ text: string, literals: string[] }[]} */
+  /** @type {{ text: string, literals: string[], names: string[] }[]} */
   const statements = [];
   let text = "";
   /** @type {string[]} */
   let literals = [];
+  /** @type {string[]} */
+  let names = [];
   let index = 0;
   while (index < sql.length) {
     const char = sql.charAt(index);
@@ -164,8 +176,10 @@ function statementsOf(sql) {
       text += "''";
       index = end;
     } else if (char === '"') {
+      const { body, end } = quoted(sql, index, false);
+      names.push(body);
       text += '""';
-      index = quoted(sql, index, false).end;
+      index = end;
     } else if (tag !== null) {
       const close = sql.indexOf(tag[0], index + tag[0].length);
       const end = close === -1 ? sql.length : close;
@@ -173,16 +187,17 @@ function statementsOf(sql) {
       text += "''";
       index = end + tag[0].length;
     } else if (char === ";") {
-      statements.push({ text: text.trim(), literals });
+      statements.push({ text: text.trim(), literals, names });
       text = "";
       literals = [];
+      names = [];
       index += 1;
     } else {
       text += char;
       index += 1;
     }
   }
-  statements.push({ text: text.trim(), literals });
+  statements.push({ text: text.trim(), literals, names });
   return statements
     .map((statement) => ({ ...statement, text: statement.text.replace(/\s+/g, " ") }))
     .filter((statement) => statement.text !== "");
@@ -334,17 +349,112 @@ function destructiveKinds(statements, inDoBlock, bodies, createdLater) {
 }
 
 /**
+ * A statement's text with each quoted name back in place without its quotes (W8 0h gaps review:
+ * `public."Ledger"` and `to "service_role"` are read as written), for the grant rule only.
+ * @param {{ text: string, names: string[] }} statement
+ * @returns {string}
+ */
+function unquoted({ text, names }) {
+  let next = 0;
+  return text.replace(/""/g, () => names[next++] ?? "");
+}
+
+/**
+ * What each statement grants: its privileges (a column grant, `select (a, b)`, read as its
+ * privilege), the tables it names (or `*` for every table of `public`) and its roles, all in
+ * lower case.
+ * @param {{ text: string, names: string[] }[]} statements
+ * @returns {{ privileges: string[], tables: string[], roles: string[] }[]}
+ */
+function grantsOf(statements) {
+  return statements.flatMap((statement) => {
+    const match = GRANT.exec(unquoted(statement));
+    if (match === null) return [];
+    const target = (match[2] ?? "").replace(/^table\s+/i, "");
+    const schema = ALL_IN_SCHEMA.exec(target)?.[1];
+    /** @param {string} list */
+    const items = (list) => list.split(",").map((item) => item.trim().toLowerCase());
+    return [
+      {
+        privileges: items((match[1] ?? "").replace(/\s*\([^)]*\)/g, "")).map((item) =>
+          item.replace(/\s+privileges$/, ""),
+        ),
+        tables:
+          schema === undefined
+            ? items(target).map((name) => qualified(...splitName(name)))
+            : schema.toLowerCase() === "public"
+              ? ["*"]
+              : [],
+        roles: items(match[3] ?? ""),
+      },
+    ];
+  });
+}
+
+/**
+ * @param {string} name
+ * @returns {[string | undefined, string]}
+ */
+function splitName(name) {
+  const dot = name.indexOf(".");
+  return dot < 0 ? [undefined, name] : [name.slice(0, dot), name.slice(dot + 1)];
+}
+
+/**
+ * The tables a file creates in `public` that it does not grant as the Data API needs (W8 0h):
+ * `service_role` any privilege, `authenticated` each operation of the table's matrix row.
+ * @param {{ text: string, names: string[] }[]} statements
+ * @param {Record<string, Partial<Record<string, readonly string[]>>>} matrix
+ * @returns {string[]}
+ */
+function ungranted(statements, matrix) {
+  const grants = grantsOf(statements);
+  return statements.flatMap((statement) => {
+    const text = unquoted(statement);
+    const match = CREATE_TABLE.exec(text);
+    const name = match?.[2];
+    if (name === undefined || PARTITION_OF.test(text)) return [];
+    const table = qualified(match?.[1], name);
+    if (!table.startsWith("public.")) return [];
+    /** @param {string} role */
+    const held = (role) =>
+      grants
+        .filter((grant) => grant.roles.includes(role))
+        .filter((grant) => grant.tables.includes(table) || grant.tables.includes("*"))
+        .flatMap((grant) => grant.privileges);
+    const service = held("service_role");
+    const authenticated = held("authenticated");
+    const needed = Object.entries(matrix[name.toLowerCase()] ?? {})
+      .filter(([, roles]) => (roles ?? []).length > 0)
+      .map(([operation]) => operation)
+      .filter((operation) => !authenticated.includes("all") && !authenticated.includes(operation));
+    return [
+      ...(service.length === 0
+        ? [`${table} is not granted to service_role in its own file (the Data API needs it)`]
+        : []),
+      ...(needed.length === 0
+        ? []
+        : [
+            `${table} is not granted ${needed.join(", ")} to authenticated in its own file (its RLS matrix row says so)`,
+          ]),
+    ];
+  });
+}
+
+/**
  * The rules of the `migration-order` step (B1b invariant 13, DO-05). Paths are relative to `app/`.
  * @param {{
  *   changed: string[],
  *   added: string[],
  *   mainPrefixes: string[],
  *   readFile: (path: string) => string,
+ *   matrix?: Record<string, Partial<Record<string, readonly string[]>>> | undefined,
  * }} input `changed`: files on `origin/main` this branch modified, deleted or renamed;
- *   `added`: new files; `mainPrefixes`: the 14-digit versions on `origin/main`.
+ *   `added`: new files; `mainPrefixes`: the 14-digit versions on `origin/main`; `matrix`: the
+ *   rows of `tests/db/rls-matrix.ts`.
  * @returns {string[]}
  */
-export function checkMigrations({ changed, added, mainPrefixes, readFile }) {
+export function checkMigrations({ changed, added, mainPrefixes, readFile, matrix = {} }) {
   /** @type {string[]} */
   const failures = changed.map((file) => `applied migration changed: ${file}`);
   const latest = mainPrefixes.reduce((max, prefix) => (prefix > max ? prefix : max), "");
@@ -371,6 +481,9 @@ export function checkMigrations({ changed, added, mainPrefixes, readFile }) {
         failures.push(`contract-of names a version that is not on main: ${file}`);
       }
     }
+    for (const missing of ungranted(statements, matrix)) {
+      failures.push(`${missing}: ${file}`);
+    }
   }
   return failures;
 }
@@ -393,11 +506,13 @@ if (process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(
   if (changed.length + added.length + onMain.length === 0) {
     process.stdout.write("no migrations\n");
   } else {
+    const { rlsMatrix } = await import("../tests/db/rls-matrix.ts");
     const failures = checkMigrations({
       changed,
       added,
       mainPrefixes: onMain.flatMap((file) => prefixOf(file) ?? []),
       readFile: (path) => readFileSync(path, "utf8"),
+      matrix: rlsMatrix,
     });
     for (const failure of failures) {
       process.stdout.write(`${failure}\n`);
