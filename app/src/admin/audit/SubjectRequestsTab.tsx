@@ -330,8 +330,8 @@ export function SubjectRequestsTab() {
               label="Instagram handle"
               hint={
                 pending.action === "delete"
-                  ? "Optional. If the person named one, their Instagram comments and messages are deleted too, with any line held for Matter about them."
-                  : "Optional. If the person named one, their Instagram comments and messages are in the file too."
+                  ? "Optional. Only a handle the person has shown is theirs, for example by writing to us from it. Its Instagram comments and messages are deleted too, with any line held for Matter about them."
+                  : "Optional. Only a handle the person has shown is theirs, for example by writing to us from it: its messages are private. Its Instagram comments and messages are in the file too."
               }
               {...(handleError === null ? {} : { error: handleError })}
             >
