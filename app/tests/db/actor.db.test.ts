@@ -106,6 +106,21 @@ describe("write_audit's actor check", () => {
     });
   });
 
+  it("refuses a colleague's agents row as an actor, so it passes no action an account's roles would not", async () => {
+    await withRollback(async (db) => {
+      // W8 item 10: a colleague has no account; create_proposed_post writes its own audit row naming it
+      const { id } = await one<{ id: string }>(
+        db,
+        "insert into public.agents (slug, name, role) values ('probe-colleague', 'Probe', 'Tester') returning id",
+      );
+      expect([
+        await audit(db, id, "agent", "properties.publish"),
+        await audit(db, id, "agent", "payments.issue"),
+        await audit(db, id, "agent", "channels.proposed_create"),
+      ]).toEqual(["42501 forbidden", "42501 forbidden", "42501 forbidden"]);
+    });
+  });
+
   it("newsletter_approve_issue with an agent's id passed as human raises 42501 and the issue stays a draft", async () => {
     await withRollback(async (db) => {
       const id = await agent(db, ["managing_editor"]);

@@ -1,12 +1,25 @@
-import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   fileProposedPost,
   isStructuredPost,
+  postDeps,
+  postToolLine,
+  refusalWords,
   type PostDeps,
 } from "../../scripts/workforce/proposed-post";
+import { PROPERTY_ID, propertyRow } from "../fixtures/asset-rows";
+import { fakeDb } from "../fixtures/fake-db";
 
 // W8 item 10 (H135): the runner files a colleague's structured post. The channel rules run before anything is uploaded;
 // a file must lie in the studio or the Drive folder (or already be in storage); each is measured, uploaded under
@@ -32,16 +45,24 @@ afterEach(() => {
   rmSync(root, { recursive: true, force: true });
 });
 
+/** The one id the fake's tables hold: a property. */
+const PROPERTY = "4a3c2563-0000-4000-8000-000000000001";
+
 function deps(stored: Record<string, string> = {}, refuse = "") {
   const uploads: string[] = [];
   const removed: string[] = [];
   const created: unknown[] = [];
   const probed: string[] = [];
+  const asked: string[] = [];
   const fake: PostDeps = {
     roots: { studio, drive },
     realPath: (path) => {
       probed.push(path);
       return existsSync(path) ? realpathSync(path) : null;
+    },
+    exists: (table, id) => {
+      asked.push(`${table}:${id}`);
+      return Promise.resolve(id === PROPERTY);
     },
     download: (key) =>
       Promise.resolve(key in stored ? new TextEncoder().encode(stored[key]) : null),
@@ -59,7 +80,7 @@ function deps(stored: Record<string, string> = {}, refuse = "") {
       return Promise.resolve(refuse === "" ? { id: "post-1" } : { refused: refuse });
     },
   };
-  return { fake, uploads, removed, created, probed };
+  return { fake, uploads, removed, created, probed, asked };
 }
 
 const input = (post: unknown) => ({ agent: "maya", run: "run-1", summary: "Fairfield", post });
@@ -95,10 +116,12 @@ describe("fileProposedPost, what it never touches or leaves", () => {
       await single("\\\\host\\share\\x.jpg"),
       await single("//host/share/x.jpg"),
       await single("\\\\?\\C:\\x.jpg"),
+      await single("C:x.jpg"),
     ]).toEqual([
       { refused: "\\\\host\\share\\x.jpg is not in the studio or the Drive folder" },
       { refused: "//host/share/x.jpg is not in the studio or the Drive folder" },
       { refused: "\\\\?\\C:\\x.jpg is not in the studio or the Drive folder" },
+      { refused: "C:x.jpg is not in the studio or the Drive folder" },
     ]);
     expect([uploads, probed]).toEqual([[], []]);
   });
@@ -141,6 +164,37 @@ describe("fileProposedPost, what it never touches or leaves", () => {
       database.uploads,
     ]);
     expect([later.uploads.length, database.uploads.length]).toEqual([1, 1]);
+  });
+
+  it("removes what it uploaded when an upload fails partway, and still raises the failure", async () => {
+    const failing = deps();
+    const upload = failing.fake.upload;
+    failing.fake.upload = (key, body, contentType) =>
+      failing.uploads.length === 1
+        ? Promise.reject(new Error(`upload_failed: ${key}`))
+        : upload(key, body, contentType);
+    const answer = fileProposedPost(
+      failing.fake,
+      input({
+        channels: [
+          {
+            channel: "linkedin",
+            format: "carousel",
+            caption: "Fairfield.",
+            images: [
+              { path: join(studio, "Slide 1.jpg"), alt: "A." },
+              { path: join(drive, "cover.png"), alt: "B." },
+            ],
+          },
+        ],
+      }),
+    );
+    await expect(answer).rejects.toThrow("upload_failed: proposed/");
+    expect([failing.uploads.length, failing.removed, failing.created]).toEqual([
+      1,
+      failing.uploads,
+      [],
+    ]);
   });
 });
 
@@ -312,6 +366,146 @@ describe("fileProposedPost", () => {
           },
         ],
       },
+    ]);
+  });
+});
+
+// P-4650: Maya named a Drive file relative to the folder and a request's id as `property_id`; both were refused, the
+// second in the database's own words. The tool line now names the folder and both ids, and the runner checks them.
+describe("fileProposedPost, the paths and ids its tool line names", () => {
+  const single = (fake: PostDeps, path: string, subject: Record<string, string> = {}) =>
+    fileProposedPost(
+      fake,
+      input({
+        ...subject,
+        channels: [
+          {
+            channel: "x",
+            format: "single",
+            caption: "Fairfield.",
+            images: [{ path, alt: "A." }],
+          },
+        ],
+      }),
+    );
+
+  it("reads a relative path under the Drive folder only, and still refuses one that leads out", async () => {
+    mkdirSync(join(drive, "Carousels"));
+    writeFileSync(join(drive, "Carousels", "slide-0.c82f91d4.jpg"), "slide");
+    symlinkSync(elsewhere, join(drive, "out"), "junction");
+    const { fake, uploads, created } = deps();
+    const answers = [
+      await single(fake, "Carousels/slide-0.c82f91d4.jpg"),
+      await single(fake, "Slide 1.jpg"),
+      await single(fake, join("..", "elsewhere", "secret.jpg")),
+      await single(fake, join("out", "secret.jpg")),
+    ];
+    expect(answers).toEqual([
+      { id: "post-1" },
+      { refused: `${join(drive, "Slide 1.jpg")} is not in the studio or the Drive folder` },
+      { refused: `${join(elsewhere, "secret.jpg")} is not in the studio or the Drive folder` },
+      { refused: `${join(drive, "out", "secret.jpg")} is not in the studio or the Drive folder` },
+    ]);
+    expect(uploads).toHaveLength(1);
+    expect(created).toMatchObject([
+      {
+        p_channels: [
+          {
+            images: [
+              { source: "drive", original: join(drive, "Carousels", "slide-0.c82f91d4.jpg") },
+            ],
+          },
+        ],
+      },
+    ]);
+  });
+
+  it("refuses a relative path when the runner's config names no Drive folder, and still takes a studio file", async () => {
+    const { fake } = deps();
+    fake.roots = { studio, drive: null };
+    expect([
+      await single(fake, "cover.png"),
+      await single(fake, join(studio, "Slide 1.jpg")),
+    ]).toEqual([
+      {
+        refused:
+          "cover.png is a relative path and no Google Drive folder is set on this laptop (driveSocial in ~/.mop-workforce/config.json)",
+      },
+      { id: "post-1" },
+    ]);
+  });
+
+  it("checks the property or request a post names before it uploads anything", async () => {
+    const { fake, uploads, created, asked } = deps();
+    const request = "4a3c2563-0000-4000-8000-000000000002";
+    const image = join(drive, "cover.png");
+    expect([
+      await single(fake, image, { property_id: request }),
+      await single(fake, image, { submission_id: request }),
+      await single(fake, image, { property_id: PROPERTY }),
+    ]).toEqual([
+      {
+        refused: `${request} is not a published property; a request not yet published is named by submission_id`,
+      },
+      { refused: `${request} is not a request` },
+      { id: "post-1" },
+    ]);
+    expect(asked).toEqual([
+      `properties:${request}`,
+      `submissions:${request}`,
+      `properties:${PROPERTY}`,
+    ]);
+    expect([uploads.length, created.length]).toEqual([1, 1]);
+  });
+
+  it("says a database refusal in the function's own words, never a constraint's text", () => {
+    expect([
+      refusalWords({
+        code: "22023",
+        details: "A reel on LinkedIn needs its poster.",
+        message: "reel_poster_required",
+      }),
+      refusalWords({
+        code: "23503",
+        details: 'Key (property_id)=(4a3c2563) is not present in table "properties".',
+        message: 'insert or update on table "proposed_posts" violates foreign key constraint',
+      }),
+      refusalWords({ code: "42501", details: "", message: "forbidden" }),
+    ]).toEqual([
+      "A reel on LinkedIn needs its poster.",
+      "the property or request it names is not in the database",
+      "the database refused it (42501)",
+    ]);
+  });
+});
+
+describe("postToolLine and postDeps", () => {
+  it("name the one Drive folder the runner's config names, and the line names both ids", () => {
+    const config = join(root, "config.json");
+    writeFileSync(config, JSON.stringify({ driveSocial: drive }));
+    const line = postToolLine(drive);
+    expect(postDeps(fakeDb(), config).roots.drive).toBe(drive);
+    expect([
+      line.includes(`or a path relative to the Drive folder ${drive}`),
+      line.includes('"property_id": "a published property\'s id'),
+      line.includes('"submission_id": "the request\'s id'),
+      line.includes("name the files the runner's render line in the thread names"),
+    ]).toEqual([true, true, true, true]);
+    expect(postToolLine(null)).toContain("no Google Drive folder is set on this laptop");
+  });
+
+  it("take a property only once it is published", async () => {
+    const config = join(root, "config.json");
+    writeFileSync(config, JSON.stringify({ driveSocial: drive }));
+    const exists = (state: "draft" | "review" | "published") =>
+      postDeps(
+        fakeDb({ tables: { properties: [propertyRow({ editorial_state: state })] } }),
+        config,
+      ).exists("properties", PROPERTY_ID);
+    expect([await exists("draft"), await exists("review"), await exists("published")]).toEqual([
+      false,
+      false,
+      true,
     ]);
   });
 });
