@@ -12,7 +12,14 @@ import type * as Path from "node:path";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { readJsonAnswer, type Outcome } from "../../scripts/workforce/answer.ts";
+import {
+  readJsonAnswer,
+  readOutcome,
+  RETRY_OPENING,
+  UNREADABLE_LINE,
+  UNREADABLE_SUMMARY,
+  type Outcome,
+} from "../../scripts/workforce/answer.ts";
 import type * as Cli from "../../scripts/workforce/cli.ts";
 import { UsageLimitError } from "../../scripts/workforce/cli.ts";
 import type * as Run from "../../scripts/matter/run.ts";
@@ -1462,5 +1469,119 @@ describe("W6 item 4: the pull requests Matter's one-shot run says it merged", ()
 
   it("is dropped when the line that woke Matter was not a person's", async () => {
     expect(await matterRunFor("agent")).toEqual([]);
+  });
+});
+
+describe("P-4681: an answer that is not a valid outcome is asked for once more", () => {
+  const EDITOR_ID = "a0000000-0000-4000-8000-000000000006";
+  const LINE_ID = "f0000000-0000-4000-8000-000000000003";
+  const home = join(tmpdir(), "mop-w8-0d-home", ".mop-workforce");
+  // W9 item 3's live proof, 2026-10-27 (run ebca4a55): Julian's fenced answer, one bracket wrong at its end
+  const JULIAN = readFileSync("tests/fixtures/unreadable-answer-julian.txt", "utf8");
+  // the same object with its one bracket put right, as a retry hands it back
+  const FIXED = JULIAN.replace(/^```json\n|\n```$/g, "").replace(
+    '"}]}], "hire": []}',
+    '"}}], "hire": []}',
+  );
+  const SUMMARY = "Ask Elev8 Real Estate to pass on a request for the agent's correct email";
+
+  /** The Editor, woken by a person's line, answers `first`, and the retry `again`: what the runner left. */
+  async function editorRun(first: string, again: string | Error) {
+    mkdirSync(join(home, "drive-social"), { recursive: true });
+    writeFileSync(
+      join(home, "config.json"),
+      JSON.stringify({ driveSocial: join(home, "drive-social") }),
+    );
+    const memory = memoryDb({
+      agents: [
+        agentRow(MATTER_ID, "matter", "Matter", []),
+        agentRow(EDITOR_ID, "editor", "Editor", ["read_business", "chat", "draft_reply"]),
+      ],
+      agent_messages: [
+        {
+          id: LINE_ID,
+          thread: "editor",
+          body: "@editor the Fairfield confirmation bounced; what next?",
+          author_kind: "human",
+          author_id: "u1",
+          author_name: "Dave",
+        },
+      ],
+      agent_approvals: [],
+      agent_lessons: [],
+      agent_decisions: [],
+      agent_runs: [],
+    });
+    void memory.insert("agent_runs", {
+      agent_id: EDITOR_ID,
+      cause: "message",
+      message_id: LINE_ID,
+    });
+    cli.answer = (_who, prompt) => (prompt.startsWith(RETRY_OPENING) ? again : first);
+    cli.launches = [];
+    const done = await runOnce(memory.db);
+    const lines = (memory.tables["agent_messages"] ?? []).map((line) => String(line["body"]));
+    const model = (args: readonly string[] | undefined) => args?.[args.indexOf("--model") + 1];
+    return {
+      done,
+      // the run's own launch and its retry's, each with the model it was given
+      launches: cli.launches.map((launch) => ({ ...launch, model: model(launch.args) })),
+      state: memory.tables["agent_runs"]?.[0]?.["state"],
+      approvals: memory.tables["agent_approvals"] ?? [],
+      editorSaid: (memory.tables["agent_messages"] ?? [])
+        .filter((line) => line["author_name"] === "Editor")
+        .map((line) => String(line["body"])),
+      lines,
+      retries: cli.prompts.filter((entry) => entry.prompt.startsWith(RETRY_OPENING)),
+      summary: memory.tables["agent_runs"]?.[0]?.["summary"],
+    };
+  }
+
+  it("asks Julian's unreadable answer again with its parse error, and files the proposal the fixed reply holds", async () => {
+    expect(readOutcome(JULIAN)).toEqual({ error: expect.stringContaining("Expected") as unknown });
+    const ran = await editorRun(JULIAN, FIXED);
+    expect(ran.done).toBe(true);
+    expect(ran.retries).toHaveLength(1);
+    // the retry is a call of its own with the run's model: no tool, no setting source, no MCP server, nothing saved
+    const [own, retry] = ran.launches;
+    const retryArgs = retry?.args ?? [];
+    expect([ran.launches.length, retry?.model]).toEqual([2, own?.model]);
+    for (const flag of ["--no-session-persistence", "--strict-mcp-config", "--restricted"])
+      expect(retryArgs).toContain(flag);
+    expect(retryArgs[retryArgs.indexOf("--tools") + 1]).toBe("");
+    const asked = ran.retries[0]?.prompt ?? "";
+    expect(asked).toMatch(/could not be read by the runner: .*Expected/);
+    expect(asked).toContain(JULIAN);
+    expect(
+      ran.approvals.map((row) => [row["action"], String(row["summary"]).slice(0, 72)]),
+    ).toEqual([["reply_inquiry", SUMMARY]]);
+    expect(ran.editorSaid).toHaveLength(1);
+    expect(ran.editorSaid[0]).toMatch(/^The confirmation for request 4a3c2563/);
+    expect(
+      ran.lines.filter((line) => line.includes("```") || line.includes('"proposals"')),
+    ).toEqual([]);
+  });
+
+  it("says plainly when the retry cannot be read either, files nothing and never posts the raw JSON", async () => {
+    const ran = await editorRun(JULIAN, JULIAN);
+    expect([ran.done, ran.retries.length]).toEqual([true, 1]);
+    expect(ran.approvals).toEqual([]);
+    expect(ran.editorSaid).toEqual([UNREADABLE_LINE]);
+    expect(ran.lines.filter((line) => line.includes("```") || line.includes("{"))).toEqual([]);
+    expect([ran.state, ran.summary]).toEqual(["done", UNREADABLE_SUMMARY]);
+  });
+
+  it("puts the run back in the queue when the retry meets the usage limit, with nothing said or filed", async () => {
+    const ran = await editorRun(JULIAN, new UsageLimitError(new Date("2026-10-28T06:00:00Z")));
+    expect([ran.done, ran.state]).toEqual([false, "queued"]);
+    expect([ran.approvals, ran.editorSaid]).toEqual([[], []]);
+    rmSync(join(home, "breaker.json"), { force: true });
+  });
+
+  it("reads a valid fenced answer as before, with no retry", async () => {
+    const ran = await editorRun(`\`\`\`json\n${FIXED}\n\`\`\``, "");
+    expect(ran.retries).toEqual([]);
+    expect(cli.prompts.filter((entry) => entry.who === "the colleague")).toHaveLength(1);
+    expect(ran.approvals.map((row) => row["action"])).toEqual(["reply_inquiry"]);
   });
 });

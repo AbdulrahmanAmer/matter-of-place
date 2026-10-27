@@ -51,10 +51,10 @@ import {
   startStudioPass,
   withReel,
 } from "./reel.ts";
-import { breakerUntil, type CliUsage, runClaude, UsageLimitError } from "./cli.ts";
+import { breakerUntil, type CliUsage, retryArgs, runClaude, UsageLimitError } from "./cli.ts";
 import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } from "./growth.ts";
 import { followMain, mapDue, runnerBusy } from "./follow.ts";
-import { readJsonAnswer, type Outcome } from "./answer.ts";
+import { readRunAnswer, type Outcome, UNREADABLE_SUMMARY } from "./answer.ts";
 import {
   fileProposedPost,
   isStructuredPost,
@@ -125,6 +125,9 @@ const WORKER = `${hostname()}:${String(process.pid)}`;
 // No clock on a colleague's work (operator, 2026-10-15: a 6-minute limit threw away the chief of staff's real work at
 // 00:52). A run is stopped only when it prints nothing for this long, which with stream-json means it is stuck.
 const CLI_IDLE_MS = 15 * 60_000;
+// P-4681: the retry of an unreadable answer only rewrites it (11 to 15 s measured, 2026-10-28) and prints one JSON at
+// its end, so it has a cap rather than a silence limit.
+const RETRY_TIMEOUT_MS = 10 * 60_000;
 const RUNS_PER_HOUR = 40;
 const HISTORY = 24;
 const models: Record<string, string> = {
@@ -995,6 +998,11 @@ export async function runOnce(client: Db): Promise<boolean> {
     const { shape } = decided;
     // H101: only a signed-in person's message gives Matter full power, keeps its notes and lets it hire directly.
     const power = isMatter ? matterPower(run.cause, authorKind) : "read";
+    const model = isMatter
+      ? policy.matterModel
+      : (models[underCeiling(agent.model, policy.colleagueCeiling)] ??
+        models["sonnet"] ??
+        "claude-sonnet-5-5");
     const answer: RunAnswer = isMatter
       ? await askMatter(
           matterPrompt({
@@ -1019,21 +1027,13 @@ export async function runOnce(client: Db): Promise<boolean> {
         )
       : await (async () => {
           // H115: the run's toolkit decides its command line, its folder and what it is told it may use.
-          const launch = await colleagueLaunch(
-            HOME,
-            agent.slug,
-            models[underCeiling(agent.model, policy.colleagueCeiling)] ??
-              models["sonnet"] ??
-              "claude-sonnet-5-5",
-            shape.research,
-            {
-              id: run.id,
-              outside: decided.outside,
-              inside: startedInside,
-              // the pieces whose photographs the runner places: only a person's or a key's line names them
-              ...(startedInside && !decided.outside && wokeBody !== null ? { line: wokeBody } : {}),
-            },
-          );
+          const launch = await colleagueLaunch(HOME, agent.slug, model, shape.research, {
+            id: run.id,
+            outside: decided.outside,
+            inside: startedInside,
+            // the pieces whose photographs the runner places: only a person's or a key's line names them
+            ...(startedInside && !decided.outside && wokeBody !== null ? { line: wokeBody } : {}),
+          });
           const asked = await askClaude(launch, (toolkit) =>
             promptFor(
               // W8 0c: a run about an outside message is not offered admin calls or hires at all.
@@ -1052,7 +1052,23 @@ export async function runOnce(client: Db): Promise<boolean> {
     // media, no colleague woken by a mention. What it drops is said in the thread. Matter's read of a held line keeps
     // nothing that acts (W8 review): it read the outside text itself.
     // The plan is decided in one tested function (W8 fourth review); the runner only carries it out.
-    const plan = decided.plan(readJsonAnswer(answer.text), power, run.cause);
+    // P-4681: an answer that is not a valid outcome is asked for once more, with its parse error, and a second failure
+    // is said plainly, never posted raw. The retry is a call of its own, not a resume: the run's folder (where an outside
+    // run's session is kept) and its settings file are gone by now, and a resume would hand the retry the run's tools.
+    const read = await readRunAnswer(answer.text, async (prompt) => {
+      const asked = await runClaude({
+        args: retryArgs(join(HOME, "answer"), model),
+        cwd: join(HOME, "answer"),
+        env: childEnv(),
+        prompt,
+        timeoutMs: RETRY_TIMEOUT_MS,
+        who: isMatter ? "Matter" : "the colleague",
+      });
+      return asked.text;
+    });
+    if (read.ending !== "read")
+      console.log(`${new Date().toISOString()} ${agent.slug}'s answer was ${read.ending}`);
+    const plan = decided.plan(read.outcome, power, run.cause);
     const result = plan.result;
     const { place } = shape;
     if (plan.dropped !== null) await say(client, place.thread, plan.dropped);
@@ -1198,7 +1214,8 @@ export async function runOnce(client: Db): Promise<boolean> {
       finished_at: new Date().toISOString(),
       // W8 review: a run about an outside message, and Matter's read of a held line, is summed up in fixed words;
       // its own words could carry the outside text into the meeting and the live session's digest.
-      summary: plan.summary,
+      // P-4681: a run whose answer could not be read is recorded with that ending, whatever its shape's fixed words
+      summary: read.ending === "unreadable" ? UNREADABLE_SUMMARY : plan.summary,
       session_id: "session" in answer && typeof answer.session === "string" ? answer.session : null,
       turns: 1,
       lessons_used: shown.map((lesson) => lesson.id),

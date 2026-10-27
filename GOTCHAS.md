@@ -9355,6 +9355,13 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `select count(*) from agent_runs where message_id = '<the new message id>'` → 1 (re-sent ruling f6a3807c, 2026-10-26 22:03:29 UTC).
 - added: 2026-10-27
 
+## P-4681 · A colleague's answer that is not valid JSON was posted raw and its proposals were lost in silence
+- symptom: 2026-10-27 19:29 UTC, W9 item 3's proof (event 6396fcf1, the Editor's run ebca4a55): Julian's fenced answer ended `..."}]}], "hire": []}` (one bracket wrong, `JSON Parse error: Expected '}'`); the runner posted the raw JSON, fence and all, as his line, and the proposal it said was "filed in Approvals" never was. Nothing said so.
+- cause: `readJsonAnswer` (`scripts/workforce/answer.ts`) fell back to `reply: text.trim()` with no proposals for any answer whose object did not parse, and `runOnce` acted on that.
+- rule: the runner reads a run's answer through `readRunAnswer`: not a valid outcome → one retry with the parse error (a call of its own, `retryArgs`: the run's model, no tool, nothing saved; never a resume, the run's folder and settings are gone by then and a resume would hand back its tools); still unreadable → the thread line `UNREADABLE_LINE`, nothing filed, the run's summary `UNREADABLE_SUMMARY`. Never `--json-schema` with a partial schema: measured on CLI 2.1.296 (2026-10-28), a schema of only `reply` made the retry nest the whole object, as a string, inside `reply` (4 of 4), so the proposal is lost again; without it 3 of 3 retries of Julian's text came back exact with the proposal (11 to 15 s).
+- proof: `cd app && bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4681` → `4 passed` (registry `tests/mutations/ANSWER-RETRY.json`, ar-*, each red on an assertion 2026-10-28); fixture `tests/fixtures/unreadable-answer-julian.txt` is the measured text.
+- added: 2026-10-28
+
 ## P-4680 · Matter's goal line is re-handed every ten minutes while he waits on his own background work
 - symptom: 2026-10-27 18:03-18:39 UTC, Matter posted "Nothing new ... still building" six times, 31 lines in two hours, while a builder ran in the background and the meeting rerun was due at 18:45.
 - cause: `continueGoal` (scripts/matter/live.ts) handed the first unticked step every ten minutes whatever he was waiting on; `goalSkipReason` ignored his open background tasks, and a turn that only answered cost nothing to repeat.

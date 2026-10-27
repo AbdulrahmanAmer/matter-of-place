@@ -24,6 +24,18 @@ export function isolatedArgs(home: string, allowed = ""): string[] {
   ];
 }
 
+/**
+ * P-4681: the command line of the one retry of an answer that is not a valid outcome (`readRunAnswer`): the run's model,
+ * shut off like the triage (`isolatedArgs`, no tool at all), nothing saved. No `--json-schema`: measured on CLI 2.1.296
+ * (2026-10-28), a schema of only `reply` made the retry put the whole object, as a string, inside `reply`, 4 runs of 4.
+ */
+export function retryArgs(home: string, model: string): string[] {
+  return [
+    ...["-p", "--model", model, "--output-format", "json", "--no-session-persistence"],
+    ...isolatedArgs(home),
+  ];
+}
+
 export const usageSchema = z.object({
   input_tokens: z.number().int().nonnegative().default(0),
   output_tokens: z.number().int().nonnegative().default(0),

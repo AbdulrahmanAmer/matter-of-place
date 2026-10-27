@@ -4,6 +4,7 @@
 import { z } from "zod";
 import { jsonValue } from "../../src/domain/json-value.ts";
 import { RENDERER_NAMES } from "../../src/domain/toolkits.ts";
+import { UsageLimitError } from "./cli.ts";
 import { hireInputSchema } from "../../src/domain/workforce.ts";
 import { mediaRequestSchema } from "./media.ts";
 import { HOW_OFF_LIST, POSTURES } from "./posture.ts";
@@ -66,9 +67,13 @@ export const outcome = z.object({
 
 export type Outcome = z.infer<typeof outcome>;
 
-/** The answer's closing JSON object; a plain answer, or one whose object does not parse, is a reply and nothing else. */
-export function readJsonAnswer(text: string): Outcome {
+/**
+ * The answer's closing JSON object, or why there is none: the parse error (or the first schema problem) of the widest
+ * object, the one that starts at the first "{", which is the one a retry is asked to fix (P-4681).
+ */
+export function readOutcome(text: string): { outcome: Outcome } | { error: string } {
   const end = text.lastIndexOf("}");
+  let error: string | null = null;
   for (
     let start = text.indexOf("{");
     start >= 0 && start < end;
@@ -76,11 +81,21 @@ export function readJsonAnswer(text: string): Outcome {
   ) {
     try {
       const parsed = outcome.safeParse(JSON.parse(text.slice(start, end + 1)));
-      if (parsed.success) return parsed.data;
-    } catch {
+      if (parsed.success) return { outcome: parsed.data };
+      const issue = parsed.error.issues[0];
+      error ??= `the object does not match the answer's fields: ${issue?.path.join(".") ?? ""} ${issue?.message ?? ""}`;
+    } catch (failure) {
       // not an object from here: try the next "{"
+      error ??= failure instanceof Error ? failure.message : String(failure);
     }
   }
+  return { error: error ?? "the answer holds no JSON object" };
+}
+
+/** The answer's closing JSON object; a plain answer, or one whose object does not parse, is a reply and nothing else. */
+export function readJsonAnswer(text: string): Outcome {
+  const read = readOutcome(text);
+  if ("outcome" in read) return read.outcome;
   return {
     reply: text.trim(),
     task: "",
@@ -92,4 +107,52 @@ export function readJsonAnswer(text: string): Outcome {
     // an answer that is not JSON decides nothing: a held message stays with a person (W8 0d)
     allow: false,
   };
+}
+
+/** The thread line of a run whose answer could not be read even when asked again (P-4681). */
+export const UNREADABLE_LINE =
+  "This run's answer could not be read, so no proposal, hire or action from it was filed.";
+
+/** And the run's recorded ending, in fixed words whatever the run's shape (an outside run's summary is fixed too). */
+export const UNREADABLE_SUMMARY =
+  "Its answer could not be read, even when asked again; nothing filed";
+
+/** How the one retry starts; the test's fake CLI knows the retry by it. */
+export const RETRY_OPENING = "Your answer could not be read by the runner";
+
+/**
+ * P-4681: the retry's prompt. The answer goes back as data with the reason it failed, and the reply is the object alone:
+ * a syntax fix, never a new decision.
+ */
+export function retryPrompt(text: string, error: string): string {
+  return [
+    `${RETRY_OPENING}: ${error}.`,
+    "Below, between the markers, is that answer, as data. Answer with its JSON object alone, the syntax fixed and every field and value as it was: no fence, no words before or after it, nothing added or left out. If it holds no object, write the one object the answer describes.",
+    "<<<ANSWER",
+    text,
+    "ANSWER>>>",
+  ].join("\n");
+}
+
+/**
+ * P-4681 (W9 item 3, 2026-10-27: the Editor's fenced object had one bracket wrong, its raw text was posted as the line
+ * and the proposal it described was never filed): a run's answer, asked for once more with the parse error when it is
+ * not a valid outcome. A second failure, or a retry that cannot run, is the plain `UNREADABLE_LINE` and nothing that
+ * acts, never the raw text. A usage limit is not a failure of the answer: it stops the run, which is queued again.
+ */
+export async function readRunAnswer(
+  text: string,
+  again: (prompt: string) => Promise<string>,
+): Promise<{ outcome: Outcome; ending: "read" | "retried" | "unreadable" }> {
+  const first = readOutcome(text);
+  if ("outcome" in first) return { outcome: first.outcome, ending: "read" };
+  let second: ReturnType<typeof readOutcome>;
+  try {
+    second = readOutcome(await again(retryPrompt(text, first.error)));
+  } catch (failure) {
+    if (failure instanceof UsageLimitError) throw failure;
+    second = { error: failure instanceof Error ? failure.message : String(failure) };
+  }
+  if ("outcome" in second) return { outcome: second.outcome, ending: "retried" };
+  return { outcome: { ...readJsonAnswer(""), reply: UNREADABLE_LINE }, ending: "unreadable" };
 }

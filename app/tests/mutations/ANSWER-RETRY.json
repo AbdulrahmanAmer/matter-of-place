@@ -1,0 +1,74 @@
+[
+  {
+    "id": "ar-retry-asks-again",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "    second = readOutcome(await again(retryPrompt(text, first.error)));",
+    "replace": "    second = first;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4681",
+    "expect": "× .*asks Julian's unreadable answer again with its parse error"
+  },
+  {
+    "id": "ar-retry-names-error",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "    `${RETRY_OPENING}: ${error}.`,",
+    "replace": "    `${RETRY_OPENING}.`,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4681",
+    "expect": "× .*asks Julian's unreadable answer again with its parse error"
+  },
+  {
+    "id": "ar-unreadable-plain-line",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "  return { outcome: { ...readJsonAnswer(\"\"), reply: UNREADABLE_LINE }, ending: \"unreadable\" };",
+    "replace": "  return { outcome: readJsonAnswer(text), ending: \"unreadable\" };",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4681",
+    "expect": "× .*says plainly when the retry cannot be read either"
+  },
+  {
+    "id": "ar-valid-read-first",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "  if (\"outcome\" in first) return { outcome: first.outcome, ending: \"read\" };\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4681",
+    "expect": "× .*reads a valid fenced answer as before, with no retry"
+  },
+  {
+    "id": "ar-usage-limit-stops",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "    if (failure instanceof UsageLimitError) throw failure;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4681",
+    "expect": "× .*puts the run back in the queue when the retry meets the usage limit"
+  },
+  {
+    "id": "ar-unreadable-summary",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "      summary: read.ending === \"unreadable\" ? UNREADABLE_SUMMARY : plan.summary,",
+    "replace": "      summary: plan.summary,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4681",
+    "expect": "× .*says plainly when the retry cannot be read either"
+  },
+  {
+    "id": "ar-retry-run-model",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "        args: retryArgs(join(HOME, \"answer\"), model),",
+    "replace": "        args: retryArgs(join(HOME, \"answer\"), \"haiku\"),",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4681",
+    "expect": "× .*asks Julian's unreadable answer again with its parse error"
+  },
+  {
+    "id": "ar-retry-saves-nothing",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/cli.ts",
+    "find": "    ...[\"-p\", \"--model\", model, \"--output-format\", \"json\", \"--no-session-persistence\"],",
+    "replace": "    ...[\"-p\", \"--model\", model, \"--output-format\", \"json\"],",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4681",
+    "expect": "× .*asks Julian's unreadable answer again with its parse error"
+  }
+]
