@@ -6,12 +6,17 @@ import { liveSideEffects } from "../../lib/runtime-env.ts";
 import type { StepContext, SystemJobDefinition } from "../types.ts";
 import { NonRetryableError } from "../types.ts";
 
-// W8 item 4: an approved `reply_social` proposal (workforce_decide enqueues this job keyed by the approval) is sent
-// once through the Meta adapter: under the comment, or into the conversation. `social_inbox_reply_begin` marks the row
-// `sending` before any Graph write and answers a rerun with the state already reached, so a retry never sends twice.
-// With posting off here (`liveSideEffects("social")`) nothing is written and the refusal is recorded; Graph's refusal
-// is recorded as failed, and a send that did not come back as unknown. Each outcome is said in Matter's thread by
-// `social_inbox_reply_result`.
+// W8 item 4: an approved `reply_social` proposal (workforce_decide enqueues this job keyed by the approval, only after
+// a person approved it) is sent once through the Meta adapter: under the comment, or into the conversation.
+// `social_inbox_reply_begin` marks the row `sending` before any Graph write and answers a rerun with the state
+// already reached, so a retry never sends twice; it refuses, in fixed words, a reply no person approved and a message
+// past Instagram's 24-hour window. With Instagram switched off in Channels or posting off here
+// (`liveSideEffects("social")`) nothing is written and the refusal is recorded; Graph's refusal is recorded as failed,
+// and a send that did not come back, or a transient or 5xx answer to the write, as unknown. Each outcome is said in
+// Matter's thread by `social_inbox_reply_result`.
+
+/** A light job's lease (reap_stale_jobs): a send begun more recently may still be in flight. */
+const LEASE_MS = 5 * 60 * 1000;
 
 const dataSchema = z.object({ approval_id: z.string().uuid() }).passthrough();
 const beginSchema = z.union([
@@ -23,7 +28,12 @@ const beginSchema = z.union([
     thread_graph_id: z.string().min(1),
     body: z.string(),
   }),
-  z.object({ state: z.string(), inbox_id: z.string().uuid().optional() }),
+  z.object({ state: z.literal("refuse"), inbox_id: z.string().uuid(), reason: z.string().min(1) }),
+  z.object({
+    state: z.string(),
+    inbox_id: z.string().uuid().optional(),
+    since: z.string().optional(),
+  }),
 ]);
 
 const unavailable = (what: string) =>
@@ -44,9 +54,23 @@ async function recordOutcome(ctx: StepContext, inboxId: string, result: Outcome)
   if (error !== null) throw unavailable("social_inbox_reply_result");
 }
 
-/** Graph refused (nothing was posted) or the reply did not fit; anything else may have reached Instagram. */
+/** Instagram switched on in Channels (channel_settings), as the read job asks it. */
+async function instagramOn(ctx: StepContext): Promise<boolean> {
+  const channel = await ctx.db
+    .from("channel_settings")
+    .select("enabled")
+    .eq("channel", "instagram");
+  if (channel.error !== null) throw unavailable("channel_settings");
+  return channel.data[0]?.enabled === true;
+}
+
+/**
+ * Graph refused for good (nothing was posted) or the reply did not fit; a transient or 5xx answer, or no answer, may
+ * have reached Instagram, so it is unknown and never sent again.
+ */
 function failureOf(error: unknown): Outcome {
-  if (error instanceof GraphError) return { outcome: "failed", error: error.detail.message };
+  if (error instanceof GraphError && error.detail.class !== "retryable")
+    return { outcome: "failed", error: error.detail.message };
   if (error instanceof AppError && error.code === "validation")
     return { outcome: "failed", error: error.message };
   return {
@@ -67,15 +91,35 @@ export const sendSocialReply: SystemJobDefinition = {
     });
     if (answer.error !== null) throw unavailable("social_inbox_reply_begin");
     const begun = beginSchema.parse(answer.data);
+    if ("reason" in begun) {
+      await recordOutcome(ctx, begun.inbox_id, { outcome: "refused", error: begun.reason });
+      return { status: "done", result: { refused: begun.reason } };
+    }
     if (!("kind" in begun)) {
-      // A rerun of a send that began and never came back: the outcome is unknown, said once, never sent again.
+      // A rerun of a send that began: inside the lease it may still be in flight, so it is asked again once the lease
+      // is over; after it, the outcome is unknown, said once, never sent again.
       if (begun.state === "sending" && begun.inbox_id !== undefined) {
+        const leaseEnds = Date.parse(begun.since ?? "") + LEASE_MS;
+        if (Number.isFinite(leaseEnds) && ctx.now.getTime() < leaseEnds) {
+          return {
+            status: "retry_at",
+            at: new Date(leaseEnds),
+            reason: "The send began under five minutes ago and may still be in flight.",
+          };
+        }
         await recordOutcome(ctx, begun.inbox_id, {
           outcome: "unknown",
           error: "The send began and did not come back.",
         });
       }
       return { status: "done", result: { skipped: begun.state } };
+    }
+    if (!(await instagramOn(ctx))) {
+      await recordOutcome(ctx, begun.inbox_id, {
+        outcome: "refused",
+        error: "Instagram is switched off in Channels: no write was made.",
+      });
+      return { status: "done", result: { refused: "instagram_off" } };
     }
     if (!liveSideEffects("social")) {
       await recordOutcome(ctx, begun.inbox_id, {

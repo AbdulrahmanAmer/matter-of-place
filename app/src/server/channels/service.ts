@@ -91,7 +91,12 @@ export async function listInbox(
     .order("received_at", { ascending: false })
     .limit(inboxPageSize);
   if (error !== null) throw fromRpcError(error);
-  return { items: z.array(inboxItemSchema).parse(data) };
+  const items = z.array(inboxItemSchema).parse(data);
+  // Round 2: the words are outside text, read by a person only; an agent's key (Matter holds admin) gets the rows
+  // without them, as a colleague only ever sees a comment through the triage (W8 0a, 0b).
+  return {
+    items: actor.kind === "agent" ? items.map((item) => ({ ...item, body: "" })) : items,
+  };
 }
 
 const settingsSchema = z

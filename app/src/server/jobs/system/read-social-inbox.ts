@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { readComments, readMessages, type InboxRead } from "../../channels/meta-inbox.ts";
+import {
+  rateLimited,
+  readComments,
+  readMessages,
+  type InboxRead,
+} from "../../channels/meta-inbox.ts";
 import { getMetaToken } from "../../channels/meta-token.ts";
 import { AppError } from "../../lib/errors.ts";
 import type { StepContext, SystemJobDefinition } from "../types.ts";
@@ -81,6 +86,8 @@ async function record(
   key: "instagram_comments" | "instagram_messages",
   read: InboxRead,
 ): Promise<number> {
+  // Round 2: a page cap was hit with newer items unread; the cursor stayed (meta-inbox.ts), said once per read.
+  if (read.truncated) ctx.log("warn", "social_inbox_truncated", { key });
   const { data, error } = await ctx.db.rpc("social_inbox_record", {
     p_items: read.items,
     p_cursor_key: key,
@@ -102,16 +109,21 @@ export const readSocialInbox: SystemJobDefinition = {
       return { status: "done", result: { skipped: off } };
     }
     const since = await cursors(ctx);
-    const comments = await record(
-      ctx,
-      "instagram_comments",
-      await readComments(ctx, await ourPosts(ctx), since.comments),
-    );
-    const messages = await record(
-      ctx,
-      "instagram_messages",
-      await readMessages(ctx, since.messages),
-    );
+    let comments = 0;
+    let messages = 0;
+    try {
+      comments = await record(
+        ctx,
+        "instagram_comments",
+        await readComments(ctx, await ourPosts(ctx), since.comments),
+      );
+      messages = await record(ctx, "instagram_messages", await readMessages(ctx, since.messages));
+    } catch (error) {
+      // Round 2: Graph's rate limit skips the tick (what was recorded stays, a cursor moves only with its rows).
+      if (!rateLimited(error)) throw error;
+      ctx.log("warn", "social_inbox_rate_limited", { comments });
+      return { status: "done", result: { skipped: "rate_limited", comments } };
+    }
     return { status: "done", result: { comments, messages } };
   },
 };

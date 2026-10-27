@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { subjectActionInput, subjectFulfilledSchema } from "../../../domain/admin-audit";
+import { subjectDeleteInput, subjectFulfilledSchema } from "../../../domain/admin-audit";
 import { deleteSubject } from "../../../server/audit/service";
 import { defineAdminRoute } from "../../../server/lib/admin-route";
 
@@ -9,7 +9,7 @@ export const Route = createFileRoute("/api/admin/audit/subject-requests/$id/dele
       POST: defineAdminRoute({
         method: "POST",
         action: "audit.subject_delete",
-        input: subjectActionInput,
+        input: subjectDeleteInput,
         output: subjectFulfilledSchema,
         handler: (ctx, input) => deleteSubject(ctx.actor, ctx.db, input),
       }),

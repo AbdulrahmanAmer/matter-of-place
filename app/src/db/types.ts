@@ -1870,7 +1870,7 @@ isOneToOne: false
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_media_id": string,"p_request_id": string }; Returns: string
                            },
 "delete_subject":
-{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_subject_request_id": string }; Returns: Json
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_instagram_handle"?: string,"p_request_id": string,"p_subject_request_id": string }; Returns: Json
                            },
 "drop_old_analytics_partitions":
 { Args: { "keep_months"?: number }; Returns: number

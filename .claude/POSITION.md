@@ -2516,3 +2516,12 @@ registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3
   exit 0, nothing to end. Matter's goal run 0951ea21 closed by hand. Matter's own studio lock merged in PR 509.
   UNPROVEN: the sweep ending a real stack; a stall report reaching Matter's live session. Bank P-4660, P-4661, P-4662
   (raw insert into agent_messages reaches no one), P-4643 cause corrected.
+- 2026-10-28 00:15 +0300, W8 item 4 round 2 (branch overdrive/w8-4-comments, worktree E:/mop-build/od-w8-4, merged
+  origin/main first, no G/P heading lost): the fresh Opus review's findings fixed. A reply on Instagram needs a person
+  (`workforce_decide` raises `manual_approval` for an agent or the system; begin refuses an approval with no person);
+  the send refuses while Instagram is off in Channels; paging stops at the cursor, a cap holds it
+  (`social_inbox_truncated`), rate limits skip a tick; the 24-hour message window rides in the proposal and begin
+  refuses past it; privacy notice and delete-by-handle; wake caps 10 a read and 50 a day; the lows. Fns migration
+  20261027205444, registry W8-4.json 64 entries (32 new), every new test watched red on round 1's code; SQL dry-run on
+  a native PG 18 stub cluster. No PR (Matter merges). UNPROVEN until CI: typecheck, lint, db cases, replay. Bank P-4682,
+  hit again P-008 and P-015.

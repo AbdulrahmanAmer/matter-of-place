@@ -354,6 +354,17 @@ describe("the legal pages", () => {
     }
   });
 
+  it("/privacy names Instagram comments and messages: from Instagram, to hosting, database and AI processing (W8 item 4)", async () => {
+    await renderPage(pageOf(privacyRoute), UNSET);
+    const header = screen.queryByRole("rowheader", { name: "Social media messages" });
+    expect(header?.textContent).toBe("Social media messages");
+    const row = header?.closest("tr");
+    const cells = [...(row?.querySelectorAll("td") ?? [])].map((cell) => cell.textContent);
+    expect(cells[1]).toContain("Instagram");
+    expect(cells[3]).toBe(`${String(retentionPeriods.social_inbox.months)} months, then deleted.`);
+    expect(cells[4]).toMatch(/hosting and database providers, and our AI processing provider/);
+  });
+
   it("/privacy limits the hours to rate-limit records and says a hash on a record stays with it", async () => {
     await renderPage(pageOf(privacyRoute), UNSET);
     const row = screen.getByRole("rowheader", { name: "Identifiers" }).closest("tr");

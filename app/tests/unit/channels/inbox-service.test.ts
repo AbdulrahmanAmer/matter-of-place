@@ -51,6 +51,17 @@ describe("listInbox", () => {
     expect(result.items.map((item) => item.kind)).toEqual(["comment"]);
   });
 
+  it("gives an agent's key the rows without the words, a person the words (round 2)", async () => {
+    const db = tableDb({ social_inbox: [row(1)] });
+    const agent: AdminActor = { ...actor(["admin"]), kind: "agent" };
+    const [forAgent, forPerson] = await Promise.all([
+      listInbox(agent, db, {}),
+      listInbox(actor(["admin"]), db, {}),
+    ]);
+    expect(forAgent.items.map((item) => [item.author_handle, item.body])).toEqual([["reader", ""]]);
+    expect(forPerson.items.map((item) => item.body)).toEqual(["Which architect?"]);
+  });
+
   it("refuses an actor with no staff role before any database call", async () => {
     const db = tableDb({ social_inbox: [row(1)] });
     await expect(listInbox(actor([]), db, {})).rejects.toMatchObject({ code: "forbidden" });

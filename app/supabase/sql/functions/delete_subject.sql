@@ -2,7 +2,8 @@ create or replace function public.delete_subject(
   p_subject_request_id uuid,
   p_actor uuid,
   p_actor_kind public.actor_kind,
-  p_request_id text
+  p_request_id text,
+  p_instagram_handle text default null
 )
 returns jsonb
 language plpgsql
@@ -17,6 +18,8 @@ declare
   v_subscribers int;
   v_submissions int;
   v_inbound int;
+  v_handle text := lower(nullif(btrim(ltrim(btrim(coalesce(p_instagram_handle, '')), '@')), ''));
+  v_social int := 0;
   v_counts jsonb;
 begin
   -- Invariant 15 (GP-01): a deletion request, once identity is confirmed, anonymises every row the address appears
@@ -87,6 +90,12 @@ begin
     attachments = '{}'
   where lower(m.from_email) = v_email;
   get diagnostics v_inbound = row_count;
+  -- W8 item 4 round 2: the Instagram handle the person names (staff enter it on the request) deletes that handle's
+  -- comments and messages; deleted, not anonymised, as retention does, since a body quotes the person.
+  if v_handle is not null then
+    delete from public.social_inbox s where lower(s.author_handle) = v_handle;
+    get diagnostics v_social = row_count;
+  end if;
 
   update public.subject_requests r
   set status = 'fulfilled', fulfilled_at = now(), handled_by = p_actor
@@ -96,7 +105,8 @@ begin
     'inquiries', cardinality(v_inquiries),
     'contacts', cardinality(v_contacts),
     'submissions', v_submissions,
-    'inbound_mail', v_inbound
+    'inbound_mail', v_inbound,
+    'social_inbox', v_social
   );
   -- Ids and counts only (invariant 18): the audit trail keeps no copy of the address.
   perform public.write_audit(
@@ -109,6 +119,6 @@ begin
 end;
 $$;
 
-revoke execute on function public.delete_subject(uuid, uuid, public.actor_kind, text)
+revoke execute on function public.delete_subject(uuid, uuid, public.actor_kind, text, text)
   from public, anon, authenticated;
-grant execute on function public.delete_subject(uuid, uuid, public.actor_kind, text) to service_role;
+grant execute on function public.delete_subject(uuid, uuid, public.actor_kind, text, text) to service_role;

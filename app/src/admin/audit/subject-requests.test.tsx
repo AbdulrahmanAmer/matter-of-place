@@ -157,6 +157,54 @@ describe("screen 25, data requests", () => {
     }).toEqual({ posts: [`POST ${LIST}/${verified.id}/export {}`], file: bundle });
   });
 
+  it("Delete sends the Instagram handle the person named, refuses one that is not a handle, and sends none when empty", async () => {
+    const line = row(4, { kind: "deletion", verified_at: "2026-09-02T12:00:00+00:00" });
+    const answer = { id: line.id, status: "fulfilled", counts: { social_inbox: 2 } };
+    const requested = serve({
+      [`GET ${LIST}`]: { items: [line], next_cursor: null },
+      [`POST ${LIST}/${line.id}/delete`]: answer,
+    });
+    render(
+      <AdminProviders actions={ADMIN_ACTIONS}>
+        <SubjectRequestsTab />
+      </AdminProviders>,
+    );
+    const posts = () => requested.filter((entry) => entry.startsWith("POST "));
+    fireEvent.click(await screen.findByRole("button", { name: "Delete" }));
+    let dialog = await screen.findByRole("dialog", { name: "Delete this person's data" });
+    fireEvent.change(within(dialog).getByLabelText("Instagram handle"), {
+      target: { value: "not a handle!" },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
+    const refused = {
+      error:
+        within(dialog).queryByText("Enter an Instagram handle, or leave it empty.")?.textContent ??
+        null,
+      posts: posts(),
+    };
+    expect(refused).toEqual({ error: "Enter an Instagram handle, or leave it empty.", posts: [] });
+    fireEvent.change(within(dialog).getByLabelText("Instagram handle"), {
+      target: { value: " @reader.one " },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
+    await waitFor(() => {
+      expect(posts()).toHaveLength(1);
+    });
+    fireEvent.click(await screen.findByRole("button", { name: "Delete" }));
+    dialog = await screen.findByRole("dialog", { name: "Delete this person's data" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
+    await waitFor(() => {
+      expect(posts()).toHaveLength(2);
+    });
+    expect({ refused, posts: posts() }).toEqual({
+      refused: { error: "Enter an Instagram handle, or leave it empty.", posts: [] },
+      posts: [
+        `POST ${LIST}/${line.id}/delete ${JSON.stringify({ instagram_handle: "@reader.one" })}`,
+        `POST ${LIST}/${line.id}/delete {}`,
+      ],
+    });
+  });
+
   it("Reject asks for a note and sends nothing without one", async () => {
     const line = row(1);
     const requested = serve({

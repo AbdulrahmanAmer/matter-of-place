@@ -118,6 +118,21 @@ export const subjectStatusAnswer = z.object({
 /** `POST audit/subject-requests/:id/export`, `delete` and `opt-out`: the request alone. */
 export const subjectActionInput = z.object({ id: z.string().uuid() }).strict();
 
+/**
+ * `POST audit/subject-requests/:id/delete`: the request, and the Instagram handle the person names, if any, whose
+ * comments and messages are deleted with it (W8 item 4 round 2). A leading @ is allowed; the rest is a handle.
+ */
+export const subjectDeleteInput = z
+  .object({
+    id: z.string().uuid(),
+    instagram_handle: z
+      .string()
+      .trim()
+      .regex(/^@?[A-Za-z0-9._]{1,30}$/, { message: "Enter an Instagram handle." })
+      .optional(),
+  })
+  .strict();
+
 /** The access bundle: every row the address appears in, as stored (S55). */
 export const subjectExportSchema = z.object({
   request: z.object({ id: z.string().uuid(), kind: z.literal("access"), received_at: z.string() }),

@@ -126,4 +126,23 @@ describe("Approvals", () => {
       null,
     ]);
   });
+
+  it("shows when a reply to an Instagram message must go by, and nothing of the kind for a comment (W8 item 4)", async () => {
+    serve([
+      {
+        ...item("p1", "reply_social", "Yes, it is still for sale."),
+        content: { body: "Yes, it is still for sale.", reply_by: "2026-10-28T12:00:00.000Z" },
+      },
+      item("p2", "reply_social", "Thank you for asking."),
+    ]);
+    await screen.findByText("Thank you for asking.");
+    const windows = screen.queryAllByText(/Reply by/);
+    expect(windows).toHaveLength(1);
+    expect(windows[0]?.textContent).toContain(
+      "only within 24 hours of the person's latest message",
+    );
+    expect(windows[0]?.querySelector("time")?.getAttribute("dateTime")).toBe(
+      "2026-10-28T12:00:00.000Z",
+    );
+  });
 });

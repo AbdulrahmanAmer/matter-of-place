@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   noteRequired,
+  subjectDeleteInput,
   type SubjectRequestRow,
   type SubjectStatusAction,
 } from "../../domain/admin-audit";
@@ -100,6 +101,9 @@ export function SubjectRequestsTab() {
   const [pending, setPending] = useState<Pending | null>(null);
   const [note, setNote] = useState("");
   const [noteError, setNoteError] = useState<string | null>(null);
+  // W8 item 4 round 2: the Instagram handle a deletion names; its comments and messages are deleted with the request.
+  const [handle, setHandle] = useState("");
+  const [handleError, setHandleError] = useState<string | null>(null);
   const busy = status.isPending || exporting.isPending || deleting.isPending || optingOut.isPending;
   const nextCursor = page.data?.next_cursor ?? null;
   const loadError = page.error;
@@ -115,6 +119,8 @@ export function SubjectRequestsTab() {
   const open = (next: Pending) => {
     setNote("");
     setNoteError(null);
+    setHandle("");
+    setHandleError(null);
     setPending(next);
   };
 
@@ -242,7 +248,16 @@ export function SubjectRequestsTab() {
     const { row, action } = pending;
     const close = { onSettled: () => setPending(null) };
     if (action === "delete") {
-      deleting.mutate(row.id, { ...done("The person's data is anonymised."), ...close });
+      const named = handle.trim();
+      const input = subjectDeleteInput.safeParse({
+        id: row.id,
+        ...(named === "" ? {} : { instagram_handle: named }),
+      });
+      if (!input.success) {
+        setHandleError("Enter an Instagram handle, or leave it empty.");
+        return;
+      }
+      deleting.mutate(input.data, { ...done("The person's data is anonymised."), ...close });
       return;
     }
     if (action === "opt_out") {
@@ -293,10 +308,29 @@ export function SubjectRequestsTab() {
         }}
       >
         {pending === null ? null : pending.action === "delete" ? (
-          <p>
-            Every row of {pending.row.email} is anonymised: the address, name, phone and messages.
-            This cannot be undone.
-          </p>
+          <>
+            <p>
+              Every row of {pending.row.email} is anonymised: the address, name, phone and messages.
+              This cannot be undone.
+            </p>
+            <Field
+              label="Instagram handle"
+              hint="Optional. If the person named one, their Instagram comments and messages are deleted too."
+              {...(handleError === null ? {} : { error: handleError })}
+            >
+              {(control) => (
+                <input
+                  {...control}
+                  type="text"
+                  autoComplete="off"
+                  value={handle}
+                  onChange={(event) => {
+                    setHandle(event.target.value);
+                  }}
+                />
+              )}
+            </Field>
+          </>
         ) : pending.action === "opt_out" ? (
           <p>{pending.row.email} is unsubscribed and no mail is sent to it again.</p>
         ) : (

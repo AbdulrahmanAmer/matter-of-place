@@ -14,11 +14,20 @@ declare
   v_id uuid;
   v_post uuid;
   v_new integer := 0;
+  -- Round 2: at most this many wakes of Social per read and per UTC day from Instagram; the rest are recorded `new`
+  -- without waking, for a person on the Channels screen.
+  c_read_cap constant integer := 10;
+  c_day_cap constant integer := 50;
+  v_woken integer := 0;
+  v_today integer;
+  v_held_read integer := 0;
+  v_held_day integer := 0;
 begin
   -- W8 item 4: one read of Instagram comments or messages (the `read_social_inbox` job, its answers parsed in
   -- src/server/channels/meta-inbox.ts). Each item is recorded once by its Graph id: an id already held, or one that is
   -- a reply we sent, is skipped. A new row emits social.inbox_received, which names the row only and wakes the Social
-  -- colleague through the triage (W8 0a, 0b). A comment on one of our Instagram posts is tied to its social_posts row.
+  -- colleague through the triage (W8 0a, 0b), within the wake caps above, so a first read's backlog or a flood never
+  -- wakes more than the cap. A comment on one of our Instagram posts is tied to its social_posts row.
   -- The cursor moves forward only, in the same transaction, so a failed write never skips an item.
   if p_cursor_key is null or p_cursor_key not in ('instagram_comments', 'instagram_messages')
     or p_items is null or jsonb_typeof(p_items) <> 'array'
@@ -63,12 +72,48 @@ begin
     on conflict (graph_id) do nothing
     returning id into v_id;
     if v_id is not null then
-      perform public.emit_event(
-        'social.inbox_received', 'social_inbox', v_id, jsonb_build_object('inbox_id', v_id, 'kind', v_kind)
-      );
       v_new := v_new + 1;
+      -- A body with no letters (emoji alone) is recorded and wakes no one. The read sets `letters` with a Unicode
+      -- letter test (meta-inbox.ts), as `[[:alpha:]]` under a C collation knows ASCII letters only.
+      if not coalesce((v_item ->> 'letters')::boolean, coalesce(v_item ->> 'body', '') ~ '[[:alpha:]]') then
+        continue;
+      end if;
+      if v_today is null then
+        select count(*)::integer into v_today from public.events e
+        where e.type = 'social.inbox_received' and e.at >= date_trunc('day', now() at time zone 'utc') at time zone 'utc';
+      end if;
+      if v_today + v_woken >= c_day_cap then
+        v_held_day := v_held_day + 1;
+      elsif v_woken >= c_read_cap then
+        v_held_read := v_held_read + 1;
+      else
+        perform public.emit_event(
+          'social.inbox_received', 'social_inbox', v_id, jsonb_build_object('inbox_id', v_id, 'kind', v_kind)
+        );
+        v_woken := v_woken + 1;
+      end if;
     end if;
   end loop;
+  -- Said once: per read for the read cap, once a UTC day for the daily cap. Counts only, never a comment's words.
+  if v_held_read > 0 then
+    insert into public.agent_messages (thread, author_kind, author_id, author_name, body)
+    values ('matter', 'system', 'system', 'Matter of Place', format(
+      'Instagram: %s more comments or messages were recorded without waking Social (at most %s a read). They wait on Social posts.',
+      v_held_read, c_read_cap
+    ));
+  end if;
+  if v_held_day > 0 and not exists (
+    select 1 from public.agent_messages m
+    where m.thread = 'matter' and m.author_kind = 'system'
+      and m.created_at >= date_trunc('day', now() at time zone 'utc') at time zone 'utc'
+      and m.body like 'Instagram: the daily limit of%'
+  ) then
+    insert into public.agent_messages (thread, author_kind, author_id, author_name, body)
+    values ('matter', 'system', 'system', 'Matter of Place', format(
+      'Instagram: the daily limit of %s wakes for Social is reached. New comments and messages are recorded without waking anyone until tomorrow (UTC) and wait on Social posts.',
+      c_day_cap
+    ));
+  end if;
   if p_read_until is not null then
     insert into public.social_inbox_cursors (key, read_until, read_at)
     values (p_cursor_key, p_read_until, now())

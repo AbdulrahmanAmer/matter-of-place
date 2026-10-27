@@ -3,7 +3,7 @@
 // is filed in Approvals against one row; an approved reply enqueues one send, which begins once and records what
 // became of it in Matter's thread; a declined one leaves the comment unanswered.
 import { describe, expect, it } from "vitest";
-import { withRollback, type Db } from "../fixtures/db";
+import { createAuthUser, createStaffUser, withRollback, type Db } from "../fixtures/db";
 
 const MEDIA = "w84-media-1";
 const SLIDES = JSON.stringify([
@@ -203,8 +203,13 @@ describe("a Social reply, from Approvals to the send", () => {
     const seen = await withRollback(async (db) => {
       const { inbox, approval, hash } = await proposed(db);
       await db.query(
-        "select public.workforce_decide($1, 'approved', $2, null, 'human', 'req-w84', null, $3)",
-        [approval, hash, "Thank you, the architect is named on the page."],
+        "select public.workforce_decide($1, 'approved', $2, $3, 'human', 'req-w84', null, $4)",
+        [
+          approval,
+          hash,
+          await createAuthUser(db),
+          "Thank you, the architect is named on the page.",
+        ],
       );
       const jobs = await db.query<{ key: string }>(
         "select idempotency_key as key from public.jobs where type = 'send_social_reply'",
@@ -255,8 +260,8 @@ describe("a Social reply, from Approvals to the send", () => {
     const seen = await withRollback(async (db) => {
       const { inbox, approval, hash } = await proposed(db);
       await db.query(
-        "select public.workforce_decide($1, 'approved', $2, null, 'human', 'req-w84b')",
-        [approval, hash],
+        "select public.workforce_decide($1, 'approved', $2, $3, 'human', 'req-w84b')",
+        [approval, hash, await createAuthUser(db)],
       );
       await db.query("select public.social_inbox_reply_begin($1)", [approval]);
       await db.query(
@@ -297,5 +302,251 @@ describe("a Social reply, from Approvals to the send", () => {
       return { state, jobs };
     });
     expect(seen).toEqual({ state: "ignored", jobs: 0 });
+  });
+});
+
+const STATUS = "select public.set_subject_request_status($1, $2, $3, 'human', 'r-w84', $4)";
+
+describe("W8 item 4 round 2", () => {
+  const DECIDE = "select public.workforce_decide($1, $2, $3, $4, $5, 'req-w84r2', $6)";
+
+  it("refuses an agent's or the system's approval of a reply with manual_approval, and lets an agent decline one", async () => {
+    const seen = await withRollback(async (db) => {
+      const { approval, hash } = await proposed(db);
+      const agent = await scalar<string>(
+        db,
+        "select id as v from public.agents where slug = 'matter'",
+      );
+      const byAgent = await refusal(db, DECIDE, [approval, "approved", hash, agent, "agent", null]);
+      const bySystem = await refusal(db, DECIDE, [
+        approval,
+        "approved",
+        hash,
+        null,
+        "system",
+        null,
+      ]);
+      const jobs = await scalar<number>(
+        db,
+        "select count(*)::int as v from public.jobs where type = 'send_social_reply' and idempotency_key = $1",
+        [`send_social_reply:${approval}`],
+      );
+      const declined = await refusal(db, DECIDE, [
+        approval,
+        "rejected",
+        null,
+        agent,
+        "agent",
+        "Not ours to answer.",
+      ]);
+      return { byAgent, bySystem, jobs, declined };
+    });
+    expect(seen).toEqual({
+      byAgent: "manual_approval",
+      bySystem: "manual_approval",
+      jobs: 0,
+      declined: "ok",
+    });
+  });
+
+  it("refuses at begin a reply approved with no person on record, in fixed words, and marks nothing", async () => {
+    const seen = await withRollback(async (db) => {
+      const { inbox, approval } = await proposed(db);
+      await db.query("update public.agent_approvals set state = 'approved' where id = $1", [
+        approval,
+      ]);
+      const begun = await scalar<{ state: string; reason: string }>(
+        db,
+        "select public.social_inbox_reply_begin($1) as v",
+        [approval],
+      );
+      const replyState = await scalar<string | null>(
+        db,
+        "select reply_state as v from public.social_inbox where id = $1",
+        [inbox],
+      );
+      return { state: begun.state, reason: begun.reason, replyState };
+    });
+    expect(seen).toEqual({
+      state: "refuse",
+      reason: "No person approved this reply: no write was made.",
+      replyState: null,
+    });
+  });
+
+  it("refuses at begin a message reply past the 24-hour window, in fixed words, before any send", async () => {
+    const seen = await withRollback(async (db) => {
+      await record(db, items, "instagram_messages", null);
+      const inbox = await scalar<string>(
+        db,
+        "select id as v from public.social_inbox where graph_id = 'w84-m1'",
+      );
+      await db.query(
+        "update public.social_inbox set received_at = now() - interval '25 hours' where thread_graph_id = 'w84-t1'",
+      );
+      const agent = await scalar<string>(
+        db,
+        "select id as v from public.agents where slug = 'social'",
+      );
+      const hash = "b".repeat(64);
+      const approval = await scalar<string>(
+        db,
+        "select public.social_inbox_propose($1, $2, null, 'A reply', $3::jsonb, $4) as v",
+        [inbox, agent, JSON.stringify({ inbox_id: inbox, body: "Yes, it is." }), hash],
+      );
+      await db.query(DECIDE, [approval, "approved", hash, await createAuthUser(db), "human", null]);
+      return scalar<{ state: string; reason: string }>(
+        db,
+        "select public.social_inbox_reply_begin($1) as v",
+        [approval],
+      );
+    });
+    expect({ state: seen.state, reason: seen.reason }).toEqual({
+      state: "refuse",
+      reason: "The 24-hour reply window closed: no write was made.",
+    });
+  });
+
+  it("wakes Social at most ten times a read, says the rest once, and wakes no one for words without a letter", async () => {
+    const seen = await withRollback(async (db) => {
+      const many = JSON.stringify(
+        Array.from({ length: 13 }, (_, n) => ({
+          kind: "comment",
+          graph_id: `w84-cap-${String(n)}`,
+          thread_graph_id: MEDIA,
+          author_handle: "reader",
+          body: n === 0 ? "\u{1F3E0}\u{2728}" : `Comment ${String(n)}`,
+          received_at: "2026-10-27T10:00:00Z",
+          letters: n !== 0,
+        })),
+      );
+      const added = await record(db, many, "instagram_comments", null);
+      const woken = await scalar<number>(
+        db,
+        `select count(*)::int as v from public.events e join public.social_inbox s on s.id = e.entity_id
+         where e.type = 'social.inbox_received' and s.graph_id like 'w84-cap-%'`,
+      );
+      const said = await db.query<{ body: string }>(
+        "select body from public.agent_messages where thread = 'matter' and body like 'Instagram:%'",
+      );
+      return { added, woken, said: said.rows.map((row) => row.body) };
+    });
+    expect(seen).toEqual({
+      added: 13,
+      woken: 10,
+      said: [
+        "Instagram: 2 more comments or messages were recorded without waking Social (at most 10 a read). They wait on Social posts.",
+      ],
+    });
+  });
+
+  it("stops waking Social at fifty a day from Instagram and says so once that day", async () => {
+    const seen = await withRollback(async (db) => {
+      const today = await scalar<number>(
+        db,
+        `select count(*)::int as v from public.events
+         where type = 'social.inbox_received' and at >= date_trunc('day', now() at time zone 'utc') at time zone 'utc'`,
+      );
+      for (let n = today; n < 48; n += 1) {
+        await db.query(
+          "select public.emit_event('social.inbox_received', 'social_inbox', gen_random_uuid(), '{}'::jsonb)",
+        );
+      }
+      const batch = (prefix: string, count: number) =>
+        JSON.stringify(
+          Array.from({ length: count }, (_, n) => ({
+            kind: "message",
+            graph_id: `w84-day-${prefix}-${String(n)}`,
+            thread_graph_id: "w84-day",
+            body: "Hello",
+            received_at: "2026-10-27T10:00:00Z",
+            letters: true,
+          })),
+        );
+      await record(db, batch("a", 5), "instagram_messages", null);
+      await record(db, batch("b", 1), "instagram_messages", null);
+      const woken = await scalar<number>(
+        db,
+        `select count(*)::int as v from public.events e join public.social_inbox s on s.id = e.entity_id
+         where e.type = 'social.inbox_received' and s.graph_id like 'w84-day-%'`,
+      );
+      const lines = await scalar<number>(
+        db,
+        "select count(*)::int as v from public.agent_messages where body like 'Instagram: the daily limit of 50%'",
+      );
+      return { woken, lines };
+    });
+    expect(seen).toEqual({ woken: 2, lines: 1 });
+  });
+
+  it("refuses a reply longer than its kind takes, and re-arms a refused one on a new proposal", async () => {
+    const seen = await withRollback(async (db) => {
+      const { inbox, approval, hash } = await proposed(db);
+      const agent = await scalar<string>(
+        db,
+        "select id as v from public.agents where slug = 'social'",
+      );
+      const message = await scalar<string>(
+        db,
+        "select id as v from public.social_inbox where graph_id = 'w84-m1'",
+      );
+      const tooLong = await refusal(
+        db,
+        "select public.social_inbox_propose($1, $2, null, 'x', $3::jsonb, 'h')",
+        [message, agent, JSON.stringify({ inbox_id: message, body: "x".repeat(1001) })],
+      );
+      await db.query(DECIDE, [approval, "approved", hash, await createAuthUser(db), "human", null]);
+      await db.query("select public.social_inbox_reply_begin($1)", [approval]);
+      await db.query(
+        "select public.social_inbox_reply_result($1, 'refused', null, 'Instagram is switched off in Channels: no write was made.')",
+        [inbox],
+      );
+      const said = await scalar<string>(
+        db,
+        "select body as v from public.agent_messages where thread = 'matter' order by created_at desc limit 1",
+      );
+      // A refusal is kept as its message, so a row that does not re-arm fails on the assertion below.
+      await db.query("savepoint w84again");
+      const again = await scalar<string>(
+        db,
+        "select public.social_inbox_propose($1, $2, null, 'Again', $3::jsonb, 'h2') as v",
+        [inbox, agent, JSON.stringify({ inbox_id: inbox, body: "Thank you." })],
+      ).catch(async (error: unknown) => {
+        await db.query("rollback to savepoint w84again");
+        return error instanceof Error ? error.message : String(error);
+      });
+      const row = await db.query<{
+        state: string;
+        reply_state: string | null;
+        approval_id: string;
+      }>("select state, reply_state, approval_id from public.social_inbox where id = $1", [inbox]);
+      return { tooLong, said, again, row: row.rows[0] };
+    });
+    expect(seen.tooLong).toBe("reply_too_long");
+    expect(seen.said).toContain("Instagram is switched off in Channels: no write was made.");
+    expect(seen.row).toEqual({ state: "proposed", reply_state: null, approval_id: seen.again });
+  });
+
+  it("deletes the comments and messages of the Instagram handle a deletion request names", async () => {
+    const seen = await withRollback(async (db) => {
+      await record(db, items, "instagram_comments", null);
+      const admin = await createStaffUser(db, ["admin"]);
+      const id = await scalar<string>(
+        db,
+        "insert into public.subject_requests (email, kind) values ('w84@example.net', 'deletion') returning id as v",
+      );
+      await db.query(STATUS, [id, "start_verification", admin, null]);
+      await db.query(STATUS, [id, "confirm_identity", admin, "Wrote from the account."]);
+      const result = await scalar<{ counts: Record<string, number> }>(
+        db,
+        "select public.delete_subject($1, $2, 'human', 'r-w84', ' @Reader ') as v",
+        [id, admin],
+      );
+      const left = await db.query<{ graph_id: string }>(
+        "select graph_id from public.social_inbox where graph_id like 'w84-%' order by graph_id",
+      );
+      return { removed: result.counts["social_inbox"], left: left.rows.map((row) => row.graph_id) };
+    });
+    expect(seen).toEqual({ removed: 1, left: ["w84-m1"] });
   });
 });

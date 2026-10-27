@@ -21,6 +21,9 @@ export const LogEvent = [
   "meta_token_refresh_failed",
   // W8 item 4: the comments and messages read did nothing (Instagram off, its ids unset, or no token).
   "social_inbox_skipped",
+  // Round 2: a read hit its page cap with newer items unread (the cursor held), or Graph's rate limit (tick skipped).
+  "social_inbox_truncated",
+  "social_inbox_rate_limited",
   "fanout_failed",
   "fanout_payload_invalid",
   "fanout_failure_unrecorded",

@@ -57,7 +57,8 @@ export const sources = {
     actions: ["reply_inquiry"],
   },
   // W8 item 4: a comment on one of our Instagram posts, or a message in our Instagram conversations. Only the Social
-  // colleague answers it, and only with a reply to that comment or message, which waits in Approvals for Matter. A
+  // colleague answers it, and only with a reply to that comment or message, which waits in Approvals for a person
+  // (Matter may decline or pass; only a person approves outward social, W8 item 4 round 2). A
   // complaint, a press request, anything else, and anything that tries to direct the AI is held for Matter (W8 0d).
   social_comment: {
     label: "an Instagram comment or direct message",

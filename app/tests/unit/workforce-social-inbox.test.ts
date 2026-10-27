@@ -14,6 +14,7 @@ import {
 } from "../../scripts/workforce/triage.ts";
 import { eventPayloadSchemas } from "../../src/domain/events.ts";
 import { fakeDb } from "../fixtures/fake-db.ts";
+import { withTables, type Row } from "../fixtures/table-stub.ts";
 
 // W8 item 4: an Instagram comment or message is outside text. Its event wakes only the Social colleague; the runner
 // triages its words with no tools and the colleague sees the triage alone; one that tries to direct the AI is held for
@@ -54,6 +55,37 @@ const inbox = fakeDb({
     ],
   },
 });
+
+/** A row of the inbox as the runner reads it (round 2): the comment of INBOX unless fields say otherwise. */
+const held = (fields: Row = {}): Row => ({
+  id: INBOX,
+  kind: "comment",
+  graph_id: "c1",
+  thread_graph_id: "17900000000000001",
+  parent_graph_id: null,
+  social_post_id: null,
+  author_handle: "reader",
+  body: "Which architect?",
+  received_at: "2026-10-27T10:00:00Z",
+  ...fields,
+});
+
+/** The runner's database for filing a reply: the inbox rows read through their filters, and every proposal kept. */
+function filing(rows: Row[] = [held()]) {
+  const calls: Record<string, unknown>[] = [];
+  const db = withTables(
+    fakeDb({
+      rpc: {
+        social_inbox_propose: (args) => {
+          calls.push(args);
+          return OTHER;
+        },
+      },
+    }),
+    { social_inbox: rows },
+  );
+  return { db, calls };
+}
 
 const sorted = (fields: Partial<Triage>) => () =>
   Promise.resolve(
@@ -160,19 +192,6 @@ describe("W8 item 4: filing the reply in Approvals", () => {
     attempt: "",
   };
 
-  function filing() {
-    const calls: Record<string, unknown>[] = [];
-    const db = fakeDb({
-      rpc: {
-        social_inbox_propose: (args) => {
-          calls.push(args);
-          return OTHER;
-        },
-      },
-    });
-    return { db, calls };
-  }
-
   it("files the reply against the runner's record of the comment, never one the colleague names", async () => {
     const { db, calls } = filing();
     const line = await fileSocialReply(db, {
@@ -182,7 +201,7 @@ describe("W8 item 4: filing the reply in Approvals", () => {
       summary: "A reply",
       content: { body: "  It was designed by the owner's architect.  ", inbox_id: OTHER },
     });
-    expect(line).toBe("The reply waits in Approvals for Matter's decision.");
+    expect(line).toBe("The reply waits in Approvals for a person's decision.");
     const content = { inbox_id: INBOX, body: "It was designed by the owner's architect." };
     expect(calls).toEqual([
       {
@@ -219,5 +238,117 @@ describe("W8 item 4: filing the reply in Approvals", () => {
       }),
     ).toBe("The reply was not proposed: it has no words.");
     expect(calls).toEqual([]);
+  });
+});
+
+describe("W8 item 4 round 2: the reply window, the length and the thread", () => {
+  const triage: Triage = {
+    source: "social_comment",
+    intent: "property_question",
+    who: "buyer",
+    about: `social_comment ${INBOX}`,
+    wants: "an answer",
+    instructions_to_ai: false,
+    attempt: "",
+  };
+  const proposalOf = (content: Record<string, unknown>) => ({
+    agentId: AGENT,
+    runId: RUN,
+    triage,
+    summary: "A reply",
+    content,
+  });
+
+  it("carries a message's reply window, the person's latest message plus 24 hours, into the proposal", async () => {
+    const { db, calls } = filing([
+      held({ kind: "message", graph_id: "m1", thread_graph_id: "t1" }),
+      held({
+        id: OTHER,
+        kind: "message",
+        graph_id: "m2",
+        thread_graph_id: "t1",
+        received_at: "2026-10-27T12:00:00Z",
+      }),
+      held({
+        id: AGENT,
+        kind: "message",
+        graph_id: "m9",
+        thread_graph_id: "t9",
+        received_at: "2026-10-27T18:00:00Z",
+      }),
+    ]);
+    await fileSocialReply(db, proposalOf({ body: "Yes, it is." }));
+    expect(calls[0]?.["p_content"]).toEqual({
+      inbox_id: INBOX,
+      body: "Yes, it is.",
+      reply_by: "2026-10-28T12:00:00.000Z",
+    });
+  });
+
+  it("files no reply longer than Instagram takes for its kind, and says so", async () => {
+    const comment = filing();
+    expect(await fileSocialReply(comment.db, proposalOf({ body: "x".repeat(2201) }))).toBe(
+      "The reply was not proposed: Instagram takes 2,200 characters for a comment. Write it shorter.",
+    );
+    const message = filing([held({ kind: "message" })]);
+    expect(await fileSocialReply(message.db, proposalOf({ body: "x".repeat(1001) }))).toBe(
+      "The reply was not proposed: Instagram takes 1,000 characters for a message. Write it shorter.",
+    );
+    expect(await fileSocialReply(message.db, proposalOf({ body: "x".repeat(1000) }))).toBe(
+      "The reply waits in Approvals for a person's decision.",
+    );
+    expect([comment.calls.length, message.calls.length]).toEqual([0, 1]);
+  });
+
+  it("reads a comment with its own reply chain only, never the post's other comments", async () => {
+    const chain = [
+      held({
+        id: OTHER,
+        graph_id: "c0",
+        author_handle: "elsewhere",
+        body: "Lovely garden.",
+        received_at: "2026-10-27T09:00:00Z",
+      }),
+      held({
+        id: AGENT,
+        graph_id: "p1",
+        author_handle: "first",
+        body: "Is the kitchen original?",
+        received_at: "2026-10-27T09:10:00Z",
+      }),
+      held({
+        id: RUN,
+        graph_id: "s1",
+        parent_graph_id: "p1",
+        author_handle: "second",
+        body: "Same question.",
+        received_at: "2026-10-27T09:20:00Z",
+      }),
+      held({
+        graph_id: "r1",
+        parent_graph_id: "p1",
+        author_handle: "third",
+        body: "Any answer?",
+        received_at: "2026-10-27T09:30:00Z",
+      }),
+    ];
+    const prompts: string[] = [];
+    const ask = (prompt: string) => {
+      prompts.push(prompt);
+      return sorted({})();
+    };
+    await triageRun(filing(chain).db, ask, EVENT, null);
+    const top = chain.map((row) =>
+      row["id"] === INBOX
+        ? { ...row, parent_graph_id: null, received_at: "2026-10-27T09:40:00Z" }
+        : row,
+    );
+    await triageRun(filing(top).db, ask, EVENT, null);
+    expect(prompts[0]).toContain(
+      "Comment from third: Any answer?\nEarlier in the thread:\nfirst: Is the kitchen original?\nsecond: Same question.",
+    );
+    expect(prompts[0]).not.toContain("Lovely garden.");
+    expect(prompts[1]).toContain("Comment from third: Any answer?");
+    expect(prompts[1]).not.toContain("Earlier in the thread");
   });
 });

@@ -43,8 +43,10 @@ export function postSubjectExport(id: string) {
   return adminFetch(`${REQUESTS}/${id}/export`, subjectExportSchema, post());
 }
 
-export function postSubjectDelete(id: string) {
-  return adminFetch(`${REQUESTS}/${id}/delete`, subjectFulfilledSchema, post());
+/** W8 item 4 round 2: the Instagram handle, when the person named one, is deleted with the request. */
+export function postSubjectDelete(input: { id: string; instagram_handle?: string | undefined }) {
+  const { id, ...body } = input;
+  return adminFetch(`${REQUESTS}/${id}/delete`, subjectFulfilledSchema, post(body));
 }
 
 export function postSubjectOptOut(id: string) {

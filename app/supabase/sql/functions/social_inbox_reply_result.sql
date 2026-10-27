@@ -14,9 +14,10 @@ declare
   v_where text;
 begin
   -- W8 item 4: what became of one approved reply (the `send_social_reply` job). `sent` keeps the reply's Graph id and
-  -- answers the row; `refused` (posting is off here, no write was made), `failed` (Graph said no) and `unknown` (a
-  -- send that began and never came back) leave it unanswered and keep the reason. Each outcome is said in Matter's
-  -- thread in fixed words with the reason, never the comment's words. A row already sent is never changed again.
+  -- answers the row; `refused` (no write was made), `failed` (Graph said no) and `unknown` (a send that began and
+  -- never came back, or Graph's transient answer to the write) leave it unanswered and keep the reason. Each outcome is
+  -- said in Matter's thread in fixed words with the reason, never the comment's words. A row already sent is never
+  -- changed again; a refused or failed one takes a new proposal (social_inbox_propose).
   if p_outcome is null or p_outcome not in ('sent', 'refused', 'failed', 'unknown')
     or (p_outcome = 'sent' and coalesce(btrim(p_reply_graph_id), '') = '')
   then
@@ -44,9 +45,12 @@ begin
   insert into public.agent_messages (thread, author_kind, author_id, author_name, body)
   values ('matter', 'system', 'system', 'Matter of Place', case p_outcome
     when 'sent' then format('Sent: the approved reply to %s (inbox %s).', v_where, p_inbox_id)
+    -- Round 2: the reason is one of the job's or begin's fixed lines (posting off, Instagram off in Channels, no
+    -- person, the 24-hour window), never outside text.
     when 'refused' then format(
-      'Not sent: the approved reply to %s (inbox %s). Posting is switched off here, so no write was made.',
-      v_where, p_inbox_id
+      'Not sent: the approved reply to %s (inbox %s). %s',
+      v_where, p_inbox_id,
+      left(coalesce(nullif(btrim(p_error), ''), 'Posting is switched off here, so no write was made.'), 500)
     )
     when 'unknown' then format(
       'Not known: the approved reply to %s (inbox %s) began and did not come back. Check Instagram before sending it again.',

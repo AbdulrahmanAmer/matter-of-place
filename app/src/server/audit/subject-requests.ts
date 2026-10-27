@@ -102,12 +102,20 @@ export async function exportSubject(actor: AdminActor, db: Db, input: { id: stri
   return subjectExportSchema.parse(data);
 }
 
-/** `POST audit/subject-requests/:id/delete`: anonymises every row of the address (GD-04: nothing is hard deleted). */
-export async function deleteSubject(actor: AdminActor, db: Db, input: { id: string }) {
+/**
+ * `POST audit/subject-requests/:id/delete`: anonymises every row of the address (GD-04: nothing is hard deleted), and
+ * deletes the comments and messages of the Instagram handle the person names (W8 item 4 round 2).
+ */
+export async function deleteSubject(
+  actor: AdminActor,
+  db: Db,
+  input: { id: string; instagram_handle?: string | undefined },
+) {
   authorize(actor, "audit.subject_delete");
   const { data, error } = await db.rpc("delete_subject", {
     p_subject_request_id: input.id,
     ...auditContext(actor),
+    ...(input.instagram_handle === undefined ? {} : { p_instagram_handle: input.instagram_handle }),
   });
   if (error !== null) throw fromRpcError(error);
   return subjectFulfilledSchema.parse(data);

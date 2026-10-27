@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { AgentApproval } from "../../domain/workforce";
+import { LocalTime } from "../ui/LocalTime";
 import { useApprovals, useDecide } from "./workforce-queries";
 
 // W1: what the team proposes to send, post or publish. A person approves the exact content shown (W1 invariant 3).
@@ -48,12 +49,23 @@ function ReelBeside({ reel }: { reel: NonNullable<AgentApproval["reel"]> }) {
   );
 }
 
+/** W8 item 4 round 2: Instagram takes a reply to a message only within 24 hours of the person's latest message. */
+function ReplyWindow({ until }: { until: string }) {
+  return (
+    <p className="admin-field__hint">
+      Reply by <LocalTime value={until} />. Instagram takes a reply to a message only within 24
+      hours of the person's latest message; after that it is not sent.
+    </p>
+  );
+}
+
 function Proposal({ item }: { item: AgentApproval }) {
   const decide = useDecide();
   const [mode, setMode] = useState<Mode>("view");
   const [reason, setReason] = useState("");
   const original = bodyOf(item.content);
   const [draft, setDraft] = useState(original);
+  const replyBy = item.content["reply_by"];
   // An instructions change is read and approved as a whole: its body only describes it.
   const editable =
     typeof item.content["body"] === "string" &&
@@ -95,6 +107,7 @@ function Proposal({ item }: { item: AgentApproval }) {
         <pre className="wf-proposal__content">{shown}</pre>
       )}
       {item.reel === null ? null : <ReelBeside reel={item.reel} />}
+      {typeof replyBy === "string" ? <ReplyWindow until={replyBy} /> : null}
       {item.state === "pending" ? (
         <>
           {mode === "decline" ? (

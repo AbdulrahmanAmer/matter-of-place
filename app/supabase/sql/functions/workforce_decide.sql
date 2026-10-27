@@ -40,6 +40,13 @@ begin
   if p_decision = 'approved' and p_content_hash is distinct from v_row.content_hash then
     raise exception 'version_conflict';
   end if;
+  -- W8 item 4 round 2: a reply to an Instagram comment or message is outward social, so a person approves it, as a post
+  -- (approve_proposed_post), for the 60 days of human approval. Matter or the system may still decline one.
+  if p_decision = 'approved' and v_row.action = 'reply_social'
+    and (p_actor is null or p_actor_kind is distinct from 'human')
+  then
+    raise exception 'manual_approval' using errcode = '42501', detail = 'A person approves a reply on Instagram.';
+  end if;
   update public.agent_approvals
   set state = p_decision,
       decided_by = case when p_actor_kind = 'human' then p_actor end,
@@ -118,7 +125,7 @@ begin
   end if;
 
   -- W8 item 4: an approved reply to an Instagram comment or message is sent once by the `send_social_reply` job (keyed
-  -- by the approval); a declined one leaves the comment unanswered, as ignored.
+  -- by the approval, only after a person approved it, above); a declined one leaves the comment unanswered, as ignored.
   if v_row.action = 'reply_social' then
     if p_decision = 'approved' then
       perform public.enqueue_job(

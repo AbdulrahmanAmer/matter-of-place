@@ -297,6 +297,49 @@ export async function outsideText(db: Db, source: SourceName, id: string): Promi
 /** Earlier lines of a comment's or message's thread the triage reads with it (W8 item 4). */
 const THREAD_LINES = 5;
 
+type ThreadLine = { author_handle: string; body: string; received_at: string };
+
+/**
+ * The earlier lines a row is read with, oldest first: for a message its conversation; for a comment only its own reply
+ * chain (the comment a reply answers and the replies before it under that comment), never the post's other comments
+ * (round 2).
+ */
+async function earlierLines(
+  db: Db,
+  row: {
+    kind: string;
+    graph_id: string;
+    parent_graph_id: string | null;
+    thread_graph_id: string;
+    received_at: string;
+  },
+): Promise<ThreadLine[]> {
+  const columns = "author_handle, body, received_at";
+  if (row.kind !== "comment") {
+    const { data } = await db
+      .from("social_inbox")
+      .select(columns)
+      .eq("thread_graph_id", row.thread_graph_id)
+      .lt("received_at", row.received_at)
+      .order("received_at", { ascending: false })
+      .limit(THREAD_LINES);
+    return (data ?? []).reverse();
+  }
+  // A comment on the post itself starts its own chain: nothing came before it.
+  if (row.parent_graph_id === null) return [];
+  const [{ data: parent }, { data: replies }] = await Promise.all([
+    db.from("social_inbox").select(columns).eq("graph_id", row.parent_graph_id).limit(1),
+    db
+      .from("social_inbox")
+      .select(columns)
+      .eq("parent_graph_id", row.parent_graph_id)
+      .lt("received_at", row.received_at)
+      .order("received_at", { ascending: false })
+      .limit(THREAD_LINES - 1),
+  ]);
+  return [...(parent ?? []), ...(replies ?? []).reverse()];
+}
+
 /**
  * W8 item 4: an Instagram comment or message as the triage reads it: its own words first (so the 8,000 characters
  * always reach them), then the thread's earlier lines and the post it is on. All of it is outside text but the post's
@@ -305,26 +348,21 @@ const THREAD_LINES = 5;
 async function socialText(db: Db, id: string): Promise<string> {
   const { data } = await db
     .from("social_inbox")
-    .select("kind, author_handle, body, thread_graph_id, social_post_id, received_at")
+    .select(
+      "kind, graph_id, parent_graph_id, author_handle, body, thread_graph_id, social_post_id, received_at",
+    )
     .eq("id", id)
     .limit(1);
   const row = data?.[0];
   if (row === undefined) return "";
-  const [{ data: earlier }, { data: post }] = await Promise.all([
-    db
-      .from("social_inbox")
-      .select("author_handle, body")
-      .eq("thread_graph_id", row.thread_graph_id)
-      .lt("received_at", row.received_at)
-      .order("received_at", { ascending: false })
-      .limit(THREAD_LINES),
+  const [earlier, { data: post }] = await Promise.all([
+    earlierLines(db, row),
     row.social_post_id === null
       ? Promise.resolve({ data: [] })
       : db.from("social_posts").select("permalink").eq("id", row.social_post_id).limit(1),
   ]);
-  const thread = (earlier ?? [])
+  const thread = earlier
     .map((line) => `${line.author_handle || "someone"}: ${line.body}`)
-    .reverse()
     .join("\n");
   const permalink = post?.[0]?.permalink ?? null;
   return [
