@@ -13,8 +13,10 @@ Set-Content -Path (Join-Path $home2 "runner-app") -Value $app -NoNewline
 $vbs = Join-Path $PSScriptRoot "hidden-run.vbs"
 $action = New-ScheduledTaskAction -Execute "wscript.exe" -Argument ("`"" + $vbs + "`" `"" + $app + "`"")
 $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 1)
+# No time limit (2026-10-27, P-4660): a limit ends only the hidden launcher, never the pass under it, so a second pass
+# started beside one still answering. MOP Sweep ends a pass past its ceiling (ruling H150), with everything it started.
 $settings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -StartWhenAvailable -AllowStartIfOnBatteries -Priority 5 `
-  -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 50)
+  -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Seconds 0)
 Register-ScheduledTask -TaskName "MOP Workforce" -Action $action -Trigger $trigger -Settings $settings `
   -Description "Matter of Place AI colleagues: one pass a minute (scripts/workforce/daemon.ts)." -Force | Out-Null
 Write-Output "task: MOP Workforce registered (every minute, hidden)"
@@ -44,7 +46,7 @@ $auditAction = New-ScheduledTaskAction -Execute "wscript.exe" `
   -Argument ("`"" + $vbs + "`" `"" + $app + "`" scripts\audit-routine.ts audit")
 $auditTrigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Saturday -At "09:00"
 $auditSettings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -StartWhenAvailable -AllowStartIfOnBatteries -Priority 5 `
-  -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 100)
+  -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Seconds 0)
 Register-ScheduledTask -TaskName "MOP Audit" -Action $auditAction -Trigger $auditTrigger -Settings $auditSettings `
   -Description "Matter of Place: the Saturday audit routine (workspace/audits/ROUTINE-PROMPT.md)." -Force | Out-Null
 Write-Output "task: MOP Audit registered (Saturday 09:00 local)"
@@ -77,6 +79,19 @@ $meetingTrigger = New-ScheduledTaskTrigger -Daily -At "17:45"
 Register-ScheduledTask -TaskName "MOP Meeting" -Action $meetingAction -Trigger $meetingTrigger -Settings $auditSettings `
   -Description "Matter of Place: the AI team's daily meeting (scorecard, three lines each, Matter's decisions)." -Force | Out-Null
 Write-Output "task: MOP Meeting registered (daily 17:45 local)"
+
+# 7. The scheduled task "MOP Sweep": the laptop's cleaner every five minutes (scripts/workforce/sweep.ts), apart from
+#    the runner so a runner that hangs cannot stop it. A task's time limit ends only its hidden launcher, never the pass
+#    under it, so passes ran on beside new ones and a studio pass was started every minute (2026-10-27); the sweep ends
+#    those with all they started, fails the runs they held and names what waits in the queue.
+$sweepAction = New-ScheduledTaskAction -Execute "wscript.exe" `
+  -Argument ("`"" + $vbs + "`" `"" + $app + "`" scripts\workforce\sweep.ts sweep")
+$sweepTrigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 5)
+$sweepSettings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -StartWhenAvailable -AllowStartIfOnBatteries -Priority 5 `
+  -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 4)
+Register-ScheduledTask -TaskName "MOP Sweep" -Action $sweepAction -Trigger $sweepTrigger -Settings $sweepSettings `
+  -Description "Matter of Place: ends stuck and doubled workforce processes, fails the runs they held, names what waits." -Force | Out-Null
+Write-Output "task: MOP Sweep registered (every five minutes, hidden)"
 
 $chrome = @(
   (Join-Path $env:ProgramFiles "Google\Chrome\Application\chrome.exe"),

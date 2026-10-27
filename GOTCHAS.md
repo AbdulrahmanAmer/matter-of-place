@@ -9223,7 +9223,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 
 ## P-4643 · Matter repeats a waiting item from its own live-state.md every pass until that file says it is closed
 - symptom: 2026-10-26, Matter posted "W8 0d still needs your one outside test message" every 10 minutes for 5 hours after the message was sent and two Admin lines said so (74 runs, the allowance spent on one sentence).
-- cause: Matter reads its own `~/.mop-workforce/matter/live-state.md` first each pass; its top UPDATE line said "DONE except W8 0d", and a line in its thread does not change that file.
+- cause (corrected 2026-10-27): the two Admin lines were written with a raw `insert into agent_messages`, which queues no run, so Matter never received them (P-4662); the goal driver (`continueGoal`, live.ts) then handed him the same first unticked step every 10 minutes, and his own read-only decision on the email never reached his live session. live-state.md was a symptom, not the cause.
 - rule: when a waiting item is done, prepend an UPDATE line to Matter's live-state.md that names it closed (and record it in POSITION.md); a thread message alone does not stop the reminder.
 - proof: `select count(*) from agent_messages where thread='matter' and body like 'W8 0d still needs%' and created_at > '<live-state edit time>'` → 0 (UNPROVEN until measured).
 - added: 2026-10-27
@@ -9274,18 +9274,25 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - added: 2026-10-27
 - enforced-by: `tests/unit/workforce-proposed-post.test.ts` ("reads a relative path under the Drive folder only", "refuses a relative path when the runner's config names no Drive folder", "checks the property or request a post names before it uploads anything", "says a database refusal in the function's own words", "name the one Drive folder the runner's config names"), registry `app/tests/mutations/W8-10.json` `w8-10-runner-relative*`, `w8-10-runner-property-exists`, `w8-10-runner-request-exists`, `w8-10-runner-refusal-words`, `w8-10-runner-drive-config`, `w8-10-tool-line-*`; run 2026-10-27 on the fix: 12 of 12 passed, and against main's `proposed-post.ts` 5 failed with the live refusal text ("Carousels/slide-0.c82f91d4.jpg is not in the studio or the Drive folder") and no id check.
 
-## P-4655 · A worker's read-only count on mop-dev: the Supabase connector is denied, the repository's psql path is not
-- symptom: 2026-10-27, W8 item 2 (count of pending generic `social_post` approvals, read only): `mcp__claude_ai_Supabase__execute_sql` was refused ("running in don't ask mode"), then the lane's `load-env.mjs` failed with `ENOENT ... od-w8-2\.env`. Two attempts before the count.
-- cause: a headless worker runs in don't-ask mode, where the claude.ai Supabase connector is not allowed; a lane holds no `.env` (P-051).
-- rule: a worker reads mop-dev through the repository's own path: load the dev profile through the main checkout's loader, check `$SUPABASE_URL` names `hbokkmpgpqhrnemgsqra`, run `env -u CLOUDFLARE_API_TOKEN bun run db:psql -- -Atc "<select>"` from the lane's `app/`. Put the three lines in a script file; select only.
-- proof: from a lane's `app/`, `eval "$(cd '/e/Matter Of Place/app' && node scripts/load-env.mjs --profile dev)" && env -u CLOUDFLARE_API_TOKEN bun run db:psql -- -Atc "select count(*) from agent_approvals where action = 'social_post'"` → `6` (2026-10-27).
+## P-4660 · A scheduled task's time limit ends only its hidden launcher; the pass under it runs on and a new one starts beside it
+- symptom: 2026-10-27, the laptop's CPU burned: `reel.ts --pass` was started 20 to 51 times an hour from 2026-10-26 23:00 (daemon.log "reel pass started"), 262 alive at once, and the laptop died when its internet dropped.
+- cause: every MOP task runs `wscript.exe hidden-run.vbs` → `cmd.exe /c bun <script>`. "MOP Workforce" has a 50-minute ExecutionTimeLimit; at the limit Windows ends wscript.exe only, so bun (and the Claude run or render under it) keeps running while IgnoreNew now lets the next minute's pass start. The studio pass is spawned detached with no lock, so each new pass that saw work started another.
+- rule: no MOP task but MOP Sweep has a time limit (install.ps1, tested); `scripts/workforce/sweep.ts` ("MOP Sweep", every 5 minutes) is the one thing that ends stuck work, by exact process ids: a scheduled pass past 3 h 15 min (ruling H150, its runs failed and their people told) or whose launcher is gone (its runs back in the queue), every studio pass but the one making a piece, a pass past 3 h 15 min, orphaned runner/studio/live CLI children, studio ffmpeg and renders older than 10 minutes, and an ffmpeg under a pass past an hour. Its stall report reaches Matter's live session once (`~/.mop-workforce/matter/stall.md`, read by live.ts between turns).
+- proof: `cd app && bunx vitest run --project unit tests/unit/workforce-sweep.test.ts` (registry tests/mutations/SWEEP.json, sw-a to sw-n); live: `bun scripts/workforce/sweep.ts --dry` lists what it would end.
 - added: 2026-10-27
 
-## P-4653 · An Edit that deleted a whole line by an `old_string` starting with a newline joined the next line onto a comment
-- symptom: 2026-10-27, W8 item 10 fix round 2: removing a one-line comment from `supabase/sql/functions/create_proposed_post.sql` with `old_string` = newline + the comment and an empty `new_string` left `-- ... by write_audit).  if btrim(coalesce(p_title, '')) = '' ...` on one line, so the title check became part of the comment; `bun run db:fn` wrote the broken text into a migration and three registry `sql` entries, and only the throwaway cluster's apply caught it (`ERROR:  syntax error at or near "if"` at `current.sql:66`).
-- cause: the edit kept the line before and the line after but not the newline between them; in SQL and TypeScript a line comment then swallows the next statement with no error until the file is compiled.
-- rule: delete a line by matching it together with the full line before it and writing that line back (or restore the file from git); after any line removal in a function file, `git diff` the hunk before `db:fn`, and dry-run every function file on a native cluster before the registry is built from it (G-903).
-- proof: `git diff origin/main -- app/supabase/sql/functions/create_proposed_post.sql | sed -n 6,14p` shows `write_audit).` and `if btrim(` on two lines on the pushed tree; the joined form fails `psql -v ON_ERROR_STOP=1 -f` on the cluster with the error above.
+## P-4661 · A restarted live supervisor leaves the runs it held `running` under a six-hour lease
+- symptom: 2026-10-27, Matter's goal run 0951ea21 (09:07 UTC) sat `running` for five hours after live.ts restarted at 13:43; at its lease end the one-shot runner's `claim_agent_run` would have claimed it.
+- cause: live.ts keeps the runs it works on only in memory (`this.active`); a new process never looked at what the old one held.
+- rule: at start, after `lockOrExit`, `releaseHeld` puts the worker's held person lines back in the queue and closes its other runs.
+- proof: `cd app && bunx vitest run --project unit tests/unit/matter-live-release.test.ts` (lr-a to lr-d in SWEEP.json).
+- added: 2026-10-27
+
+## P-4662 · A line written straight into `agent_messages` reaches no one: no run is queued for it
+- symptom: 2026-10-26, the operator's ruling and "test sent" lines to Matter (raw SQL inserts at 15:14 and 15:21 UTC) were never answered; Matter waited on them for five hours.
+- cause: `agent_messages` has no trigger; only `public.workforce_post_message(thread, body, author_id, author_name, mentions, author_kind)` queues the run that wakes the reader.
+- rule: post to a colleague only through `workforce_post_message`, never a raw insert; then check that a run row exists with that `message_id`.
+- proof: `select count(*) from agent_runs where message_id = '<the new message id>'` → 1 (re-sent ruling f6a3807c, 2026-10-26 22:03:29 UTC).
 - added: 2026-10-27
 
 ## P-4651 · A long builder run dropped by the network leaves its edits uncommitted, and the next run re-reads and re-checks all of them
@@ -9309,6 +9316,20 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: every blocking child on a long path gets a `timeout` and `killSignal` that fit inside the outer limit (`spawnLimited` in `app/scripts/render-reel.mjs`), and a timeout is a failed step with its reason. A lock is claimed by the process it names (`wx`, its pid and start time); while both match a live process nothing starts beside it, whatever its age, and only the sweep kills.
 - proof: `cd app && bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts -t "blocking child"` → passes; with `timeout: limitMs, killSignal: "SIGKILL"` removed from `spawnLimited` the case fails on its assertion (registry `w8-1-pass-child-limit`). bun's `performance.timeOrigin` was 18 ms after the start `Get-Process` gives, node's 24 ms (measured 2026-10-27). Bun honours the timeout the same way: `timeout 30 bun .tmp/cycle-repro/bun-timeout.ts` → `bun 1.4.3: 318 ms, status null, signal SIGKILL, error code ETIMEDOUT` (2026-10-27).
 - hit again: 2026-10-27, round 7 (fresh review of round 6): a limit per child did not bound the pass, because a render runs up to nine children back to back with no turn of the event loop between them (about 115 min), so the 3 h timer could act near 1 h 55 min late, past the sweep's cap. Rule added: a child's limit is cut to what is left of the outer limit (`scripts/lib/pass-deadline.mjs`), and none starts when nothing is left.
+- added: 2026-10-27
+
+## P-4653 · An Edit that deleted a whole line by an `old_string` starting with a newline joined the next line onto a comment
+- symptom: 2026-10-27, W8 item 10 fix round 2: removing a one-line comment from `supabase/sql/functions/create_proposed_post.sql` with `old_string` = newline + the comment and an empty `new_string` left `-- ... by write_audit).  if btrim(coalesce(p_title, '')) = '' ...` on one line, so the title check became part of the comment; `bun run db:fn` wrote the broken text into a migration and three registry `sql` entries, and only the throwaway cluster's apply caught it (`ERROR:  syntax error at or near "if"` at `current.sql:66`).
+- cause: the edit kept the line before and the line after but not the newline between them; in SQL and TypeScript a line comment then swallows the next statement with no error until the file is compiled.
+- rule: delete a line by matching it together with the full line before it and writing that line back (or restore the file from git); after any line removal in a function file, `git diff` the hunk before `db:fn`, and dry-run every function file on a native cluster before the registry is built from it (G-903).
+- proof: `git diff origin/main -- app/supabase/sql/functions/create_proposed_post.sql | sed -n 6,14p` shows `write_audit).` and `if btrim(` on two lines on the pushed tree; the joined form fails `psql -v ON_ERROR_STOP=1 -f` on the cluster with the error above.
+- added: 2026-10-27
+
+## P-4655 · A worker's read-only count on mop-dev: the Supabase connector is denied, the repository's psql path is not
+- symptom: 2026-10-27, W8 item 2 (count of pending generic `social_post` approvals, read only): `mcp__claude_ai_Supabase__execute_sql` was refused ("running in don't ask mode"), then the lane's `load-env.mjs` failed with `ENOENT ... od-w8-2\.env`. Two attempts before the count.
+- cause: a headless worker runs in don't-ask mode, where the claude.ai Supabase connector is not allowed; a lane holds no `.env` (P-051).
+- rule: a worker reads mop-dev through the repository's own path: load the dev profile through the main checkout's loader, check `$SUPABASE_URL` names `hbokkmpgpqhrnemgsqra`, run `env -u CLOUDFLARE_API_TOKEN bun run db:psql -- -Atc "<select>"` from the lane's `app/`. Put the three lines in a script file; select only.
+- proof: from a lane's `app/`, `eval "$(cd '/e/Matter Of Place/app' && node scripts/load-env.mjs --profile dev)" && env -u CLOUDFLARE_API_TOKEN bun run db:psql -- -Atc "select count(*) from agent_approvals where action = 'social_post'"` → `6` (2026-10-27).
 - added: 2026-10-27
 
 ## P-4654 · knip refuses one value exported under two names (`export const A = B` where B is exported too)
