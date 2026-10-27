@@ -87,7 +87,12 @@ const channelRow = (enabled: boolean) => ({
 /** The read's database: Instagram on or off, a token or none, and a `social_inbox_record` that keeps Graph ids. */
 type CursorRow = { key: string; read_until: string; read_at: string; pending: NonNullable<Json> };
 
-function readDb(options: { enabled?: boolean; token?: string; cursors?: CursorRow[] } = {}) {
+/** Round 4: a second Instagram post of ours, posted after the first. */
+const MEDIA2 = "17900000000000002";
+
+function readDb(
+  options: { enabled?: boolean; token?: string; cursors?: CursorRow[]; second?: boolean } = {},
+) {
   const kept = new Set<string>();
   const recorded: { key: string; ids: string[] }[] = [];
   /** The cursor each record call was asked to keep, and the lists left part way (round 3). */
@@ -136,6 +141,27 @@ function readDb(options: { enabled?: boolean; token?: string; cursors?: CursorRo
           created_at: "2026-10-03T12:00:00Z",
           updated_at: "2026-10-03T12:00:05Z",
         },
+        ...(options.second === true
+          ? [
+              {
+                id: "6a1b2c3d-0000-4000-8000-0000000000d3",
+                asset_id: "6a1b2c3d-0000-4000-8000-0000000000d4",
+                property_id: null,
+                channel: "instagram",
+                status: "posted",
+                scheduled_at: "2026-10-03T13:00:00Z",
+                posted_at: "2026-10-03T13:00:05Z",
+                remote_id: MEDIA2,
+                permalink: "https://www.instagram.com/p/BBB/",
+                metrics: {},
+                error: null,
+                withdraw_required_at: null,
+                withdrawn_at: null,
+                created_at: "2026-10-03T13:00:00Z",
+                updated_at: "2026-10-03T13:00:05Z",
+              },
+            ]
+          : []),
       ],
     },
   });
@@ -181,21 +207,99 @@ describe("read_social_inbox", () => {
     expect(db.calls.some((call) => call.name === "social_inbox_record")).toBe(false);
   });
 
-  it("skips the tick with one log line when Graph answers its rate limit, and records nothing", async () => {
-    stubGraph({
-      [`GET ${MEDIA}/comments`]: [
-        400,
-        { error: { message: "Application request limit", code: 4 } },
-      ],
+  it("keeps the pages read when Graph's rate limit stops a read part way, and stores where the list stopped", async () => {
+    // Round 4: the first page of comments holds c1 and c2 and names a next page, which Graph refuses with its limit.
+    vi.stubGlobal("fetch", (input: string) => {
+      const url = new URL(input);
+      if (url.pathname.endsWith(`${PAGE}/conversations`)) {
+        return Promise.resolve(new Response(JSON.stringify(conversations)));
+      }
+      if (url.searchParams.get("after") === "p2") {
+        const limit = { error: { message: "Application request limit", code: 4 } };
+        return Promise.resolve(new Response(JSON.stringify(limit), { status: 400 }));
+      }
+      const next = { cursors: { after: "p2" }, next: "https://graph.example/next" };
+      return Promise.resolve(new Response(JSON.stringify({ ...comments, paging: next })));
     });
-    const { db, recorded } = readDb();
+    const { db, recorded, pendings } = readDb();
     const log = vi.fn();
     await expect(readSocialInbox.run({ ...readCtx(db), log }, {}, {})).resolves.toEqual({
       status: "done",
-      result: { skipped: "rate_limited", comments: 0 },
+      result: { comments: 2, messages: 1, rate_limited: true },
     });
-    expect(recorded).toEqual([]);
-    expect(log.mock.calls.map((call: unknown[]) => call[1])).toEqual(["social_inbox_rate_limited"]);
+    expect(recorded).toEqual([
+      { key: "instagram_comments", ids: ["c1", "c2"] },
+      { key: "instagram_messages", ids: ["m1"] },
+    ]);
+    expect(pendings[0]).toMatchObject({ [MEDIA]: { edge: "comments", after: "p2" } });
+    expect(log.mock.calls.map((call: unknown[]) => [call[1], call[2]])).toEqual([
+      ["social_inbox_rate_limited", { key: "instagram_comments" }],
+    ]);
+  });
+
+  it("reads a list again from its first page when its stored cursor is refused, drops a list whose node is gone, and still records the other post and the messages", async () => {
+    // Round 4: Graph's paging docs say a stored cursor goes invalid as items come and go (400, code 100); a deleted
+    // comment answers code 100, subcode 33.
+    const refuse = (error: Record<string, unknown>) =>
+      Promise.resolve(new Response(JSON.stringify({ error }), { status: 400 }));
+    const answer = (body: unknown) => Promise.resolve(new Response(JSON.stringify(body)));
+    vi.stubGlobal("fetch", (input: string) => {
+      const url = new URL(input);
+      const path = url.pathname.replace(/^\/v23\.0\//, "");
+      const after = url.searchParams.get("after");
+      if (path === `${MEDIA}/comments` && after === "stale") {
+        return refuse({ message: "Invalid cursor", code: 100 });
+      }
+      if (path === `${MEDIA}/comments`) return answer({ data: comments.data.slice(0, 1) });
+      if (path === `${MEDIA2}/comments`) return answer({ data: comments.data.slice(1) });
+      if (path === "c9/replies") {
+        return refuse({ message: "Object does not exist", code: 100, error_subcode: 33 });
+      }
+      if (path === `${PAGE}/conversations`) return answer(conversations);
+      return answer({ data: [] });
+    });
+    const open = {
+      thread: MEDIA,
+      since: "2026-10-04T10:00:00.000Z",
+      started: "2026-10-04T11:45:00Z",
+    };
+    const { db, recorded, pendings } = readDb({
+      second: true,
+      cursors: [
+        {
+          key: "instagram_comments",
+          read_until: "2026-10-04T11:00:00Z",
+          read_at: "2026-10-04T11:45:00Z",
+          pending: {
+            [MEDIA]: { edge: "comments", after: "stale", ...open },
+            c9: { edge: "replies", after: "r2", ...open },
+          },
+        },
+      ],
+    });
+    const log = vi.fn();
+    await expect(readSocialInbox.run({ ...readCtx(db), log }, {}, {})).resolves.toEqual({
+      status: "done",
+      result: { comments: 2, messages: 1 },
+    });
+    expect(recorded).toEqual([
+      { key: "instagram_comments", ids: ["c1", "c2"] },
+      { key: "instagram_messages", ids: ["m1"] },
+    ]);
+    expect(pendings[0]).toEqual({});
+    expect(log.mock.calls.map((call: unknown[]) => call[1])).toEqual(["social_inbox_list_gone"]);
+  });
+
+  it("records the messages when the comments read fails, then fails the run with the comments' error", async () => {
+    // Round 4: comments and messages are read apart; an answer of the wrong shape is not a Graph error, so it throws.
+    stubGraph({
+      [`GET ${MEDIA}/comments`]: { data: [{ id: "c1", text: "no time" }] },
+      [`GET ${PAGE}/conversations`]: conversations,
+    });
+    const { db, recorded } = readDb();
+    const run = readSocialInbox.run(readCtx(db), {}, {});
+    await expect(run).rejects.toThrow("Graph answered an unexpected shape (comments).");
+    expect(recorded).toEqual([{ key: "instagram_messages", ids: ["m1"] }]);
   });
 
   it("stores where a capped read stopped, says it once, and the next tick resumes there", async () => {

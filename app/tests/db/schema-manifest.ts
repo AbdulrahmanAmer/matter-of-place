@@ -482,6 +482,8 @@ export const schemaManifest: Record<string, Record<string, string>> = {
     verified_at: "timestamptz?",
     fulfilled_at: "timestamptz?",
     handled_by: "uuid?",
+    // W8 item 4 round 4: the Instagram message that proved a handle named on the request.
+    handle_proof_id: "uuid?",
     ip_hash: "text?",
     turnstile_ok: "boolean",
     created_at: "timestamptz",

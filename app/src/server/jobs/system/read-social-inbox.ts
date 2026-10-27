@@ -1,7 +1,6 @@
 import { z } from "zod";
 import {
   pendingSchema,
-  rateLimited,
   readComments,
   readMessages,
   type InboxRead,
@@ -11,7 +10,7 @@ import { getMetaToken } from "../../channels/meta-token.ts";
 import { AppError } from "../../lib/errors.ts";
 import type { StepContext, SystemJobDefinition } from "../types.ts";
 
-// W8 item 4: every 15 minutes (pg_cron, 20261027194109_w8_4_social_inbox.sql) the new comments on our published
+// W8 item 4: every 15 minutes (pg_cron, 20261027202720_w8_4_social_inbox.sql) the new comments on our published
 // Instagram posts and the new messages of our conversations are read and recorded once by their Graph id through
 // `social_inbox_record`, which emits one `social.inbox_received` per new row (the Social colleague's wake). With
 // Instagram off, its ids unset or no token, the run says why in its result and one log line, and reads nothing.
@@ -101,9 +100,17 @@ async function ourPosts(ctx: StepContext): Promise<string[]> {
   return data.flatMap((row) => (row.remote_id === null ? [] : [row.remote_id]));
 }
 
-async function record(ctx: StepContext, key: Key, read: InboxRead): Promise<number> {
+/** What one read recorded, and whether Graph's rate limit ended it (round 4). */
+interface Recorded {
+  count: number;
+  limited: boolean;
+}
+
+async function record(ctx: StepContext, key: Key, read: InboxRead): Promise<Recorded> {
+  // Round 4: Graph's rate limit ended the read; what it read and the lists left are recorded like a capped read.
+  if (read.limited) ctx.log("warn", "social_inbox_rate_limited", { key });
   // Round 3: a cap cut the read short; the lists left part way are stored with the cursor and resumed next tick.
-  if (read.truncated) {
+  else if (read.truncated) {
     ctx.log("warn", "social_inbox_truncated", { key, open: Object.keys(read.pending).length });
   }
   const { data, error } = await ctx.db.rpc("social_inbox_record", {
@@ -113,7 +120,16 @@ async function record(ctx: StepContext, key: Key, read: InboxRead): Promise<numb
     ...(read.newest === null ? {} : { p_read_until: read.newest }),
   });
   if (error !== null) throw unavailable("social_inbox_record");
-  return data;
+  return { count: data, limited: read.limited };
+}
+
+/** Round 4: one read and its record, its error kept so the other read still runs. */
+async function settle(read: () => Promise<Recorded>): Promise<Recorded | { error: unknown }> {
+  try {
+    return await read();
+  } catch (error) {
+    return { error };
+  }
 }
 
 export const readSocialInbox: SystemJobDefinition = {
@@ -128,25 +144,28 @@ export const readSocialInbox: SystemJobDefinition = {
       return { status: "done", result: { skipped: off } };
     }
     const { instagram_comments: posts, instagram_messages: inbox } = await cursors(ctx);
-    let comments = 0;
-    let messages = 0;
-    try {
-      comments = await record(
+    // Round 4: comments and messages are read apart, so an error in one is thrown only once the other is recorded.
+    // Graph's rate limit ends a read where it is; what it read and the lists left are recorded (meta-inbox.ts).
+    const comments = await settle(async () =>
+      record(
         ctx,
         "instagram_comments",
         await readComments(ctx, await ourPosts(ctx), posts.since, posts.pending),
-      );
-      messages = await record(
-        ctx,
-        "instagram_messages",
-        await readMessages(ctx, inbox.since, inbox.pending),
-      );
-    } catch (error) {
-      // Round 2: Graph's rate limit skips the tick (what was recorded stays, a cursor moves only with its rows).
-      if (!rateLimited(error)) throw error;
-      ctx.log("warn", "social_inbox_rate_limited", { comments });
-      return { status: "done", result: { skipped: "rate_limited", comments } };
-    }
-    return { status: "done", result: { comments, messages } };
+      ),
+    );
+    const messages = await settle(async () =>
+      record(ctx, "instagram_messages", await readMessages(ctx, inbox.since, inbox.pending)),
+    );
+    if ("error" in comments) throw comments.error;
+    if ("error" in messages) throw messages.error;
+    const limited = comments.limited || messages.limited;
+    return {
+      status: "done",
+      result: {
+        comments: comments.count,
+        messages: messages.count,
+        ...(limited ? { rate_limited: true } : {}),
+      },
+    };
   },
 };

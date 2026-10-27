@@ -105,6 +105,8 @@ export const errorCodes = {
   // B7 step 15a: a redirect row that breaks invariant 16, and a data request out of order (invariant 15).
   invalid_redirect: 422,
   not_verified: 409,
+  // W8 item 4 round 4: an Instagram handle named on a data request with no message from it proving it is the person's.
+  handle_unverified: 409,
   wrong_kind: 409,
   note_required: 422,
   // W8 item 10 (H116): a proposed post refused at creation, each with its reason in the message.

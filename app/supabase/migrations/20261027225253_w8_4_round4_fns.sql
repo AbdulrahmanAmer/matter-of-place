@@ -1,0 +1,288 @@
+-- down: re-run bun run db:fn subject_handle_proof export_subject delete_subject from the previous commit of supabase/sql/functions/subject_handle_proof.sql, supabase/sql/functions/export_subject.sql, supabase/sql/functions/delete_subject.sql
+set lock_timeout = '5s';
+
+create or replace function public.subject_handle_proof(
+  p_subject_request_id uuid,
+  p_received_at timestamptz,
+  p_handle text
+)
+returns uuid
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_reference text := left(p_subject_request_id::text, 8);
+  v_proof uuid;
+begin
+  -- W8 item 4 round 4: an Instagram handle named on a data request is the person's only when a message from it,
+  -- received after the request, holds the request's short reference (the first 8 characters of its id, as the request
+  -- desk and the admin screens write it). Anyone can type a handle, and its messages are private, so without that
+  -- message export_subject and delete_subject refuse with 'handle_unverified'. Answers the proving message's id.
+  select s.id into v_proof
+  from public.social_inbox s
+  where s.kind = 'message'
+    and lower(s.author_handle) = p_handle
+    and s.received_at >= p_received_at
+    and strpos(lower(s.body), v_reference) > 0
+  order by s.received_at, s.id
+  limit 1;
+  if v_proof is null then
+    raise exception 'handle_unverified'
+      using detail = 'No Instagram message from that handle, sent after the request, holds its reference. Ask the person to send the reference from that account.';
+  end if;
+  return v_proof;
+end;
+$$;
+
+revoke execute on function public.subject_handle_proof(uuid, timestamptz, text)
+  from public, anon, authenticated;
+grant execute on function public.subject_handle_proof(uuid, timestamptz, text) to service_role;
+
+create or replace function public.export_subject(
+  p_subject_request_id uuid,
+  p_actor uuid,
+  p_actor_kind public.actor_kind,
+  p_request_id text,
+  p_instagram_handle text default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_row public.subject_requests;
+  v_email text;
+  -- W8 item 4 round 3: the Instagram handle the person names, read as delete_subject reads it.
+  v_handle text := lower(nullif(btrim(ltrim(btrim(coalesce(p_instagram_handle, '')), '@')), ''));
+  v_contacts uuid[];
+  v_bundle jsonb;
+  v_proof uuid;
+begin
+  -- Invariant 15 (GP-01): an access request, once identity is confirmed, gets one bundle of every row the address
+  -- appears in, and the request is fulfilled.
+  select * into v_row from public.subject_requests r where r.id = p_subject_request_id for update;
+  if not found then
+    raise exception 'not_found' using errcode = 'P0002';
+  end if;
+  if v_row.kind <> 'access' then
+    raise exception 'wrong_kind';
+  end if;
+  if v_row.status in ('fulfilled', 'rejected') then
+    raise exception 'wrong_state';
+  end if;
+  if v_row.verified_at is null then
+    raise exception 'not_verified';
+  end if;
+  v_email := lower(v_row.email);
+  -- W8 item 4 round 4: a handle typed on the request proves nothing, and its messages are private; it is read only with
+  -- the proof subject_handle_proof finds, and that message's id is kept on the request and in the audit row.
+  if v_handle is not null then
+    v_proof := public.subject_handle_proof(v_row.id, v_row.received_at, v_handle);
+  end if;
+
+  -- S55: the person's contacts row with its notes, and every submission made under the address or linked to it.
+  select coalesce(array_agg(c.id), '{}') into v_contacts from public.contacts c where lower(c.email) = v_email;
+  select jsonb_build_object(
+    'request', jsonb_build_object('id', v_row.id, 'kind', v_row.kind, 'received_at', v_row.received_at),
+    'email', v_email,
+    'subscribers', coalesce((
+      select jsonb_agg(to_jsonb(s) - 'confirm_token_hash' order by s.created_at)
+      from public.subscribers s where lower(s.email) = v_email
+    ), '[]'),
+    'inquiries', coalesce((
+      select jsonb_agg(to_jsonb(i) order by i.received_at)
+      from public.inquiries i where lower(i.email) = v_email
+    ), '[]'),
+    'contacts', coalesce((
+      select jsonb_agg(to_jsonb(c) order by c.created_at)
+      from public.contacts c where c.id = any (v_contacts)
+    ), '[]'),
+    'submissions', coalesce((
+      select jsonb_agg(to_jsonb(s) order by s.received_at)
+      from public.submissions s
+      where lower(s.submitter_email) = v_email or s.contact_id = any (v_contacts)
+    ), '[]'),
+    -- W8 0h review: every email the person sent us that the mailbox check recorded.
+    'inbound_mail', coalesce((
+      select jsonb_agg(to_jsonb(m) order by m.received_at)
+      from public.inbound_mail m where lower(m.from_email) = v_email
+    ), '[]'),
+    -- W8 item 4 round 3: the comments and messages of the Instagram handle the person names and has proved (round 4).
+    'social_inbox', coalesce((
+      select jsonb_agg(to_jsonb(s) order by s.received_at)
+      from public.social_inbox s where v_handle is not null and lower(s.author_handle) = v_handle
+    ), '[]')
+  ) into v_bundle;
+
+  update public.subject_requests r
+  set status = 'fulfilled', fulfilled_at = now(), handled_by = p_actor, handle_proof_id = v_proof
+  where r.id = p_subject_request_id;
+  -- Ids and counts only (invariant 18).
+  perform public.write_audit(
+    p_actor, p_actor_kind, 'audit.subject_export', 'subject_request', p_subject_request_id,
+    jsonb_build_object('id', v_row.id, 'status', v_row.status),
+    jsonb_build_object(
+      'id', v_row.id, 'status', 'fulfilled', 'handle_proof_id', v_proof,
+      'counts', jsonb_build_object(
+        'subscribers', jsonb_array_length(v_bundle -> 'subscribers'),
+        'inquiries', jsonb_array_length(v_bundle -> 'inquiries'),
+        'contacts', jsonb_array_length(v_bundle -> 'contacts'),
+        'submissions', jsonb_array_length(v_bundle -> 'submissions'),
+        'inbound_mail', jsonb_array_length(v_bundle -> 'inbound_mail'),
+        'social_inbox', jsonb_array_length(v_bundle -> 'social_inbox')
+      )
+    ),
+    p_request_id
+  );
+  return v_bundle;
+end;
+$$;
+
+revoke execute on function public.export_subject(uuid, uuid, public.actor_kind, text, text)
+  from public, anon, authenticated;
+grant execute on function public.export_subject(uuid, uuid, public.actor_kind, text, text) to service_role;
+
+create or replace function public.delete_subject(
+  p_subject_request_id uuid,
+  p_actor uuid,
+  p_actor_kind public.actor_kind,
+  p_request_id text,
+  p_instagram_handle text default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_row public.subject_requests;
+  v_email text;
+  v_contacts uuid[];
+  v_inquiries uuid[];
+  v_subscribers int;
+  v_submissions int;
+  v_inbound int;
+  v_handle text := lower(nullif(btrim(ltrim(btrim(coalesce(p_instagram_handle, '')), '@')), ''));
+  v_social int := 0;
+  v_social_ids uuid[] := '{}';
+  v_counts jsonb;
+  v_proof uuid;
+begin
+  -- Invariant 15 (GP-01): a deletion request, once identity is confirmed, anonymises every row the address appears
+  -- in. Nothing is hard deleted (GD-04): the rows stay for the counts and lose what names the person.
+  select * into v_row from public.subject_requests r where r.id = p_subject_request_id for update;
+  if not found then
+    raise exception 'not_found' using errcode = 'P0002';
+  end if;
+  if v_row.kind <> 'deletion' then
+    raise exception 'wrong_kind';
+  end if;
+  if v_row.status in ('fulfilled', 'rejected') then
+    raise exception 'wrong_state';
+  end if;
+  if v_row.verified_at is null then
+    raise exception 'not_verified';
+  end if;
+  v_email := lower(v_row.email);
+  -- W8 item 4 round 4: a typed handle deletes nothing until a message from it proves it is the person's
+  -- (subject_handle_proof); that message's id is kept on the request and in the audit row.
+  if v_handle is not null then
+    v_proof := public.subject_handle_proof(v_row.id, v_row.received_at, v_handle);
+  end if;
+  select coalesce(array_agg(c.id), '{}') into v_contacts from public.contacts c where lower(c.email) = v_email;
+  select coalesce(array_agg(i.id), '{}') into v_inquiries from public.inquiries i where lower(i.email) = v_email;
+
+  -- The same columns as B8's retention_anonymise_contacts (S55); the address becomes a hash no one can write to.
+  update public.submissions s
+  set submitter_name = '',
+    submitter_email = encode(sha256(convert_to(s.submitter_email, 'UTF8')), 'hex') || '@anonymised.invalid',
+    submitter_phone = null,
+    listing_agent_name = null
+  where lower(s.submitter_email) = v_email or s.contact_id = any (v_contacts);
+  get diagnostics v_submissions = row_count;
+  update public.contacts c
+  set name = '',
+    email = encode(sha256(convert_to(c.email, 'UTF8')), 'hex') || '@anonymised.invalid',
+    phone = null,
+    brokerage = null,
+    notes = null,
+    archived_at = now()
+  where c.id = any (v_contacts);
+  -- The same columns as B8's retention_anonymise_inquiries, so screen 11 shows both paths the same way.
+  update public.inquiries i
+  set name = '',
+    message = '',
+    phone = null,
+    location = null,
+    details = '{}'::jsonb,
+    attribution = '{}'::jsonb,
+    forwarded_payload = null,
+    email = encode(sha256(convert_to(i.email, 'UTF8')), 'hex') || '@anonymised.invalid',
+    anonymised_at = now()
+  where i.id = any (v_inquiries);
+  -- G16: a webhook job of those inquiries keeps no copy of the old email or message.
+  update public.jobs
+  set result = result - 'body'
+  where type = 'webhook_omnikom'
+    and payload -> 'data' ->> 'inquiry_id' = any (v_inquiries::text[])
+    and result ? 'body';
+  update public.subscribers s
+  set email = encode(sha256(convert_to(s.email, 'UTF8')), 'hex') || '@anonymised.invalid',
+    confirm_token_hash = null,
+    unsubscribed_at = coalesce(s.unsubscribed_at, now())
+  where lower(s.email) = v_email;
+  get diagnostics v_subscribers = row_count;
+  -- W8 0h review: the person's emails read from the mailbox keep their place and lose the address, name and words.
+  update public.inbound_mail m
+  set from_email = encode(sha256(convert_to(m.from_email, 'UTF8')), 'hex') || '@anonymised.invalid',
+    from_name = null,
+    subject = '',
+    body = '',
+    attachments = '{}'
+  where lower(m.from_email) = v_email;
+  get diagnostics v_inbound = row_count;
+  -- W8 item 4 round 2: the Instagram handle the person names (staff enter it on the request) deletes that handle's
+  -- comments and messages; deleted, not anonymised, as retention does, since a body quotes the person.
+  if v_handle is not null then
+    with gone as (
+      delete from public.social_inbox s where lower(s.author_handle) = v_handle returning s.id
+    )
+    select coalesce(array_agg(gone.id), '{}') into v_social_ids from gone;
+    v_social := cardinality(v_social_ids);
+    -- Round 3: a held line (W8 0d, the runner's `heldLine`) quotes the part of a comment that tried to instruct and
+    -- the triage's words about its author; one tied to a deleted row, by the record it ends with, goes with it.
+    delete from public.agent_messages m
+    where m.author_id = 'triage' and m.author_kind = 'system'
+      and substring(m.body from E'\nRecord: social_comment ([0-9a-f-]{36})\\.$') = any (v_social_ids::text[]);
+  end if;
+
+  update public.subject_requests r
+  set status = 'fulfilled', fulfilled_at = now(), handled_by = p_actor, handle_proof_id = v_proof
+  where r.id = p_subject_request_id;
+  v_counts := jsonb_build_object(
+    'subscribers', v_subscribers,
+    'inquiries', cardinality(v_inquiries),
+    'contacts', cardinality(v_contacts),
+    'submissions', v_submissions,
+    'inbound_mail', v_inbound,
+    'social_inbox', v_social
+  );
+  -- Ids and counts only (invariant 18): the audit trail keeps no copy of the address.
+  perform public.write_audit(
+    p_actor, p_actor_kind, 'audit.subject_delete', 'subject_request', p_subject_request_id,
+    jsonb_build_object('id', v_row.id, 'status', v_row.status),
+    jsonb_build_object(
+      'id', v_row.id, 'status', 'fulfilled', 'counts', v_counts, 'handle_proof_id', v_proof
+    ),
+    p_request_id
+  );
+  return jsonb_build_object('id', v_row.id, 'status', 'fulfilled', 'counts', v_counts);
+end;
+$$;
+
+revoke execute on function public.delete_subject(uuid, uuid, public.actor_kind, text, text)
+  from public, anon, authenticated;
+grant execute on function public.delete_subject(uuid, uuid, public.actor_kind, text, text) to service_role;

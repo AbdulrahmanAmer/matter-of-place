@@ -1353,14 +1353,14 @@ isOneToOne: false
                   ]
                 },"subject_requests": {
                   Row: {
-                    "created_at": string,"due_at": string | null,"email": string,"fulfilled_at": string | null,"handled_by": string | null,"id": string,"ip_hash": string | null,"kind": string,"note": string | null,"received_at": string,"status": string,"turnstile_ok": boolean,"updated_at": string,"verified_at": string | null
+                    "created_at": string,"due_at": string | null,"email": string,"fulfilled_at": string | null,"handle_proof_id": string | null,"handled_by": string | null,"id": string,"ip_hash": string | null,"kind": string,"note": string | null,"received_at": string,"status": string,"turnstile_ok": boolean,"updated_at": string,"verified_at": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"due_at"?: never,"email": string,"fulfilled_at"?: string | null,"handled_by"?: string | null,"id"?: string,"ip_hash"?: string | null,"kind": string,"note"?: string | null,"received_at"?: string,"status"?: string,"turnstile_ok"?: boolean,"updated_at"?: string,"verified_at"?: string | null
+                    "created_at"?: string,"due_at"?: never,"email": string,"fulfilled_at"?: string | null,"handle_proof_id"?: string | null,"handled_by"?: string | null,"id"?: string,"ip_hash"?: string | null,"kind": string,"note"?: string | null,"received_at"?: string,"status"?: string,"turnstile_ok"?: boolean,"updated_at"?: string,"verified_at"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"due_at"?: never,"email"?: string,"fulfilled_at"?: string | null,"handled_by"?: string | null,"id"?: string,"ip_hash"?: string | null,"kind"?: string,"note"?: string | null,"received_at"?: string,"status"?: string,"turnstile_ok"?: boolean,"updated_at"?: string,"verified_at"?: string | null
+                    "created_at"?: string,"due_at"?: never,"email"?: string,"fulfilled_at"?: string | null,"handle_proof_id"?: string | null,"handled_by"?: string | null,"id"?: string,"ip_hash"?: string | null,"kind"?: string,"note"?: string | null,"received_at"?: string,"status"?: string,"turnstile_ok"?: boolean,"updated_at"?: string,"verified_at"?: string | null
                   }
                   Relationships: [
                     
@@ -2561,6 +2561,9 @@ isOneToOne: false
                            },
 "studio_piece_put":
 { Args: { "p_asset_id"?: string,"p_folder": string,"p_id": string,"p_note": string,"p_owner": string,"p_preview_key"?: string,"p_state": string,"p_title": string }; Returns: undefined
+                           },
+"subject_handle_proof":
+{ Args: { "p_handle": string,"p_received_at": string,"p_subject_request_id": string }; Returns: string
                            },
 "submission_event_payload":
 { Args: { "p_submission": Omit<Database["public"]['Tables']["submissions"]['Row'], Database["public"]['Tables']["submissions"]['ComputedFields']> }; Returns: Json

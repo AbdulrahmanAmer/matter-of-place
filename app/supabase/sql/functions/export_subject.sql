@@ -17,6 +17,7 @@ declare
   v_handle text := lower(nullif(btrim(ltrim(btrim(coalesce(p_instagram_handle, '')), '@')), ''));
   v_contacts uuid[];
   v_bundle jsonb;
+  v_proof uuid;
 begin
   -- Invariant 15 (GP-01): an access request, once identity is confirmed, gets one bundle of every row the address
   -- appears in, and the request is fulfilled.
@@ -34,6 +35,11 @@ begin
     raise exception 'not_verified';
   end if;
   v_email := lower(v_row.email);
+  -- W8 item 4 round 4: a handle typed on the request proves nothing, and its messages are private; it is read only with
+  -- the proof subject_handle_proof finds, and that message's id is kept on the request and in the audit row.
+  if v_handle is not null then
+    v_proof := public.subject_handle_proof(v_row.id, v_row.received_at, v_handle);
+  end if;
 
   -- S55: the person's contacts row with its notes, and every submission made under the address or linked to it.
   select coalesce(array_agg(c.id), '{}') into v_contacts from public.contacts c where lower(c.email) = v_email;
@@ -62,7 +68,7 @@ begin
       select jsonb_agg(to_jsonb(m) order by m.received_at)
       from public.inbound_mail m where lower(m.from_email) = v_email
     ), '[]'),
-    -- W8 item 4 round 3: the comments and messages of the Instagram handle the person names; none without one.
+    -- W8 item 4 round 3: the comments and messages of the Instagram handle the person names and has proved (round 4).
     'social_inbox', coalesce((
       select jsonb_agg(to_jsonb(s) order by s.received_at)
       from public.social_inbox s where v_handle is not null and lower(s.author_handle) = v_handle
@@ -70,14 +76,14 @@ begin
   ) into v_bundle;
 
   update public.subject_requests r
-  set status = 'fulfilled', fulfilled_at = now(), handled_by = p_actor
+  set status = 'fulfilled', fulfilled_at = now(), handled_by = p_actor, handle_proof_id = v_proof
   where r.id = p_subject_request_id;
   -- Ids and counts only (invariant 18).
   perform public.write_audit(
     p_actor, p_actor_kind, 'audit.subject_export', 'subject_request', p_subject_request_id,
     jsonb_build_object('id', v_row.id, 'status', v_row.status),
     jsonb_build_object(
-      'id', v_row.id, 'status', 'fulfilled',
+      'id', v_row.id, 'status', 'fulfilled', 'handle_proof_id', v_proof,
       'counts', jsonb_build_object(
         'subscribers', jsonb_array_length(v_bundle -> 'subscribers'),
         'inquiries', jsonb_array_length(v_bundle -> 'inquiries'),

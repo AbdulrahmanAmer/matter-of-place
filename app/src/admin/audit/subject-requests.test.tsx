@@ -244,6 +244,20 @@ describe("screen 25, data requests", () => {
     });
   });
 
+  it("tells staff how a person proves a handle: a message from it holding the request's reference (W8 item 4 round 4)", async () => {
+    const line = row(4, {
+      id: "4a3c2563-0000-4000-8000-000000000004",
+      kind: "deletion",
+      verified_at: "2026-09-02T12:00:00+00:00",
+    });
+    mount([line]);
+    fireEvent.click(await screen.findByRole("button", { name: "Delete" }));
+    const dialog = await screen.findByRole("dialog", { name: "Delete this person's data" });
+    expect(within(dialog).queryByText(/that holds 4a3c2563\./)?.textContent).toBe(
+      "Optional. A handle counts once the person sends us an Instagram message from it, after this request, that holds 4a3c2563. Its comments and messages are then deleted too, with any line held for Matter about them.",
+    );
+  });
+
   it("Reject asks for a note and sends nothing without one", async () => {
     const line = row(1);
     const requested = serve({

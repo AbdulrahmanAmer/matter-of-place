@@ -186,8 +186,9 @@ function PrivacyPage() {
         </p>
         <p>
           An AI writing assistant receives the facts of a property when a caption is drafted, and
-          the words of an Instagram comment or message when a reply is drafted. A person reviews
-          every caption and approves every reply before it is used.
+          the words and handle of an Instagram comment or message, and the comments it answers, when
+          a reply is drafted. A person reviews every caption, and a person approves every reply
+          before it is sent.
         </p>
         <p>
           Meta, X and LinkedIn receive only what we post. {siteConfig.parentCompany} receives the

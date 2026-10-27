@@ -26,6 +26,9 @@ export const LogEvent = [
   "social_inbox_truncated",
   "social_inbox_rate_limited",
   "social_inbox_pending_unreadable",
+  // Round 4: one list of a read whose node Graph says is gone (dropped), or that Graph refused (the cursor held).
+  "social_inbox_list_gone",
+  "social_inbox_list_failed",
   "fanout_failed",
   "fanout_payload_invalid",
   "fanout_failure_unrecorded",

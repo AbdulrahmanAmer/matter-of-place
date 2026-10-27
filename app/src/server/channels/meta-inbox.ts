@@ -12,6 +12,7 @@ import { call, connect, GraphError, type Session } from "./meta.ts";
 // conversation when the reply is sent.
 // Round 3: Graph documents no order for these lists, so every list is read to its end, a page cut short by the read's
 // caps is kept as Graph's `after` cursor (`Pending`, stored with the time cursor) and the next read resumes it first.
+// Round 4: one list's error never throws the whole read (`readList`), and a rate limit keeps what was read.
 
 /** One comment or message as `social_inbox_record` takes it (a type, so it is `Json` as it stands). */
 type InboxItem = {
@@ -38,7 +39,8 @@ const passSchema = z.object({
   edge: z.enum(["comments", "replies", "conversations", "messages"]),
   /** A comment's media, or a message's conversation, as `InboxItem.thread_graph_id`. */
   thread: idField,
-  after: idField,
+  /** Round 4: none for a list Graph's rate limit stopped before its first page; it is read from there. */
+  after: idField.optional(),
   since: z.string().nullable(),
   started: z.string(),
 });
@@ -57,6 +59,8 @@ export interface InboxRead {
   newest: string | null;
   truncated: boolean;
   pending: Pending;
+  /** Round 4: Graph's rate limit stopped the read; what it read and the lists left are recorded all the same. */
+  limited: boolean;
 }
 
 /** A comment page holds at most this many; one read reads at most this many pages of a list, and calls in all. */
@@ -157,10 +161,14 @@ function newestOf(times: readonly string[], since: Date | null): string | null {
   return newest === 0 ? null : new Date(newest).toISOString();
 }
 
-/** Graph's rate limit, every error of class `retry_at` (meta-errors.ts): the read job skips this tick (round 3). */
+/** Graph's rate limit, every error of class `retry_at` (meta-errors.ts): it ends the read where it is (round 4). */
 export function rateLimited(error: unknown): boolean {
   return error instanceof GraphError && error.detail.class === "retry_at";
 }
+
+/** Round 4: Graph's answer for a node that no longer exists (a deleted post, comment or conversation). */
+const nodeGone = (error: GraphError): boolean =>
+  error.detail.code === 100 && error.detail.subcode === 33;
 
 /** One read in progress: what it found, the calls it made and the lists still to read (nested ones join the end). */
 interface Reading {
@@ -182,9 +190,48 @@ function nested(reading: Reading, parent: Pass, edge: Pass["edge"], node: string
 }
 
 /**
+ * How one list's read ended: read to its end, cut by a cap at a cursor (none: not begun), stopped by Graph's rate limit
+ * at a cursor (none: before its first page), its node gone, or refused by Graph.
+ */
+type ListEnd =
+  | { end: "done" }
+  | { end: "open" | "limited"; after: string | undefined }
+  | { end: "gone" }
+  | { end: "failed"; code: number | null };
+
+/**
+ * Reads one list from its cursor, at most MAX_PAGES pages within MAX_CALLS. Round 4: Graph's paging docs say a stored
+ * cursor goes invalid as items are added or deleted, so a page refused at a cursor is read again from the list's first
+ * page, once, with the list's own `since` and `started`. A Graph error never throws past the list, except a token Graph
+ * no longer takes, which every list would meet.
+ */
+async function readList(reading: Reading, pass: Pass, readPage: PageReader): Promise<ListEnd> {
+  let cursor = pass.after;
+  let restarted = false;
+  for (let page = 0; page < MAX_PAGES && reading.calls < MAX_CALLS; page += 1) {
+    reading.calls += 1;
+    try {
+      cursor = await readPage(reading, { ...pass, after: cursor });
+      if (cursor === undefined) return { end: "done" };
+    } catch (error) {
+      if (!(error instanceof GraphError) || error.detail.class === "token_dead") throw error;
+      if (rateLimited(error)) return { end: "limited", after: cursor };
+      if (nodeGone(error)) return { end: "gone" };
+      if (cursor === undefined || restarted) return { end: "failed", code: error.detail.code };
+      restarted = true;
+      cursor = undefined;
+    }
+  }
+  return { end: "open", after: cursor };
+}
+
+/**
  * Reads the pending lists first, oldest first, then the fresh ones, each at most MAX_PAGES pages and all within
  * MAX_CALLS. A list cut short is kept with its cursor; a fresh list not begun holds the time cursor where it was. The
  * time cursor never passes the start of a list read this tick or still open, so nothing written meanwhile is skipped.
+ * Round 4: a list whose node is gone is dropped; a list Graph refuses holds the time cursor, so the next read finds
+ * it again from its parent; Graph's rate limit stops the read, and every list left, begun or not, is kept and read
+ * first next tick, before the lists read this tick.
  */
 async function readAll(
   session: Session,
@@ -194,28 +241,36 @@ async function readAll(
   readPage: PageReader,
 ): Promise<InboxRead> {
   const resumed = Object.entries(stored)
-    .map(([node, pass]): Pass => ({ ...pass, node }))
+    .map(([node, pass]): Pass => ({ ...pass, node, after: pass.after }))
     .sort((a, b) => timeOf(a.started) - timeOf(b.started));
   const reading: Reading = { session, items: [], times: [], calls: 0, queue: [...resumed] };
   for (const pass of fresh) if (!(pass.node in stored)) reading.queue.push(pass);
   const pending: Pending = {};
   let unread = false;
+  let limited = false;
   let open = Infinity;
   for (let index = 0; index < reading.queue.length; index += 1) {
     const pass = reading.queue[index];
     if (pass === undefined) break;
     open = Math.min(open, timeOf(pass.started));
-    let cursor = pass.after;
-    if (reading.calls < MAX_CALLS) {
-      for (let page = 0; page < MAX_PAGES && reading.calls < MAX_CALLS; page += 1) {
-        reading.calls += 1;
-        cursor = await readPage(reading, { ...pass, after: cursor });
-        if (cursor === undefined) break;
+    const ended: ListEnd = limited
+      ? { end: "limited", after: pass.after }
+      : await readList(reading, pass, readPage);
+    const { node, ...rest } = pass;
+    if (ended.end === "limited") {
+      limited = true;
+      pending[node] = { ...rest, after: ended.after };
+    } else if (ended.end === "open") {
+      const cursor = ended.after;
+      if (cursor === undefined) unread = true;
+      else {
+        pending[node] = { ...rest, after: cursor };
       }
-    } else if (cursor === undefined) unread = true;
-    if (cursor !== undefined) {
-      const { node, ...rest } = pass;
-      pending[node] = { ...rest, after: cursor };
+    } else if (ended.end === "gone") {
+      session.ctx.log("info", "social_inbox_list_gone", { edge: pass.edge });
+    } else if (ended.end !== "done") {
+      unread = true;
+      session.ctx.log("warn", "social_inbox_list_failed", { edge: pass.edge, code: ended.code });
     }
   }
   const newest = newestOf(reading.times, since);
@@ -229,6 +284,7 @@ async function readAll(
         : newest,
     truncated: unread || Object.keys(pending).length > 0,
     pending,
+    limited,
   };
 }
 

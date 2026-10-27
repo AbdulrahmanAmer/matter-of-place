@@ -329,9 +329,13 @@ export function SubjectRequestsTab() {
             <Field
               label="Instagram handle"
               hint={
-                pending.action === "delete"
-                  ? "Optional. Only a handle the person has shown is theirs, for example by writing to us from it. Its Instagram comments and messages are deleted too, with any line held for Matter about them."
-                  : "Optional. Only a handle the person has shown is theirs, for example by writing to us from it: its messages are private. Its Instagram comments and messages are in the file too."
+                // W8 item 4 round 4: the database takes a handle only once a message from it, after the request,
+                // holds the request's reference (subject_handle_proof); the hint says how the person proves it.
+                `Optional. A handle counts once the person sends us an Instagram message from it, after this request, that holds ${pending.row.id.slice(0, 8)}. ${
+                  pending.action === "delete"
+                    ? "Its comments and messages are then deleted too, with any line held for Matter about them."
+                    : "Its comments and messages are then in the file too."
+                }`
               }
               {...(handleError === null ? {} : { error: handleError })}
             >

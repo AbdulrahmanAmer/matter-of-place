@@ -386,6 +386,47 @@ describe("round 3: a read cut short resumes where it stopped", () => {
   });
 });
 
+describe("round 4: Graph's rate limit ends a read where it is", () => {
+  it("keeps the pages read, keeps every list left, begun or not, and reads those first next time", async () => {
+    const [A, B, C] = ["17900000000000011", "17900000000000012", "17900000000000013"];
+    const at = "2026-10-03T11:00:00+0000";
+    const pages: Record<string, unknown> = {
+      [`${A}/comments first`]: { data: [comment("a1", at)] },
+      [`${B}/comments first`]: { data: [comment("b1", at)], paging: more("b2") },
+      [`${B}/comments b2`]: { data: [comment("b2", at)] },
+      [`${C}/comments first`]: { data: [comment("c1", at)] },
+    };
+    let limit = true;
+    const sent: string[] = [];
+    vi.stubGlobal("fetch", (input: string) => {
+      const url = new URL(input);
+      const asked = `${url.pathname.replace(/^\/v23\.0\//, "")} ${url.searchParams.get("after") ?? "first"}`;
+      sent.push(asked);
+      if (limit && asked === `${B}/comments b2`) {
+        const refusal = { error: { message: "Application request limit", code: 4 } };
+        return Promise.resolve(new Response(JSON.stringify(refusal), { status: 400 }));
+      }
+      return Promise.resolve(new Response(JSON.stringify(pages[asked] ?? { data: [] })));
+    });
+    const first = await readComments(ctx(), [A, B, C], SINCE).catch(() => null);
+    const open = { edge: "comments", since: SINCE.toISOString() };
+    expect(first).toMatchObject({ limited: true, truncated: true });
+    expect(first === null ? [] : ids(first)).toEqual(["a1", "b1"]);
+    expect(first?.pending).toEqual({
+      [B]: { ...open, thread: B, after: "b2", started: ctx().now.toISOString() },
+      [C]: { ...open, thread: C, started: ctx().now.toISOString() },
+    });
+    limit = false;
+    const second = await readComments(ctx(), [A, B, C], SINCE, first?.pending ?? {});
+    expect(sent.slice(3)).toEqual([
+      `${B}/comments b2`,
+      `${C}/comments first`,
+      `${A}/comments first`,
+    ]);
+    expect(ids(second)).toEqual(["b2", "c1", "a1"]);
+  });
+});
+
 describe("sending a reply", () => {
   const comment = { kind: "comment" as const, graph_id: "c1", thread_graph_id: MEDIA };
 

@@ -83,6 +83,34 @@ async function proposed(db: Db): Promise<{ inbox: string; approval: string; hash
   return { inbox, approval, hash };
 }
 
+/**
+ * Round 4: the Instagram message that proves `handle` is the person's: from it, a minute after the request, holding the
+ * request's short reference (the first 8 characters of its id).
+ */
+async function prove(
+  db: Db,
+  request: string,
+  handle: string,
+  graphId = "w84-proof",
+  shift = "1 minute",
+) {
+  const at = await scalar<string>(
+    db,
+    "select to_json(received_at + $2::interval) #>> '{}' as v from public.subject_requests where id = $1",
+    [request, shift],
+  );
+  const message = {
+    kind: "message",
+    graph_id: graphId,
+    thread_graph_id: "w84-t9",
+    parent_graph_id: null,
+    author_handle: handle,
+    body: `About my request ${request.slice(0, 8)}.`,
+    received_at: at,
+  };
+  await record(db, JSON.stringify([message]), "instagram_messages", null);
+}
+
 /** Round 3: a person on record, who may approve a reply on Instagram (a human role row). */
 const person = (db: Db) => createStaffUser(db, ["admin"]);
 
@@ -535,6 +563,7 @@ describe("W8 item 4 round 2", () => {
       );
       await db.query(STATUS, [id, "start_verification", admin, null]);
       await db.query(STATUS, [id, "confirm_identity", admin, "Wrote from the account."]);
+      await prove(db, id, "reader");
       const result = await scalar<{ counts: Record<string, number> }>(
         db,
         "select public.delete_subject($1, $2, 'human', 'r-w84', ' @Reader ') as v",
@@ -545,7 +574,8 @@ describe("W8 item 4 round 2", () => {
       );
       return { removed: result.counts["social_inbox"], left: left.rows.map((row) => row.graph_id) };
     });
-    expect(seen).toEqual({ removed: 1, left: ["w84-m1"] });
+    // Round 4: the proving message is the handle's own and goes with its comment.
+    expect(seen).toEqual({ removed: 2, left: ["w84-m1"] });
   });
 });
 
@@ -657,6 +687,7 @@ describe("W8 item 4 round 3", () => {
     const seen = await withRollback(async (db) => {
       await record(db, items, "instagram_comments", null);
       const named = await confirmed(db, "access");
+      await prove(db, named.id, "Reader");
       const bundle = await scalar<{ social_inbox: { graph_id: string }[] }>(
         db,
         "select public.export_subject($1, $2, 'human', 'r-w84r3', ' @Reader ') as v",
@@ -673,7 +704,7 @@ describe("W8 item 4 round 3", () => {
         none: none.social_inbox.length,
       };
     });
-    expect(seen).toEqual({ named: ["w84-c1"], none: 0 });
+    expect(seen).toEqual({ named: ["w84-c1", "w84-proof"], none: 0 });
   });
 
   it("deletes the lines held for Matter about a deleted handle's comments, and no other line", async () => {
@@ -697,6 +728,7 @@ describe("W8 item 4 round 3", () => {
       const tied = await held(inbox);
       const kept = await held(other);
       const named = await confirmed(db, "deletion");
+      await prove(db, named.id, "reader");
       await db.query("select public.delete_subject($1, $2, 'human', 'r-w84r3c', 'reader')", [
         named.id,
         named.admin,
@@ -708,5 +740,101 @@ describe("W8 item 4 round 3", () => {
       return { left: left.rows.map((row) => row.id), kept };
     });
     expect(seen.left).toEqual([seen.kept]);
+  });
+});
+
+describe("W8 item 4 round 4", () => {
+  const EXPORT4 = "select public.export_subject($1, $2, 'human', 'r-w84r4', 'buyer') as v";
+  const DELETE4 = "select public.delete_subject($1, $2, 'human', 'r-w84r4d', 'buyer') as v";
+
+  /** A confirmed request of `kind`, and the admin who handles it. */
+  async function confirmed4(db: Db, kind: "access" | "deletion") {
+    const admin = await person(db);
+    const id = await scalar<string>(
+      db,
+      "insert into public.subject_requests (email, kind) values ('w84r4@example.net', $1) returning id as v",
+      [kind],
+    );
+    await db.query(STATUS, [id, "start_verification", admin, null]);
+    await db.query(STATUS, [id, "confirm_identity", admin, "Confirmed by email."]);
+    return { admin, id };
+  }
+
+  it("refuses an export or a deletion by a typed handle no message from it proves, and exports no message", async () => {
+    const seen = await withRollback(async (db) => {
+      // `buyer` wrote us a private message (w84-m1) before anyone asked for it.
+      await record(db, items, "instagram_comments", null);
+      const access = await confirmed4(db, "access");
+      const typed = await refusal(db, EXPORT4, [access.id, access.admin]);
+      // A message from the handle without the reference, the reference from another account, or the reference in a
+      // message from before the request, proves nothing.
+      await prove(db, access.id, "stranger", "w84-r4-other");
+      await prove(db, access.id, "buyer", "w84-r4-early", "-1 day");
+      await record(
+        db,
+        JSON.stringify([
+          {
+            kind: "message",
+            graph_id: "w84-r4-noref",
+            thread_graph_id: "w84-t1",
+            parent_graph_id: null,
+            author_handle: "buyer",
+            body: "Hello again.",
+            received_at: "2099-01-01T00:00:00Z",
+          },
+        ]),
+        "instagram_messages",
+        null,
+      );
+      const unproved = await refusal(db, EXPORT4, [access.id, access.admin]);
+      const deletion = await confirmed4(db, "deletion");
+      // The proof of another request does not prove this one.
+      await prove(db, access.id, "buyer", "w84-r4-access");
+      const deleted = await refusal(db, DELETE4, [deletion.id, deletion.admin]);
+      const kept = await scalar<number>(
+        db,
+        "select count(*)::int as v from public.social_inbox where author_handle = 'buyer'",
+      );
+      return { typed, unproved, deleted, kept };
+    });
+    expect(seen).toEqual({
+      typed: "handle_unverified",
+      unproved: "handle_unverified",
+      deleted: "handle_unverified",
+      kept: 4,
+    });
+  });
+
+  it("exports a handle's messages once a message from it holds the request's reference, and keeps that message's id on the request and in the audit row", async () => {
+    const seen = await withRollback(async (db) => {
+      await record(db, items, "instagram_comments", null);
+      const access = await confirmed4(db, "access");
+      await prove(db, access.id, "buyer");
+      const bundle = await scalar<{ social_inbox: { graph_id: string }[] }>(db, EXPORT4, [
+        access.id,
+        access.admin,
+      ]);
+      const proof = await scalar<string>(
+        db,
+        "select id::text as v from public.social_inbox where graph_id = 'w84-proof'",
+      );
+      const request = await scalar<string | null>(
+        db,
+        "select handle_proof_id::text as v from public.subject_requests where id = $1",
+        [access.id],
+      );
+      const audit = await scalar<string | null>(
+        db,
+        `select after ->> 'handle_proof_id' as v from public.audit_log
+         where action = 'audit.subject_export' and entity_id = $1`,
+        [access.id],
+      );
+      return {
+        exported: bundle.social_inbox.map((row) => row.graph_id),
+        request: request === proof,
+        audit: audit === proof,
+      };
+    });
+    expect(seen).toEqual({ exported: ["w84-m1", "w84-proof"], request: true, audit: true });
   });
 });

@@ -384,10 +384,11 @@ describe("the legal pages", () => {
     };
     expect(said.source).toContain("when you comment on our Instagram posts or write to us there");
     expect(said.use).toContain("reply to your comments and messages on Instagram");
+    // Round 4: the handle and the comments a comment answers reach the AI too, and a person approves before the send.
     expect(said.receives).toContain(
-      "the words of an Instagram comment or message when a reply is drafted",
+      "the words and handle of an Instagram comment or message, and the comments it answers, when a reply is drafted",
     );
-    expect(said.receives).toContain("approves every reply before it is used");
+    expect(said.receives).toContain("a person approves every reply before it is sent");
     expect(Object.values(said).join(" ")).not.toMatch(/—|–/);
   });
 

@@ -2535,3 +2535,14 @@ registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3
   registry W8-4.json 79 entries (19 new), 20 sql entries in five registries rebuilt on current texts; new unit, screen
   and privacy tests red on round 2's code; SQL probes on a native PG 18 stub cluster, red on round 2's texts. No PR
   (Matter merges). UNPROVEN until CI: typecheck, lint, db cases, replay. Bank P-4693, hit again P-2216.
+- 2026-10-28 02:15 +0300, W8 item 4 round 4 (branch overdrive/w8-4-comments, worktree E:/mop-build/od-w8-4, merged
+  origin/main 97304ea3 first: main's P-4681 kept, the branch's renumbered P-4691..P-4693, every main line present):
+  the fresh review's high and medium fixed. One list's Graph error no longer ends the read (`readList`): a refused
+  cursor restarts its list from page one once, a gone node is dropped (`social_inbox_list_gone`), a still-refused list
+  holds the time cursor (`social_inbox_list_failed`), a rate limit keeps the pages read and stores every list left;
+  comments and messages read apart. Export and delete by handle only with a proving message holding the request's
+  8-character reference (`subject_handle_proof`, else `handle_unverified`), its id on the request and in the audit row;
+  the hint names the reference; privacy lows. Migrations 20261027225100 (column) and 20261027225253 (fns); round 1's
+  three migrations renamed after main's 20261027202710. Registry W8-4.json 94 entries (16 new, 1 dropped), 9 sql
+  entries rebuilt. New tests red on round 3's code; SQL on the stub cluster. No PR (Matter merges). UNPROVEN until CI:
+  typecheck, lint, db cases, replay. Bank P-4694; hit again P-318, P-2216, P-4648.

@@ -22,6 +22,7 @@ declare
   v_social int := 0;
   v_social_ids uuid[] := '{}';
   v_counts jsonb;
+  v_proof uuid;
 begin
   -- Invariant 15 (GP-01): a deletion request, once identity is confirmed, anonymises every row the address appears
   -- in. Nothing is hard deleted (GD-04): the rows stay for the counts and lose what names the person.
@@ -39,6 +40,11 @@ begin
     raise exception 'not_verified';
   end if;
   v_email := lower(v_row.email);
+  -- W8 item 4 round 4: a typed handle deletes nothing until a message from it proves it is the person's
+  -- (subject_handle_proof); that message's id is kept on the request and in the audit row.
+  if v_handle is not null then
+    v_proof := public.subject_handle_proof(v_row.id, v_row.received_at, v_handle);
+  end if;
   select coalesce(array_agg(c.id), '{}') into v_contacts from public.contacts c where lower(c.email) = v_email;
   select coalesce(array_agg(i.id), '{}') into v_inquiries from public.inquiries i where lower(i.email) = v_email;
 
@@ -107,7 +113,7 @@ begin
   end if;
 
   update public.subject_requests r
-  set status = 'fulfilled', fulfilled_at = now(), handled_by = p_actor
+  set status = 'fulfilled', fulfilled_at = now(), handled_by = p_actor, handle_proof_id = v_proof
   where r.id = p_subject_request_id;
   v_counts := jsonb_build_object(
     'subscribers', v_subscribers,
@@ -121,7 +127,9 @@ begin
   perform public.write_audit(
     p_actor, p_actor_kind, 'audit.subject_delete', 'subject_request', p_subject_request_id,
     jsonb_build_object('id', v_row.id, 'status', v_row.status),
-    jsonb_build_object('id', v_row.id, 'status', 'fulfilled', 'counts', v_counts),
+    jsonb_build_object(
+      'id', v_row.id, 'status', 'fulfilled', 'counts', v_counts, 'handle_proof_id', v_proof
+    ),
     p_request_id
   );
   return jsonb_build_object('id', v_row.id, 'status', 'fulfilled', 'counts', v_counts);
