@@ -1,10 +1,10 @@
 // W7 item 8 (the item's own text): "Interest by market for the Campaigns and Newsletter colleagues: confirmed signups
 // per market and per page, this week and in total (the same read as the Interest screen, counts only, no addresses)."
-// The rows are the Interest screen's: `newsletter_export_subscribers` (what `listInterest` reads) returns every
-// subscriber that is not archived and not anonymised, confirmed when `confirmed_at` is set and `unsubscribed_at` is
-// not. The runner reads those same rows of `subscribers` through the service role, never the email column, and counts
-// here; that function is not called because it is an admin's audited export, gated by the role matrix.
-// The cache rule (architecture 13) is for public reads; this is an internal read of the runner, one query a run.
+// The counts come from `newsletter_interest_counts`, which reads the Interest screen's list (what
+// `newsletter_export_subscribers` returns: every subscriber not archived and not anonymised), keeps the confirmed and
+// not unsubscribed, and groups them in the database: no subscriber row leaves it, so no read meets PostgREST's row cap
+// (max_rows), and the export is not called because it is an admin's audited read, gated by the role matrix.
+// The cache rule (architecture 13) is for public reads; this is an internal read of the runner, one call a run.
 import type { Db } from "../../src/server/lib/db.ts";
 import { marketSlugSchema, regionSlugSchema } from "../../src/domain/market.ts";
 import { sourceName } from "../../src/admin/newsletter/interest-names.ts";
@@ -15,17 +15,38 @@ const READERS: readonly string[] = ["campaigns", "newsletter"];
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const MARKETS = marketSlugSchema.options;
 const REGIONS = regionSlugSchema.options;
-// A page as our forms name it (`interestSource`, the stories and Place Notes forms); any other text in the column was
-// sent by a visitor and is counted under "Other pages", never repeated.
-const OUR_PAGE = new RegExp(
-  `^(?:place-notes|stories|interest:(?:home|properties|stories)|interest:(?:${MARKETS.join("|")})(?:/(?:${REGIONS.join("|")}))?)$`,
-);
 
+/** A region in words: each region's name is its slug's words, capitalised ("the-hamptons" → "The Hamptons"). */
+const regionName = (slug: string) =>
+  slug
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+
+// A page as our forms name it (`interestSource`, the stories and Place Notes forms), with its name. The database
+// counts any other text in the column, sent by a visitor, under "Other pages" and never returns it.
+const PAGES = new Map<string, string>([
+  ...["place-notes", "stories", "interest:home", "interest:properties", "interest:stories"].map(
+    (source): [string, string] => [source, sourceName(source)],
+  ),
+  ...MARKETS.map((market): [string, string] => [
+    `interest:${market}`,
+    `${marketName(market)} page`,
+  ]),
+  ...MARKETS.flatMap((market) =>
+    REGIONS.map((region): [string, string] => [
+      `interest:${market}/${region}`,
+      `${marketName(market)}, ${regionName(region)} page`,
+    ]),
+  ),
+]);
+
+/** A row of `newsletter_interest_counts`: a market's count (source empty) or a page's (market empty). */
 export interface InterestRow {
-  markets: readonly string[];
+  market: string;
   source: string;
-  confirmed_at: string | null;
-  unsubscribed_at: string | null;
+  this_week: number;
+  total: number;
 }
 
 interface Count {
@@ -36,27 +57,31 @@ interface Count {
 const counted = (count: Count) =>
   `${String(count.week)} this week, ${String(count.total)} in total`;
 
-/** The block: confirmed signups per market (California, New York, Florida) and per page, this week and in total. */
-export function interestBlock(rows: readonly InterestRow[], now: Date): string {
-  const since = now.getTime() - WEEK_MS;
+const add = (count: Count, row: InterestRow) => {
+  count.week += row.this_week;
+  count.total += row.total;
+};
+
+/**
+ * The block: confirmed signups per market (California, New York, Florida) and per page, this week and in total. A
+ * signup that names a market twice counts once for it (the database counts its distinct markets); one that names two
+ * markets counts once in each, so the market lines can add up to more than all signups.
+ */
+export function interestBlock(rows: readonly InterestRow[]): string {
   const all: Count = { week: 0, total: 0 };
   const markets = new Map<string, Count>(MARKETS.map((slug) => [slug, { week: 0, total: 0 }]));
   const pages = new Map<string, Count>();
   for (const row of rows) {
-    if (row.confirmed_at === null || row.unsubscribed_at !== null) continue;
-    const thisWeek = Date.parse(row.confirmed_at) >= since ? 1 : 0;
-    const page = OUR_PAGE.test(row.source) ? sourceName(row.source) : "Other pages";
+    if (row.market !== "") {
+      const market = markets.get(row.market);
+      if (market !== undefined) add(market, row);
+      continue;
+    }
+    const page = PAGES.get(row.source) ?? "Other pages";
     const onPage = pages.get(page) ?? { week: 0, total: 0 };
     pages.set(page, onPage);
-    const counts: Count[] = [all, onPage];
-    for (const slug of new Set(row.markets)) {
-      const market = markets.get(slug);
-      if (market !== undefined) counts.push(market);
-    }
-    for (const count of counts) {
-      count.week += thisWeek;
-      count.total += 1;
-    }
+    add(onPage, row);
+    add(all, row);
   }
   return [
     "Interest by market and page (confirmed signups from the list the Interest screen reads; this week is the seven days to this read):",
@@ -80,13 +105,12 @@ export async function interestLines(
 ): Promise<string[]> {
   if (!READERS.includes(agentSlug)) return [];
   try {
-    const { data, error } = await client
-      .from("subscribers")
-      .select("markets, source, confirmed_at, unsubscribed_at")
-      .is("archived_at", null)
-      .not("email", "like", "%.invalid");
+    const { data, error } = await client.rpc("newsletter_interest_counts", {
+      p_since: new Date(now.getTime() - WEEK_MS).toISOString(),
+      p_pages: [...PAGES.keys()],
+    });
     if (error !== null) throw new Error("not read");
-    return [interestBlock(data, now)];
+    return [interestBlock(data)];
   } catch {
     return ["The interest counts could not be read for this run; say so if a plan needs them."];
   }

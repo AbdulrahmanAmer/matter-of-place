@@ -9376,3 +9376,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `grep -n 'home = join(homedir()' app/scripts/workforce/request-desk.ts` → the default; `cd app && bunx vitest run --project unit tests/unit/workforce-interest.test.ts` → `6 passed` with `() => false`.
 - added: 2026-10-27
 
+## P-4681 · A count made in TypeScript over a PostgREST read is wrong past 1000 rows, silently
+- symptom: 2026-10-27, W7 item 8 round 1 failed its fresh Opus review: `interest.ts` counted signups over `from("subscribers").select(...)` with no order and no paging; past 1000 rows the counts would come out short and differ between runs, and no test or error would show it.
+- cause: `supabase/config.toml` sets `max_rows = 1000`; PostgREST cuts every table read and every set-returning rpc at that many rows without an error. A fake db returns every row, so a unit test cannot see the cut.
+- rule: a count, total or "how many" over a table is made in SQL (a service-role function that groups and returns counts only, as `newsletter_interest_counts` does), never by fetching rows into code; a read that must return rows pages with `order` and `range`. Open: the Interest screen's `listInterest` reads every signup through `newsletter_export_subscribers` and totals them in code, so its totals and list stop at 1000 rows too (not changed in W7 item 8 round 2: the screen lists addresses, so it needs rows and paging, not a counts function).
+- proof: `grep -n "max_rows" app/supabase/config.toml` → `max_rows = 1000`; `grep -n 'rpc("newsletter_interest_counts"' app/scripts/workforce/interest.ts` → the one call.
+- added: 2026-10-27
+
