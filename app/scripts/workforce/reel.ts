@@ -10,15 +10,19 @@
 // itself. A step that fails stops the piece, writes nothing to the site, and says which check failed in the thread that
 // asked. Every change of a piece is saved to `brief.json` and `status.md` together, and its row (`studio_pieces`) is
 // brought in step with the folder at the start and end of every pass.
+import { spawn, spawnSync, type SpawnOptions } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import {
+  closeSync,
   copyFileSync,
   cpSync,
   existsSync,
   mkdirSync,
+  openSync,
   readdirSync,
   readFileSync,
   realpathSync,
+  rmSync,
   statSync,
   writeFileSync,
 } from "node:fs";
@@ -30,6 +34,7 @@ import { marketSlugSchema } from "../../src/domain/market.ts";
 import { jsonValue } from "../../src/domain/json-value.ts";
 import type { Json } from "../../src/db/index.ts";
 import type { Db } from "../../src/server/lib/db.ts";
+import { setPassDeadline } from "../lib/pass-deadline.mjs";
 import { projectName } from "./media.ts";
 import { postRequestSchema, type PostRequest } from "./post-request.ts";
 import {
@@ -619,6 +624,27 @@ export const REFERENCE = [
 export const GATE_RULES =
   "The motion gate measures the final file and refuses it unless: at least 85% of frames differ from the one before (keep the camera, a photograph or the light always moving; a held title still drifts), no still run longer than 1.0 s, 3 to 8 hard cuts (a cut counts only when the picture changes strongly, a scene score over 0.30: flip the value at every cut, dark to light or light to dark, as the film does; a cut between two dark framings of the same room is not seen, and the door move's passes through light are not cuts), an average shot of 2.0 to 5.5 s, the sound at -18 LUFS (within 1.5) with a true peak at or below -1 dBTP, and no sustained pitch (the score is noise-based sound design, never a held tone).";
 
+/**
+ * The site's own @font-face rules (`src/styles/fonts.css`, the one source) at the path the engine serves the files, for
+ * a studio designer to copy as they are. W8 item 1: a designer that guessed `CormorantGaramond-Light.woff2` failed every
+ * font request; the files are variable, one per family and style, a weight being a `font-weight` inside its range.
+ */
+export function fontFaces(
+  css: string = readFileSync(join(REPO, "app", "src", "styles", "fonts.css"), "utf8"),
+): string {
+  return (css.match(/@font-face\s*\{[^}]*\}/g) ?? [])
+    .filter((rule) => rule.includes('url("/fonts/'))
+    .map((rule) =>
+      rule.split(/\s+/).join(" ").split('url("/fonts/').join('url("/app/public/fonts/'),
+    )
+    .join("\n");
+}
+
+/** The typefaces a studio page may load, as the designer is told them. */
+export function fontRule(): string {
+  return `Typefaces only through these @font-face rules, the site's own, copied as they are into the page's CSS. Each file is a variable font: a weight is a font-weight inside its range and italic is font-style: italic, never a file of its own; no other font file exists.\n${fontFaces()}`;
+}
+
 /** The designer's brief: the request, the house rules that govern (H108, H110) and the files a scene must hold. */
 export function scenePrompt(brief: Brief, shots: readonly (Shot & { file: string })[]): string {
   const request = reelOf(brief);
@@ -635,11 +661,12 @@ export function scenePrompt(brief: Brief, shots: readonly (Shot & { file: string
         ]),
     "Read first, in reference/: DIRECTION.md (the Product Launch film: study its process and craft, never copy its layout or shots), MOTION-BIBLE.md, and the engine (film.js, audio.js). reel/ is the property reel, shown only as an example of the engine's API.",
     "House rules that govern (ruling H110): Cormorant Garamond for display, Jost for labels; palette Obsidian #11110F, Bone #EEEAE1, Warm Ivory #F5F2EB, Sandstone #C9C0B2 (accents only), Mineral Grey #575751, Warm Grey #8B877F. Ink follows the paper; one italic word per title; titles rise through masks, never bounce, fade, scale or glow; eased camera, no shake; cuts on an 80 BPM grid (0.75 s); no gradients, no glow, no music (S36): the score is synthesized sound design in cues.mjs only. Copy: calm, brief, no em dashes, no hyperbole, no promise of leads or sales.",
+    fontRule(),
     "Format: 1080 x 1920, 30 fps, 15 to 25 seconds, 3 to 8 cuts, every line that must be read inside the central safe area (about 950 x 980 px, clear of the top 270 px and bottom 670 px), and at least 32 px.",
     DOOR_RULE,
     GATE_RULES,
     COPY_RULE,
-    "Write exactly three files in scene/: scene.html (the page; fonts from /app/public/fonts/, tokens from /app/src/styles/tokens.css), scene.mjs (imports /launch/engine/runtime/film.js by that absolute path, reads ?spec= and ?cues=, draws the spec's titles and shots by their src), and cues.mjs (run as `node cues.mjs <spec.json> <out.json>`, writing the sound cue list audio.js plays, with the same duration as the scene).",
+    "Write exactly three files in scene/: scene.html (the page; fonts by the @font-face rules above, tokens from /app/src/styles/tokens.css), scene.mjs (imports /launch/engine/runtime/film.js by that absolute path, reads ?spec= and ?cues=, draws the spec's titles and shots by their src), and cues.mjs (run as `node cues.mjs <spec.json> <out.json>`, writing the sound cue list audio.js plays, with the same duration as the scene).",
     'End with one JSON object on its own: {"duration_s": <seconds>, "note": "one line on the idea"}.',
   ].join("\n\n");
 }
@@ -1108,8 +1135,9 @@ export function studioArgs(
 export async function realDeps(): Promise<ReelDeps> {
   const { childEnv, serviceDb } = await import("./env.ts");
   const { runClaude } = await import("./cli.ts");
-  const { renderRequested } = await import("../render-reel.mjs");
-  const { spawnSync } = await import("node:child_process");
+  // every child here has a limit, so a hung one fails its step and frees the pass's watchdog (W8 item 1, round 6)
+  const { renderRequested, spawnLimited, CHILD_LIMIT_MS, FFMPEG_LIMIT_MS } =
+    await import("../render-reel.mjs");
   const db = serviceDb();
   const media = db.storage.from("media");
   return {
@@ -1135,11 +1163,12 @@ export async function realDeps(): Promise<ReelDeps> {
       ).text,
     render: async (folder, spec) => {
       // The runner installs the app's packages only (follow.ts); the engine's live in launch/.
-      const install = spawnSync("bun", ["install", "--frozen-lockfile"], {
-        cwd: join(REPO, "launch"),
-        encoding: "utf8",
-        windowsHide: true,
-      });
+      const install = spawnLimited(
+        "bun",
+        ["install", "--frozen-lockfile"],
+        { cwd: join(REPO, "launch"), encoding: "utf8", windowsHide: true },
+        CHILD_LIMIT_MS,
+      );
       if (install.status !== 0)
         throw new Error("engine_packages_missing: bun install in launch/ failed");
       const made = await renderRequested({
@@ -1157,24 +1186,26 @@ export async function realDeps(): Promise<ReelDeps> {
     voice: null,
     review: async (folder, mp4, prompt) => {
       mkdirSync(join(folder, "review"), { recursive: true });
-      const count = spawnSync(
+      const count = spawnLimited(
         "ffprobe",
         [
           ...["-v", "error", "-select_streams", "v:0", "-count_packets"],
           ...["-show_entries", "stream=nb_read_packets", "-of", "csv=p=0", mp4],
         ],
         { encoding: "utf8", windowsHide: true },
+        FFMPEG_LIMIT_MS,
       );
       const frames = Number(count.stdout.trim());
       if (count.status !== 0 || !Number.isInteger(frames) || frames < 1)
         throw new Error("review_sheet_failed");
-      const sheet = spawnSync(
+      const sheet = spawnLimited(
         "ffmpeg",
         [
           ...["-v", "error", "-y", "-i", mp4, "-vf", sheetFilter(frames)],
           ...["-frames:v", "1", "-q:v", "3", join(folder, "review", "sheet.jpg")],
         ],
         { encoding: "utf8", windowsHide: true },
+        FFMPEG_LIMIT_MS,
       );
       if (sheet.status !== 0) throw new Error("review_sheet_failed");
       return (
@@ -1201,10 +1232,11 @@ export async function realDeps(): Promise<ReelDeps> {
     },
     preview: (poster) => {
       const out = join(dirname(poster), "preview.jpg");
-      const made = spawnSync(
+      const made = spawnLimited(
         "ffmpeg",
         ["-v", "error", "-y", "-i", poster, "-vf", "scale=360:-2", "-q:v", "7", out],
         { encoding: "utf8", windowsHide: true },
+        FFMPEG_LIMIT_MS,
       );
       if (made.status !== 0) throw new Error("preview_failed");
       return readFileSync(out);
@@ -1251,8 +1283,226 @@ export async function realDeps(): Promise<ReelDeps> {
   };
 }
 
-// `bun scripts/workforce/reel.ts --pass`: the runner starts this between runs; it does the studio's work (W8 0f) and,
-// when the oldest queued piece is a still post, makes it (W8 item 1, `brand-post.ts`).
+/** The studio pass's own lines and errors, appended: the runner starts the pass with no console of its own. */
+export const STUDIO_LOG = join(homedir(), ".mop-workforce", "studio.log");
+
+/** The studio pass that runs: its process id and start time, written by the `--pass` process itself. */
+export const STUDIO_LOCK = join(homedir(), ".mop-workforce", "studio.lock");
+
+const studioLockSchema = z.object({ pid: z.number().int().positive(), started: z.number() });
+type StudioLock = z.infer<typeof studioLockSchema>;
+
+/** The lock, or null: one missing, unreadable, or gone between two reads (its pass just ended) counts as none. */
+export function readStudioLock(lock: string = STUDIO_LOCK): StudioLock | null {
+  try {
+    const parsed = studioLockSchema.safeParse(JSON.parse(readFileSync(lock, "utf8")));
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The `--pass` process claims the lock itself, so a pass that ends at once leaves no id behind, and `wx` refuses a
+ * second claim while one is held. Its start is `performance.timeOrigin`, which bun sets 18 ms after the start Windows
+ * records (measured 2026-10-27), so the runner tells this process from a later one given its id. Answers why it could
+ * not claim, or null.
+ */
+export function claimStudioLock(
+  lock: string = STUDIO_LOCK,
+  pid: number = process.pid,
+  started: number = Math.round(performance.timeOrigin),
+): string | null {
+  try {
+    mkdirSync(dirname(lock), { recursive: true });
+    writeFileSync(lock, JSON.stringify({ pid, started }), { flag: "wx" });
+    return null;
+  } catch (failure: unknown) {
+    return failureText(failure);
+  }
+}
+
+/**
+ * When the process with this id started, as Windows records it (ms); null when no process has the id, NaN when one
+ * lives but its start could not be read.
+ */
+function processStarted(pid: number): number | null {
+  try {
+    // signal 0 tests the id without touching its process
+    process.kill(pid, 0);
+  } catch {
+    return null;
+  }
+  const read = spawnSync(
+    "powershell",
+    [
+      ...["-NoProfile", "-Command"],
+      `[DateTimeOffset]::new((Get-Process -Id ${String(pid)}).StartTime).ToUnixTimeMilliseconds()`,
+    ],
+    { encoding: "utf8", windowsHide: true, timeout: 30_000 },
+  );
+  const started = read.status === 0 ? Number(read.stdout.trim()) : Number.NaN;
+  return Number.isFinite(started) && started > 0 ? started : Number.NaN;
+}
+
+const failureText = (failure: unknown) =>
+  failure instanceof Error ? failure.message : String(failure);
+
+/** A lock's start and its process's agree to this: the lookup is one clock, read 18 ms apart (claimStudioLock). */
+const START_SLACK_MS = 5_000;
+
+/**
+ * Starts `--pass` as a process of its own, as the runner does between runs, its output and errors appended to `log`,
+ * and answers the lines the runner logs. W8 item 1: with its output ignored, three queued posts sat for 30 minutes while
+ * every pass hung and said nothing; a pass hung before its piece was `working` was started again every minute (262
+ * were alive), so none starts while the pass in `lock` lives. A log that cannot be opened never stops the runner's pass.
+ */
+export function startStudioPass(
+  run: (
+    command: string,
+    args: string[],
+    options: SpawnOptions,
+  ) => { unref: () => void; pid?: number | undefined } = spawn,
+  log: string = STUDIO_LOG,
+  lock: string = STUDIO_LOCK,
+  startedOf: (pid: number) => number | null = processStarted,
+  now: number = Date.now(),
+): string[] {
+  const lines: string[] = [];
+  const said = `${lock}.outlived`;
+  const held = readStudioLock(lock);
+  if (held !== null) {
+    const pid = String(held.pid);
+    const started = startedOf(held.pid);
+    // the id's process is the pass that wrote the lock (or lives with its start unread): never a second pass beside
+    // it, whatever its age, and no kill here; ending a stuck pass is the sweep's one job (sweep.ts, PASS_CAP_MS)
+    if (
+      started !== null &&
+      (Number.isNaN(started) || Math.abs(started - held.started) <= START_SLACK_MS)
+    ) {
+      const running = `reel pass ${pid} still running, none started`;
+      if (now - held.started <= LOCK_LIMIT_MS) return [running];
+      // said once per pass: the runner asks every tick
+      const key = `${pid} ${String(held.started)}`;
+      try {
+        if (readFileSync(said, "utf8") === key) return [running];
+      } catch {
+        // not said yet
+      }
+      try {
+        writeFileSync(said, key);
+      } catch (failure: unknown) {
+        lines.push(`studio lock note not written: ${failureText(failure)}`);
+      }
+      const minutes = (ms: number) => String(Math.round(ms / 60_000));
+      return [
+        ...lines,
+        `reel pass ${pid} has run ${minutes(now - held.started)} min, past its limit of ${minutes(LOCK_LIMIT_MS)} min; none started, the sweep ends it`,
+      ];
+    }
+    lines.push(
+      started === null
+        ? `reel pass ${pid} has ended without its lock; the lock is taken over`
+        : `reel pass ${pid} has ended and its id is another process's; the lock is taken over`,
+    );
+  }
+  // a lock of no live pass (or one that cannot be read) goes, so the new pass can claim it
+  try {
+    rmSync(lock, { force: true });
+    rmSync(said, { force: true });
+  } catch (failure: unknown) {
+    lines.push(`studio lock not removed, the pass may not claim it: ${failureText(failure)}`);
+  }
+  let out: number | null = null;
+  try {
+    mkdirSync(dirname(log), { recursive: true });
+    out = openSync(log, "a");
+  } catch (failure: unknown) {
+    lines.push(`studio log not opened, the pass runs without its lines: ${failureText(failure)}`);
+  }
+  let child: { unref: () => void; pid?: number | undefined };
+  try {
+    child = run("bun", [fileURLToPath(import.meta.url), "--pass"], {
+      cwd: join(REPO, "app"),
+      detached: true,
+      stdio: out === null ? "ignore" : ["ignore", out, out],
+      windowsHide: true,
+    });
+  } finally {
+    if (out !== null) closeSync(out);
+  }
+  child.unref();
+  lines.push(`reel pass started (its lines: ${out === null ? "none" : log})`);
+  return lines;
+}
+
+/**
+ * The longest a studio pass (the reel, then the post) may run. A reel is a designer turn (30 min), then up to
+ * REVISIONS + 1 films, each a render (85 s idle, 836 s with the laptop loaded, P-2100) and a review (15 min), with a
+ * designer turn (30 min) between them: about 2 h 57 min at worst, and a still post is less. Past STALE_MS its piece is
+ * called abandoned anyway, so a pass still running then cannot end well; the pass is ended there. One limit covers
+ * the whole pass, reel and post (round 6), and no child runs past it (round 7, `pass-deadline.mjs`). Its cost: a post
+ * that starts after a reel of nearly the full limit is cut off, and its piece stays `working` until the sweep or the
+ * STALE_MS rule puts it back in the queue for the next pass. Written out, not `= STALE_MS`: knip refuses one value
+ * exported under two names; a test holds the two equal.
+ */
+export const PASS_LIMIT_MS = 3 * 60 * 60_000;
+
+/**
+ * A pass this old has outlived its limit: no child runs past PASS_LIMIT_MS (`pass-deadline.mjs`), so it ends by then
+ * plus the moments a killed child takes to exit; the quarter hour beyond matches the sweep's PASS_CAP_MS (3 h 15 min,
+ * sweep.ts), which ends a pass still alive past that.
+ */
+const LOCK_LIMIT_MS = PASS_LIMIT_MS + 15 * 60_000;
+
+/** What `--pass` does, given so it is tested without the studio's real steps. */
+export type PassSteps = {
+  reel: () => Promise<string | null>;
+  /** True when the oldest queued piece is a still post. */
+  postNext: () => boolean;
+  post: () => Promise<string | null>;
+};
+
+/**
+ * One `--pass`: the reel pass, then the post pass when a still post is next. Every line carries its time, so in
+ * STUDIO_LOG a pass that never ends shows as a start with no end, and one that throws says why.
+ */
+export async function studioPass(
+  steps: PassSteps,
+  log: (line: string) => void,
+  limitMs: number = PASS_LIMIT_MS,
+  exit: (code: number) => void = (code) => {
+    process.exit(code);
+  },
+): Promise<void> {
+  const say = (line: string) => {
+    log(`${new Date().toISOString()} ${line}`);
+  };
+  say("studio pass started");
+  // round 7: no child runs past what is left of the pass, so a chain of children cannot carry it past its limit
+  setPassDeadline(Date.now() + limitMs);
+  // a step that hangs ends the pass, said in the log; unref, so the timer never holds an ended pass open. One limit for
+  // the whole pass (round 6): re-armed for the post, a pass could run twice it, past the sweep's PASS_CAP_MS.
+  const watchdog = setTimeout(() => {
+    say(`studio pass timed out after ${String(Math.round(limitMs / 60_000))} min`);
+    exit(1);
+  }, limitMs);
+  watchdog.unref();
+  try {
+    say((await steps.reel()) ?? "reel: nothing to do");
+    if (steps.postNext()) say((await steps.post()) ?? "post: none queued");
+    say("studio pass ended");
+  } catch (failure: unknown) {
+    say(`studio pass failed: ${failure instanceof Error ? failure.message : String(failure)}`);
+    throw failure;
+  } finally {
+    clearTimeout(watchdog);
+    setPassDeadline(Number.POSITIVE_INFINITY);
+  }
+}
+
+// `bun scripts/workforce/reel.ts --pass`: the runner starts this between runs (`startStudioPass`); it does the studio's
+// work (W8 0f) and, when the oldest queued piece is a still post, makes it (W8 item 1, `brand-post.ts`).
 // `bun scripts/workforce/reel.ts --queue '<request JSON>'`: queues one by hand, answered in the team thread.
 // `bun scripts/workforce/reel.ts --decide '<decision JSON>'`: a person's decision on a draft, as Matter's would be:
 //   {"skill":"studio","piece":"<folder name>","decision":"approve|revise|ask_operator","note":"..."}
@@ -1268,14 +1518,35 @@ if (import.meta.main) {
     const decision = studioDecisionSchema.parse(JSON.parse(process.argv[decide + 1] ?? "{}"));
     console.log(decidePiece(decision).line);
   } else if (process.argv.includes("--pass")) {
-    console.log((await reelPass(await realDeps())) ?? "reel: nothing to do");
-    if (nextReel()?.brief.request.skill === "post") {
-      const { postPass, realPostDeps } = await import("./brand-post.ts");
-      const post = await realPostDeps();
-      console.log((await postPass(post)) ?? "post: none queued");
-      // the post's row follows its folder now, not at the next pass
-      const unwritten = await syncPieces(post.db);
-      if (unwritten.length > 0) console.log(`rows not written: ${unwritten.join("; ")}`);
+    const refused = claimStudioLock();
+    if (refused !== null) {
+      console.log(`${new Date().toISOString()} studio pass not run, the lock is held: ${refused}`);
+    } else {
+      // the lock is given up at the end, so a later process given this id is never taken for the pass
+      process.on("exit", () => {
+        if (readStudioLock()?.pid === process.pid) rmSync(STUDIO_LOCK, { force: true });
+      });
+      await studioPass(
+        {
+          reel: async () => reelPass(await realDeps()),
+          postNext: () => nextReel()?.brief.request.skill === "post",
+          post: async () => {
+            // brand-post.ts never imports this module dynamically: while this block awaits, such an import never
+            // settles and the pass hangs (W8 item 1, GOTCHAS)
+            const { postPass, realPostDeps } = await import("./brand-post.ts");
+            const post = await realPostDeps();
+            const made = (await postPass(post)) ?? "post: none queued";
+            // the post's row follows its folder now, not at the next pass
+            const unwritten = await syncPieces(post.db);
+            return unwritten.length === 0
+              ? made
+              : `${made}; rows not written: ${unwritten.join("; ")}`;
+          },
+        },
+        (line) => {
+          console.log(line);
+        },
+      );
     }
   }
 }
