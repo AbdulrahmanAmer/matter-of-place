@@ -17,6 +17,7 @@ import {
   postRequestAllowed,
 } from "../../../../launch/engine/post-guard.mjs";
 import { ROOT, serve } from "../../../../launch/engine/serve.mjs";
+import { inPalette } from "../../../scripts/workforce/brand-post.ts";
 
 const ORIGIN = "http://127.0.0.1:4000";
 const FOLDER = `guard-test-${String(process.pid)}`;
@@ -80,6 +81,23 @@ function shoot(dir: string, page: string) {
       done({ status, stderr });
     });
   });
+}
+
+/** Shoots an svg on Obsidian paper and returns the colours of its report outside the palette, as the gate reads them. */
+async function offPalette(name: string, svg: string) {
+  const dir = join(PAGE, name);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(
+    join(dir, "post.html"),
+    `<!doctype html><html style="background:#11110f"><body style="margin:0;color:#eeeae1">
+<svg width="320" height="400" viewBox="0 0 320 400">${svg}</svg></body></html>`,
+  );
+  const { status, stderr } = await shoot(dir, join(dir, "post.html"));
+  if (status !== 0) throw new Error(stderr);
+  const [frame] = z
+    .array(z.object({ colors: z.array(z.string()) }))
+    .parse(JSON.parse(readFileSync(join(dir, "report.json"), "utf8")));
+  return [...new Set((frame?.colors ?? []).filter((color) => !inPalette(color)))].sort();
 }
 
 // The page asks for each and keeps the answer: a status, or "refused" when the request never got one.
@@ -317,6 +335,53 @@ window.__post = {
     } finally {
       await service.close();
     }
+  }, 120_000);
+
+  // Round 8, 2026-10-27: a page all of palette colours was refused rgb(0, 0, 0), the default fill of its <clipPath>,
+  // <g> and <image>, which paint none. Each case returns the colours of the report the gate refuses (`inPalette`).
+  it("counts no colour for a group, a clip path, an image, a line's fill, a stroke of no width or an svg text's color", async () => {
+    expect(
+      await offPalette(
+        "paints-none",
+        `<clipPath id="door"><polygon points="0,0 100,0 100,200 0,200" fill="#11110F"/></clipPath>
+<g transform="translate(20 20)"><rect width="200" height="200" fill="#575751" clip-path="url(#door)"/>
+<image href="/brand/logo/emblem/emblem-bone.svg" x="0" y="220" width="80" height="80"/></g>
+<line x1="20" y1="320" x2="120" y2="320" stroke="#C9C0B2" stroke-width="2"/>
+<path d="M20 330 L120 330" fill="none" stroke="#000" stroke-width="0"/>
+<text x="20" y="370" fill="#EEEAE1" style="color:#000;font-size:24px">A post</text>`,
+      ),
+    ).toEqual([]);
+  }, 120_000);
+
+  it("refuses the black a shape with no fill paints", async () => {
+    expect(await offPalette("no-fill", `<rect x="20" y="20" width="100" height="100"/>`)).toEqual([
+      "rgb(0, 0, 0)",
+    ]);
+  }, 120_000);
+
+  it("counts no shape inside a clip path, a mask, or defs and a symbol nothing draws", async () => {
+    expect(
+      await offPalette(
+        "not-drawn",
+        `<clipPath id="c"><polygon points="0,0 100,0 100,100" fill="#000"/></clipPath>
+<rect width="100" height="100" fill="#575751" clip-path="url(#c)"/>
+<mask id="k"><rect width="100" height="40" fill="#fff"/></mask>
+<rect y="120" width="100" height="40" fill="#EEEAE1" mask="url(#k)"/>
+<defs><rect id="spare" width="10" height="10" fill="#f00"/></defs>
+<symbol id="s"><circle r="5" fill="#00f"/></symbol>`,
+      ),
+    ).toEqual([]);
+  }, 120_000);
+
+  it("counts a shape of defs a <use> draws and a marker's shape a path draws", async () => {
+    expect(
+      await offPalette(
+        "drawn-again",
+        `<defs><rect id="r" width="40" height="40"/></defs><use href="#r" x="20" y="200"/>
+<marker id="m" markerWidth="4" markerHeight="4" refX="2" refY="2"><circle cx="2" cy="2" r="2" fill="#f00"/></marker>
+<path d="M20 20 L120 20" fill="none" stroke="#C9C0B2" stroke-width="2" marker-end="url(#m)"/>`,
+      ),
+    ).toEqual(["rgb(0, 0, 0)", "rgb(255, 0, 0)"]);
   }, 120_000);
 
   it("refuses to open a page outside app/.tmp/post/", async () => {

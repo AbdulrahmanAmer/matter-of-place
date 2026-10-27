@@ -878,5 +878,113 @@
     "replace": "void 0;",
     "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
     "expect": "× .*holds the pass's own limit as the deadline of every child"
+  },
+  {
+    "id": "w8-1-review-palette",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "a colour outside the palette (${PALETTE_WORDS})",
+    "replace": "a colour outside the palette",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*names the house palette from PALETTE to the designer, the reviser and the reviewer"
+  },
+  {
+    "id": "w8-1-prompt-palette",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "by the @font-face rules given; ${PALETTE_WORDS}.",
+    "replace": "by the @font-face rules given; palette Obsidian #11110F, Bone #EEEAE1, Warm Ivory #F5F2EB, Sandstone #C9C0B2, Mineral Grey #575751, Warm Grey #8B877F.",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*names the house palette from PALETTE to the designer, the reviser and the reviewer"
+  },
+  {
+    "id": "w8-1-still-svg-shape",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": "    if (!(el instanceof SVGGeometryElement || el instanceof SVGTextContentElement)) return false;",
+    "replace": "    if (false) return false;",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*counts no colour for a group, a clip path, an image, a line's fill"
+  },
+  {
+    "id": "w8-1-still-svg-clip",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": "      if (shapes) return false;",
+    "replace": "      if (false) return false;",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*counts no shape inside a clip path, a mask, or defs and a symbol nothing draws"
+  },
+  {
+    "id": "w8-1-still-svg-stored",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": "      if (stored && !drawn) return false;",
+    "replace": "      if (false) return false;",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*counts no shape inside a clip path, a mask, or defs and a symbol nothing draws"
+  },
+  {
+    "id": "w8-1-still-svg-reused",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": "      if (at.id && reused.has(at.id)) drawn = true;",
+    "replace": "      void 0;",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*counts a shape of defs a <use> draws and a marker's shape a path draws"
+  },
+  {
+    "id": "w8-1-still-svg-use",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": "reused.add(el.href.baseVal.split(\"#\")[1]);",
+    "replace": "void el;",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*counts a shape of defs a <use> draws and a marker's shape a path draws"
+  },
+  {
+    "id": "w8-1-still-svg-marker",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": "      if (id) reused.add(id[1]);",
+    "replace": "      void id;",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*counts a shape of defs a <use> draws and a marker's shape a path draws"
+  },
+  {
+    "id": "w8-1-still-svg-width",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": "paints(el) && parseFloat(cs.strokeWidth) > 0",
+    "replace": "paints(el)",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*counts no colour for a group, a clip path, an image, a line's fill"
+  },
+  {
+    "id": "w8-1-still-svg-line",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": "paints(el) && !(el instanceof SVGLineElement)",
+    "replace": "paints(el)",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*counts no colour for a group, a clip path, an image, a line's fill"
+  },
+  {
+    "id": "w8-1-still-svg-text-color",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": "      if (!(el instanceof SVGElement)) colors.add(cs.color);",
+    "replace": "      colors.add(cs.color);",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*counts no colour for a group, a clip path, an image, a line's fill"
+  },
+  {
+    "id": "w8-1-still-svg-painted",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": "if (fills && cs.fill !== \"none\"",
+    "replace": "if (false && cs.fill !== \"none\"",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*refuses the black a shape with no fill paints"
   }
 ]

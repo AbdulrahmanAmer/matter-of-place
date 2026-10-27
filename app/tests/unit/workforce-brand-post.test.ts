@@ -20,6 +20,7 @@ import {
   errorLines,
   inPalette,
   MIN_TEXT_PX,
+  PALETTE,
   postCaptions,
   postPass,
   postPrompt,
@@ -462,6 +463,31 @@ describe("no two posts share a layout", () => {
     ]);
     // the page loads nothing the post's guard refuses (launch/engine/post-guard.mjs)
     expect(prompt).not.toContain("/app/src/");
+  });
+
+  // Round 8, 2026-10-27: the reviewer, never told the palette, took the reference film's sands for the house's.
+  it("names the house palette from PALETTE to the designer, the reviser and the reviewer, and the film's colours as the film's own", () => {
+    const asked = postRequestSchema.parse(comingSoon);
+    const post = {
+      id: "00000000-0000-4000-8000-000000000002",
+      at: "",
+      request: asked,
+      from,
+      state: "working" as const,
+    };
+    const frames = framesFor("carousel", asked.titles);
+    const prompts = {
+      design: postPrompt(post, frames, [], 0),
+      revise: postRevisePrompt("review_refused: Slide 1: a colour", true),
+      review: postReviewPrompt(post, frames, 0, 0),
+    };
+    for (const prompt of Object.values(prompts)) {
+      for (const [name, hex] of Object.entries(PALETTE)) expect(prompt).toContain(`${name} ${hex}`);
+      expect(prompt).toContain("are the film's, not the house palette");
+      // the film's own sandstone and plinth sand (launch/brand-film-kit/reference/product-launch/DIRECTION.md)
+      expect([prompt.includes("#C6B8A0"), prompt.includes("#C9BBA2")]).toEqual([false, false]);
+    }
+    expect(prompts.review).toContain("Sandstone #C9C0B2");
   });
 });
 
