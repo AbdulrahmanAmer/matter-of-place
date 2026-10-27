@@ -1443,9 +1443,10 @@ export function startStudioPass(
  * called abandoned anyway, so a pass still running then cannot end well; the pass is ended there. One limit covers
  * the whole pass, reel and post (round 6), and no child runs past it (round 7, `pass-deadline.mjs`). Its cost: a post
  * that starts after a reel of nearly the full limit is cut off, and its piece stays `working` until the sweep or the
- * STALE_MS rule puts it back in the queue for the next pass.
+ * STALE_MS rule puts it back in the queue for the next pass. Written out, not `= STALE_MS`: knip refuses one value
+ * exported under two names; a test holds the two equal.
  */
-export const PASS_LIMIT_MS = STALE_MS;
+export const PASS_LIMIT_MS = 3 * 60 * 60_000;
 
 /**
  * A pass this old has outlived its limit: no child runs past PASS_LIMIT_MS (`pass-deadline.mjs`), so it ends by then

@@ -46,6 +46,7 @@ import {
   readStudioLock,
   reelPass,
   scenePrompt,
+  STALE_MS,
   startStudioPass,
   studioPass,
   type Brief,
@@ -1065,6 +1066,8 @@ describe("the live proof's failures (W8 item 1, 2026-10-27)", () => {
 
   it("ends a studio pass that hangs past its limit, saying so in its log, and gives a reel its three hours", async () => {
     expect(PASS_LIMIT_MS).toBe(3 * 60 * 60_000);
+    // past STALE_MS its piece is called abandoned, so the pass's limit is that same span
+    expect(PASS_LIMIT_MS).toBe(STALE_MS);
     vi.useFakeTimers();
     try {
       const lines: string[] = [];

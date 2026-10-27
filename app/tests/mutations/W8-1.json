@@ -802,7 +802,7 @@
     "id": "w8-1-pass-limit",
     "test": "tests/unit/workforce-brand-post.test.ts",
     "file": "scripts/workforce/reel.ts",
-    "find": "export const PASS_LIMIT_MS = STALE_MS;",
+    "find": "export const PASS_LIMIT_MS = 3 * 60 * 60_000;",
     "replace": "export const PASS_LIMIT_MS = 10 * 60_000;",
     "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
     "expect": "× .*ends a studio pass that hangs past its limit"
