@@ -106,24 +106,18 @@ describe("write_audit's actor check", () => {
     });
   });
 
-  it("stores a colleague named by its agents row as an agent, and refuses it as a human or on a human-only action", async () => {
+  it("refuses a colleague's agents row as an actor, so it passes no action an account's roles would not", async () => {
     await withRollback(async (db) => {
-      // W8 item 10: a colleague has no account; the runner names it by its `agents` row (create_proposed_post)
+      // W8 item 10: a colleague has no account; create_proposed_post writes its own audit row naming it
       const { id } = await one<{ id: string }>(
         db,
         "insert into public.agents (slug, name, role) values ('probe-colleague', 'Probe', 'Tester') returning id",
       );
       expect([
+        await audit(db, id, "agent", "properties.publish"),
+        await audit(db, id, "agent", "payments.issue"),
         await audit(db, id, "agent", "channels.proposed_create"),
-        await audit(db, id, "human", "channels.proposed_create"),
-        await audit(db, id, "agent", "team.limits_put"),
-        await audit(db, id, "agent", "no.such_action"),
-      ]).toEqual(["ok", "42501 forbidden", "42501 human_only", "42501 forbidden"]);
-      const stored = await db.query<Record<string, unknown>>(
-        "select actor_id, actor_kind from public.audit_log where request_id = 'req-actor' and actor_id = $1",
-        [id],
-      );
-      expect(stored.rows).toEqual([{ actor_id: id, actor_kind: "agent" }]);
+      ]).toEqual(["42501 forbidden", "42501 forbidden", "42501 forbidden"]);
     });
   });
 

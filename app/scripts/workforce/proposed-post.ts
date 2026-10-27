@@ -96,7 +96,10 @@ export interface PostDeps {
   roots: { studio: string; drive: string | null };
   /** The disk probe: a path that is not in a root by its letters never reaches it. */
   realPath: (path: string) => string | null;
-  /** Whether the property or request a post names is in its table; asked before anything is uploaded. */
+  /**
+   * Whether the request a post names is in its table, or the property it names is published (production never shows
+   * one that is not); asked before anything is uploaded.
+   */
   exists: (table: "properties" | "submissions", id: string) => Promise<boolean>;
   download: (key: string) => Promise<Uint8Array | null>;
   upload: (key: string, body: Uint8Array, contentType: string) => Promise<void>;
@@ -234,7 +237,7 @@ export async function fileProposedPost(
   // the subject first (P-4650): an id that is not in its table refuses the post before any file is uploaded
   if (plan.property_id !== undefined && !(await deps.exists("properties", plan.property_id)))
     return {
-      refused: `${plan.property_id} is not a property; a request not yet published is named by submission_id`,
+      refused: `${plan.property_id} is not a published property; a request not yet published is named by submission_id`,
     };
   if (plan.submission_id !== undefined && !(await deps.exists("submissions", plan.submission_id)))
     return { refused: `${plan.submission_id} is not a request` };
@@ -264,6 +267,8 @@ export async function fileProposedPost(
     }
   } catch (error) {
     if (error instanceof Refused) return withdraw(deps, uploaded, error.message);
+    // an upload or a read failing partway leaves nothing public either; the error still reaches the runner
+    await withdraw(deps, uploaded, "");
     throw error;
   }
   // The built channels are what every reader parses later: one the admin list could not parse is never stored.
@@ -358,10 +363,16 @@ export function postDeps(db: Db, config: string = CONFIG_FILE): PostDeps {
     roots: { studio: STUDIO, drive: driveSocialFolder(config) },
     realPath,
     exists: async (table, id) => {
-      const { data, error } =
-        table === "properties"
-          ? await db.from("properties").select("id").eq("id", id).maybeSingle()
-          : await db.from("submissions").select("id").eq("id", id).maybeSingle();
+      if (table === "properties") {
+        const { data, error } = await db
+          .from("properties")
+          .select("id, editorial_state")
+          .eq("id", id)
+          .maybeSingle();
+        if (error !== null) throw new Error("read_failed: properties");
+        return data?.editorial_state === "published";
+      }
+      const { data, error } = await db.from("submissions").select("id").eq("id", id).maybeSingle();
       if (error !== null) throw new Error(`read_failed: ${table}`);
       return data !== null;
     },

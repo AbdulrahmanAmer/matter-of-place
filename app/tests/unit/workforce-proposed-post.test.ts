@@ -18,6 +18,7 @@ import {
   refusalWords,
   type PostDeps,
 } from "../../scripts/workforce/proposed-post";
+import { PROPERTY_ID, propertyRow } from "../fixtures/asset-rows";
 import { fakeDb } from "../fixtures/fake-db";
 
 // W8 item 10 (H135): the runner files a colleague's structured post. The channel rules run before anything is uploaded;
@@ -115,10 +116,12 @@ describe("fileProposedPost, what it never touches or leaves", () => {
       await single("\\\\host\\share\\x.jpg"),
       await single("//host/share/x.jpg"),
       await single("\\\\?\\C:\\x.jpg"),
+      await single("C:x.jpg"),
     ]).toEqual([
       { refused: "\\\\host\\share\\x.jpg is not in the studio or the Drive folder" },
       { refused: "//host/share/x.jpg is not in the studio or the Drive folder" },
       { refused: "\\\\?\\C:\\x.jpg is not in the studio or the Drive folder" },
+      { refused: "C:x.jpg is not in the studio or the Drive folder" },
     ]);
     expect([uploads, probed]).toEqual([[], []]);
   });
@@ -161,6 +164,37 @@ describe("fileProposedPost, what it never touches or leaves", () => {
       database.uploads,
     ]);
     expect([later.uploads.length, database.uploads.length]).toEqual([1, 1]);
+  });
+
+  it("removes what it uploaded when an upload fails partway, and still raises the failure", async () => {
+    const failing = deps();
+    const upload = failing.fake.upload;
+    failing.fake.upload = (key, body, contentType) =>
+      failing.uploads.length === 1
+        ? Promise.reject(new Error(`upload_failed: ${key}`))
+        : upload(key, body, contentType);
+    const answer = fileProposedPost(
+      failing.fake,
+      input({
+        channels: [
+          {
+            channel: "linkedin",
+            format: "carousel",
+            caption: "Fairfield.",
+            images: [
+              { path: join(studio, "Slide 1.jpg"), alt: "A." },
+              { path: join(drive, "cover.png"), alt: "B." },
+            ],
+          },
+        ],
+      }),
+    );
+    await expect(answer).rejects.toThrow("upload_failed: proposed/");
+    expect([failing.uploads.length, failing.removed, failing.created]).toEqual([
+      1,
+      failing.uploads,
+      [],
+    ]);
   });
 });
 
@@ -411,7 +445,7 @@ describe("fileProposedPost, the paths and ids its tool line names", () => {
       await single(fake, image, { property_id: PROPERTY }),
     ]).toEqual([
       {
-        refused: `${request} is not a property; a request not yet published is named by submission_id`,
+        refused: `${request} is not a published property; a request not yet published is named by submission_id`,
       },
       { refused: `${request} is not a request` },
       { id: "post-1" },
@@ -458,5 +492,20 @@ describe("postToolLine and postDeps", () => {
       line.includes("name the files the runner's render line in the thread names"),
     ]).toEqual([true, true, true, true]);
     expect(postToolLine(null)).toContain("no Google Drive folder is set on this laptop");
+  });
+
+  it("take a property only once it is published", async () => {
+    const config = join(root, "config.json");
+    writeFileSync(config, JSON.stringify({ driveSocial: drive }));
+    const exists = (state: "draft" | "review" | "published") =>
+      postDeps(
+        fakeDb({ tables: { properties: [propertyRow({ editorial_state: state })] } }),
+        config,
+      ).exists("properties", PROPERTY_ID);
+    expect([await exists("draft"), await exists("review"), await exists("published")]).toEqual([
+      false,
+      false,
+      true,
+    ]);
   });
 });

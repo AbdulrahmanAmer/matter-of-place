@@ -42,13 +42,23 @@ begin
   returning id into v_id;
   perform public.proposed_post_put_channels(v_id, 1, p_channels);
 
-  -- A colleague's proposal has no account: the runner files it, and the audit row's actor is the colleague's own row,
-  -- as an agent, with its slug in the note.
-  perform public.write_audit(
-    coalesce(p_actor, v_agent), p_proposer_kind, 'channels.proposed_create', 'proposed_posts',
-    v_id, null, jsonb_build_object('status', 'proposed', 'revision', 1, 'test', coalesce(p_test, false)), p_request_id,
-    case when p_proposer_kind = 'agent' then 'agent:' || p_proposer_agent end
-  );
+  if p_actor is null then
+    -- A colleague's proposal has no account: the runner files it, and the audit row's actor is the colleague's own
+    -- `agents` row, as an agent, with its slug in the note. `write_audit` checks an account's roles, so this row is
+    -- written here, as `reject_proposed_post` writes Matter's.
+    insert into public.audit_log (actor_id, actor_kind, action, entity, entity_id, before, after, request_id, note)
+    values (
+      v_agent, 'agent', 'channels.proposed_create', 'proposed_posts', v_id, null,
+      jsonb_build_object('status', 'proposed', 'revision', 1, 'test', coalesce(p_test, false)), p_request_id,
+      'agent:' || p_proposer_agent
+    );
+  else
+    perform public.write_audit(
+      p_actor, p_proposer_kind, 'channels.proposed_create', 'proposed_posts',
+      v_id, null, jsonb_build_object('status', 'proposed', 'revision', 1, 'test', coalesce(p_test, false)), p_request_id,
+      case when p_proposer_kind = 'agent' then 'agent:' || p_proposer_agent end
+    );
+  end if;
   return v_id;
 end;
 $$;
