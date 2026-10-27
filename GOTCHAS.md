@@ -9260,3 +9260,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: before a builder is sent to fix a critical claim about runtime behaviour, measure it in a scratch folder (two files, `timeout 30 bun a.ts`); send only what holds, and write the measurement into the brief so the builder does not re-argue it.
 - proof: `.tmp/cycle-repro` on bun 1.4.3: `b.ts` with `import { x } from "./a.ts"` → all lines, exit 0; `b.ts` with `await import("./a.ts")` inside `f()` → `timeout 30` exit 124.
 - added: 2026-10-27
+
+## P-4650 · A colleague's tool line left out what the runner checks, so a right post was refused twice
+- symptom: 2026-10-27, W8 items 10 and 11 live: Maya's structured `social_post` for the Fairfield TEST set was refused at 08:58 UTC ("Carousels/2400 Azure Pl, Fairfield (TEST)/slide-0.c82f91d4.jpg is not in the studio or the Drive folder", the file was there) and at 09:08 UTC with the database's own words ("Key (property_id)=(4a3c2563-...) is not present in table \"properties\""); the third filing, with full paths and `submission_id`, made post 672d3eb4.
+- cause: `POST_TOOL_LINE` (`scripts/workforce/proposed-post.ts`) says "the file in the studio or the Google Drive folder" while `inside()` takes only an absolute path, and names `property_id` but never `submission_id`, though `postPlanSchema` takes both; the id is not checked before upload, so a foreign-key error is the refusal.
+- rule: a tool line a colleague reads states every shape the runner will check (absolute or relative to which folder, which id field for which kind of subject), from the same source the check uses; the runner checks every named id before it uploads anything and refuses in plain words. Fix round `overdrive/w8-10-paths`.
+- proof: `bun .tmp/thread-read.ts social 2026-10-27T08:50:00Z` from the live checkout shows the two refusals and the filed post.
+- added: 2026-10-27
