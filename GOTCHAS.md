@@ -9354,3 +9354,18 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: post to a colleague only through `workforce_post_message`, never a raw insert; then check that a run row exists with that `message_id`.
 - proof: `select count(*) from agent_runs where message_id = '<the new message id>'` → 1 (re-sent ruling f6a3807c, 2026-10-26 22:03:29 UTC).
 - added: 2026-10-27
+
+## P-4670 · The live supervisor writes a build lesson only for a command it reads as `merge-gate.mjs <n>`; a wrapper hid every merge
+- symptom: 2026-10-27, W6 item 4's live proof: `agent_lessons` held no `build` row since 10-20 though about a dozen of Matter's PRs merged that day, two of them after a red CI (504, 509).
+- cause: `mergeGatePr` (`scripts/matter/lessons.ts`) reads the PR number only from `merge-gate.mjs <n>` in a shell command; Matter's merges ran through `gate-loop.sh <log> <pr>`, a wrapper that calls the gate inside it.
+- rule: a merge made any other way than `merge-gate.mjs <n>` in the live session's own command queues its number in `~/.mop-workforce/matter/merges.queue` (one per line, `queueMerges`' file); the gate wrapper now does it on MERGED. Check `grep "build lesson" ~/.mop-workforce/live.log` after a merge.
+- proof: `grep "build lesson for pull request" ~/.mop-workforce/live.log` → `504: recorded`, `509: recorded` (2026-10-27 18:57 to 18:59 UTC) after the numbers were queued.
+- added: 2026-10-27
+
+## P-4671 · A Write refused in the same message did not stop the command sent beside it
+- symptom: 2026-10-27, twice: a PR was opened with an old body file (PR 509), and a builder was launched on round 9's brief instead of round 10's; each time the Write in the same message was refused ("File has not been read yet" or "modified since read") while the Bash call beside it ran on the old file. The wrong builder was stopped (pid 28620) before it changed anything; the PR body was edited after.
+- cause: calls sent in one message run independently; a refused Write leaves the old file, and the command that reads it does not know.
+- rule: a command that reads a file written in the same turn goes in the next message, after the Write's result is seen; or it checks the file's first line before acting (the launcher can print the brief's title).
+- proof: `gh pr view 509 --json body` showed the old body before `gh pr edit 509 --body-file`; `head -1 ~/.mop-workforce/builders/w8-1-render/brief.final.md` showed "round 9" under the round 10 launch.
+- added: 2026-10-27
+
