@@ -753,8 +753,8 @@
     "id": "w8-0h6-html-invisible",
     "test": "tests/unit/workforce-inbound-mail.test.ts",
     "file": "scripts/workforce/mail.ts",
-    "find": "/[\\u00ad\\u034f\\u061c",
-    "replace": "/[\\u00ad\\u061c",
+    "find": "/\\u034f|\\u17b4|",
+    "replace": "/\\u17b4|",
     "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"reads the text of Supabase's HTML-only notice\"",
     "expect": "× .*reads the text of Supabase's HTML-only notice"
   },

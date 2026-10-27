@@ -98,7 +98,8 @@ export function plainText(html: string): string {
     .replace(/<[^>]+>/g, "")
     .replace(/&(#x[0-9a-f]{1,6}|#\d{1,7}|[a-z]{2,8});/gi, (_match, name: string) => entity(name))
     .replace(
-      /[\u00ad\u034f\u061c\u115f\u1160\u17b4\u17b5\u180e\u200b-\u200f\u2060-\u2064\ufeff]/g,
+      // the combining marks stand alone, outside the class (a class may not hold a combining character)
+      /\u034f|\u17b4|\u17b5|[\u00ad\u061c\u115f\u1160\u180e\u200b-\u200f\u2060-\u2064\ufeff]/g,
       "",
     )
     .replace(/[ \t\u00a0\u2000-\u200a\u202f\u205f\u3000]+/g, " ")
