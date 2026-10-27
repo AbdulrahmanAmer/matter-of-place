@@ -50,14 +50,14 @@ async function call(credential: "key" | "session", options: Options = {}) {
   };
   const db = Object.assign(
     rolesDb([{ role: "admin", disabled: false, kind }], {
-      tables: { agent_keys: kind === "agent" ? [agentKeyRow(["workforce"])] : [] },
+      tables: { agent_keys: kind === "agent" ? [agentKeyRow(["dashboard"])] : [] },
       rpc: {
         ...meteringRpc,
         agent_key_by_hash: () => [
           z.custom<ByHash>().parse({
             key_id: "00000000-0000-4000-8000-0000000000e3",
             user_id: USER_ID,
-            scopes: ["workforce"],
+            scopes: ["dashboard"],
             revoked_at: null,
             last_used_at: new Date().toISOString(),
             roles: ["admin"],

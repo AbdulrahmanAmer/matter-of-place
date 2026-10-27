@@ -9390,3 +9390,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: link the live checkout's install (`New-Item -ItemType Junction -Path <worktree>/app/node_modules -Target E:/mop-build/live/app/node_modules`, only when both lockfiles match: `git diff --stat <live head> -- app/package.json app/bun.lock` is empty), run `timeout 90 node node_modules/vite/bin/vite.js dev --port 8899 --strictPort` once, and commit the regenerated file with the route; never hand-edit it. The same link lets `bun scripts/gen-action-roles.mjs` and `bun run db:fn` run for a matrix or function change.
 - proof: `git diff --stat app/src/routeTree.gen.ts` → `21 insertions(+)`, every added line naming `/api/admin/auth/agent-sign-in` (2026-10-27).
 - added: 2026-10-27
+
+## P-4683 · Two whole-tree unit checks a new service and a new fixture must pass: a scope-less agent is refused before the database, and a fixture reads no random uuid
+- symptom: 2026-10-28, H151 review round, CI `check`: `admin-authz-sweep.test.ts` failed with `team/service.ts#issueAgentSignIn as agent: db_touched`, and `clock.test.ts` "the fixture files" failed with `supabase-auth.ts`; every new test of the slice was green.
+- cause: the sweep calls every exported `(actor, db, ...)` service with an agent holding every role and no scope and wants a `ForbiddenError` before any property of `db` is read; a `scopeFree` action passes `authorize`, so the service's first `checkDb` touched the client. `clock.test.ts` greps `tests/fixtures/*.ts` for `crypto.randomUUID`, `Math.random` and `Date.now`.
+- rule: an action a key may take for itself is scoped to a real group (`dashboard`), not `scopeFree`, unless the service reads no database; a fixture default is a fixed id, never `crypto.randomUUID()`. Run both greps in your head before pushing a new service or fixture.
+- proof: `grep -n "agent_sign_in" app/src/server/lib/permissions/dashboard.ts` shows no `scopeFree`; `grep -c "randomUUID" app/tests/fixtures/supabase-auth.ts` → `0`.
+- added: 2026-10-28

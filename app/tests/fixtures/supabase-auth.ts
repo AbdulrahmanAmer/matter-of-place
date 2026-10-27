@@ -111,7 +111,10 @@ type Role = Database["public"]["Enums"]["app_role"];
 /** An `agent_keys` row of the signed-in user (H151): live unless `revoked`; `id` orders keys for metering. */
 export function agentKeyRow(
   scopes: string[],
-  { revoked = false, id = crypto.randomUUID() }: { revoked?: boolean; id?: string } = {},
+  {
+    revoked = false,
+    id = "00000000-0000-4000-8000-0000000000d0",
+  }: { revoked?: boolean; id?: string } = {},
 ): Database["public"]["Tables"]["agent_keys"]["Row"] {
   const stamp = "2026-10-05T08:00:00.000Z";
   return {

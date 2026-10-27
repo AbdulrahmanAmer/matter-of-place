@@ -7,8 +7,9 @@ export const dashboard = [
   { action: "dashboard.search", group: "dashboard", roles: appRoles },
   // Any enabled agent key may read `me`, whatever its scopes (invariant 3).
   { action: "me", group: "dashboard", roles: appRoles, scopeFree: true },
-  // H151: a sign-in token for the calling agent key's own account; the service refuses a person and every session.
-  { action: "dashboard.agent_sign_in", group: "dashboard", roles: appRoles, scopeFree: true },
+  // H151: a sign-in token for the calling agent key's own account, for a key that covers the dashboard; the service
+  // refuses a person and every session.
+  { action: "dashboard.agent_sign_in", group: "dashboard", roles: appRoles },
   // A person sets their own password, after a recent sign-in; an agent key has none (operator, 2026-10-12).
   {
     action: "dashboard.password",
