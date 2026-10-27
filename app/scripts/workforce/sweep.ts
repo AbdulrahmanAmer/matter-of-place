@@ -39,9 +39,12 @@ export type Proc = { pid: number; parent: number; name: string; started: number;
  */
 type Kill = { pids: number[]; kind: string; reason: string; runs?: "requeue" | "fail" };
 
-/** The scripts a scheduled task starts through hidden-run.vbs (`cmd.exe /c ... bun <script>`), this one included. */
+/**
+ * The scripts a scheduled task starts through hidden-run.vbs (`cmd.exe /c ... bun <script>`), this one included, and
+ * the nightly backup ("MOP Backup", registered outside install.ps1 with a limit of its own).
+ */
 const SCHEDULED =
-  /scripts[\\/](?:workforce[\\/](?:daemon|meeting|review|sweep)\.ts|captions-runner\.ts|audit-routine\.ts|usage-push\.ts)/;
+  /scripts[\\/](?:workforce[\\/](?:daemon|meeting|review|sweep)\.ts|captions-runner\.ts|audit-routine\.ts|usage-push\.ts)|\.mop-workforce[\\/]backup-local\.mjs/;
 
 /** hidden-run.vbs's own shell line: `cmd.exe /c cd /d "<app>" && bun <script> >> "...\.mop-workforce\<name>.log"`. */
 const HIDDEN_RUN_SHELL = /\/c cd \/d .*\.mop-workforce[\\/][\w-]+\.log/i;
@@ -56,8 +59,11 @@ const STUDIO_PATHS = /\.mop-workforce[\\/]studio|mop-build[\\/]live[\\/]/i;
 /** No pass of the studio outlives this: past it, reel.ts calls its `working` piece abandoned (STALE_MS, 3 h). */
 export const PASS_CAP_MS = 3 * 60 * 60_000 + 15 * 60_000;
 
-/** A scheduled pass still running this long has hung (ruling H150): Matter's longest run is 45 minutes. */
-export const RUN_CEILING_MS = PASS_CAP_MS;
+/**
+ * A scheduled pass still running this long has hung (ruling H150): Matter's longest run is 45 minutes, and a pass makes
+ * up to five runs. The same length as PASS_CAP_MS, written out (knip refuses one export that is another).
+ */
+export const RUN_CEILING_MS = 195 * 60_000;
 
 /** The longest render P-2100 measured was 836 s with the laptop loaded; an hour is a hung encoder. */
 export const FFMPEG_CAP_MS = 60 * 60_000;
@@ -87,19 +93,44 @@ const isRunnerCli = (proc: Proc) =>
 
 const minutes = (ms: number) => `${String(Math.round(ms / 60_000))} min`;
 
-/**
- * What one sweep ends, from one listing of the processes. `self` (the sweep) is never ended. A parent started after its
- * child is a reused process id, so that child counts as orphaned. Ending is by exact ids: a runner's descendants are
- * ended with it, except a studio pass it started (judged on its own), so no stale parent id reaches another process.
- */
-export function planSweep(procs: Proc[], now: number, self: number): Kill[] {
-  const byPid = new Map(procs.map((proc) => [proc.pid, proc]));
-  const parentOf = (proc: Proc): Proc | undefined => {
+/** A process's parent, or undefined when it is gone or its id was reused (a parent started after its child). */
+function parentFinder(byPid: ReadonlyMap<number, Proc>): (proc: Proc) => Proc | undefined {
+  return (proc) => {
     const parent = byPid.get(proc.parent);
     return parent !== undefined && parent.started <= proc.started && parent.pid !== proc.pid
       ? parent
       : undefined;
   };
+}
+
+/** The scheduled passes still under their hidden-run launcher (cmd.exe under a live parent), oldest first. */
+export function launchedPasses(procs: Proc[]): Proc[] {
+  const parentOf = parentFinder(new Map(procs.map((proc) => [proc.pid, proc])));
+  return procs
+    .filter((proc) => {
+      const shell = isScheduled(proc) ? parentOf(proc) : undefined;
+      return (
+        shell !== undefined && HIDDEN_RUN_SHELL.test(shell.command) && parentOf(shell) !== undefined
+      );
+    })
+    .sort((a, b) => a.started - b.started);
+}
+
+/**
+ * What one sweep ends, from one listing of the processes. `self` (the sweep) is never ended. A parent started after its
+ * child is a reused process id, so that child counts as orphaned. Ending is by exact ids: a runner's descendants are
+ * ended with it, except a studio pass it started (judged on its own), so no stale parent id reaches another process.
+ * `claims` maps a launched pass past RUN_CEILING_MS to when it claimed the run it holds (null: it holds none); a pass
+ * with no entry is unknown and never ended for its age, since the ceiling is on the run (H150), not on the pass.
+ */
+export function planSweep(
+  procs: Proc[],
+  now: number,
+  self: number,
+  claims: ReadonlyMap<number, number | null> = new Map(),
+): Kill[] {
+  const byPid = new Map(procs.map((proc) => [proc.pid, proc]));
+  const parentOf = parentFinder(byPid);
   const children = new Map<number, Proc[]>();
   for (const proc of procs) {
     const parent = parentOf(proc);
@@ -134,14 +165,15 @@ export function planSweep(procs: Proc[], now: number, self: number): Kill[] {
   };
 
   // One studio pass at a time: past its cap a pass ends. Of the rest the one making a piece stays (its designer or
-  // reviewer is a CLI under it), else the oldest with any work under it, else the oldest.
+  // reviewer is a CLI under it), else the oldest with any work under it, else the newest (an old one with nothing
+  // under it is the one that hung before its piece was `working`).
   const passes = procs.filter(isStudioPass).sort((a, b) => a.started - b.started);
   const young = passes.filter((pass) => now - pass.started <= PASS_CAP_MS);
   const under = (pass: Proc) => tree(pass).filter((proc) => proc !== pass);
   const keeper =
     young.find((pass) => under(pass).some(isCli)) ??
     young.find((pass) => under(pass).length > 0) ??
-    young[0];
+    young.at(-1);
   for (const pass of passes) {
     if (now - pass.started > PASS_CAP_MS)
       end(
@@ -167,13 +199,20 @@ export function planSweep(procs: Proc[], now: number, self: number): Kill[] {
           `its scheduled task was stopped ${minutes(age)} into it, but the pass ran on`,
           "requeue",
         );
-      else if (age > RUN_CEILING_MS)
+      else if (age > RUN_CEILING_MS) {
+        const claimed = claims.get(proc.pid);
+        // unknown, or a run claimed under the ceiling: no clock on a colleague's answer below it (2026-10-15)
+        if (claimed === undefined || (claimed !== null && now - claimed <= RUN_CEILING_MS))
+          continue;
         end(
           proc,
           "scheduled pass",
-          `running ${minutes(age)}, past its ceiling of ${minutes(RUN_CEILING_MS)}`,
+          claimed === null
+            ? `running ${minutes(age)} and holding no run`
+            : `its run has been answering ${minutes(now - claimed)}, past its ceiling of ${minutes(RUN_CEILING_MS)}`,
           "fail",
         );
+      }
       continue;
     }
     if (parent === undefined) {
@@ -242,19 +281,42 @@ function listProcesses(): Proc[] {
   }));
 }
 
-/** Minutes since the runner's task last started (no limit, IgnoreNew: a hung pass keeps it from starting again). */
-function runnerStartedAgo(now: number): number | null {
-  const read = spawnSync(
-    "powershell",
-    [
-      "-NoProfile",
-      "-Command",
-      "(Get-ScheduledTaskInfo -TaskName 'MOP Workforce').LastRunTime.ToUniversalTime().ToString('o')",
-    ],
-    { encoding: "utf8", windowsHide: true, timeout: 30_000 },
-  );
-  const at = Date.parse(read.stdout.trim());
-  return read.status === 0 && !Number.isNaN(at) ? now - at : null;
+/** The runner's pass now running under its task (`daemon.ts`), from the listing; null when none is alive. */
+export function runnerPass(procs: Proc[], now: number): { pid: number; ageMs: number } | null {
+  const pass = launchedPasses(procs).find((proc) => /daemon\.ts/.test(proc.command));
+  return pass === undefined ? null : { pid: pass.pid, ageMs: now - pass.started };
+}
+
+/** True while the usage breaker holds every claim (cli.ts writes ~/.mop-workforce/breaker.json with its end). */
+function breakerOn(now: number): boolean {
+  try {
+    const parsed: unknown = JSON.parse(readFileSync(join(HOME, "breaker.json"), "utf8"));
+    const until = z.object({ until: z.string() }).parse(parsed).until;
+    return Date.parse(until) > now;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * When each pass claimed the run it holds (a lease is its claim plus 3000 s, daemon.ts runOnce); null when it holds
+ * none. A pass whose runs cannot be read is left out, and so is never ended for its age.
+ */
+async function readClaims(client: Db, pids: number[]): Promise<Map<number, number | null>> {
+  const claims = new Map<number, number | null>();
+  for (const pid of pids) {
+    const { data, error } = await client
+      .from("agent_runs")
+      .select("lease_until")
+      .eq("state", "running")
+      .eq("worker", runnerWorker(pid))
+      .order("lease_until", { ascending: false })
+      .limit(1);
+    if (error !== null) continue;
+    const lease = data[0]?.lease_until;
+    claims.set(pid, lease === undefined || lease === null ? null : Date.parse(lease) - 3000_000);
+  }
+  return claims;
 }
 
 /** Ends exact processes, fifty to a call (one call per process would outlast the task's limit on a pegged laptop). */
@@ -333,11 +395,12 @@ export type Findings = {
   ended: (Kill & { ok: boolean })[];
   settled: { requeued: number; failed: number };
   pieces: string[];
-  waitingRuns: { count: number; oldestMs: number };
+  /** Runs a colleague can take (idle or working) queued over WAIT_MS; none while the usage breaker holds claims. */
+  waitingRuns: { count: number; oldestMs: number; oldestId: string };
   waitingPieces: string[];
   passAlive: boolean;
-  /** Minutes since the runner's task last started; null when it could not be read. */
-  runnerAgoMs: number | null;
+  /** The runner's pass alive now, from the listing (a scheduled task's LastRunTime moves on refused starts too). */
+  runner: { pid: number; ageMs: number } | null;
 };
 
 /** The report of one sweep, in plain words; null when there is nothing to say. */
@@ -362,7 +425,7 @@ export function report(found: Findings): string | null {
     lines.push(`Studio pieces nobody was making: ${found.pieces.join(", ")}.`);
   if (found.waitingRuns.count > 0)
     lines.push(
-      `${String(found.waitingRuns.count)} run(s) queued over ${minutes(WAIT_MS)}, the oldest ${minutes(found.waitingRuns.oldestMs)}; the runner's task last started ${found.runnerAgoMs === null ? "at an unreadable time" : `${minutes(found.runnerAgoMs)} ago`}.`,
+      `${String(found.waitingRuns.count)} run(s) a colleague can take queued over ${minutes(WAIT_MS)}, the oldest ${minutes(found.waitingRuns.oldestMs)} (${found.waitingRuns.oldestId}); ${found.runner === null ? "no runner pass is alive" : `the runner pass ${String(found.runner.pid)} has been running ${minutes(found.runner.ageMs)}`}.`,
     );
   if (found.waitingPieces.length > 0)
     lines.push(
@@ -374,18 +437,20 @@ export function report(found: Findings): string | null {
 }
 
 /**
- * What a report is about, without its numbers that grow: the same stall is said once (say-a-wait-once), and said again
- * only when what is stuck changes.
+ * What a report is about, without its numbers that grow or the ids of passes that come and go: the same stall is said
+ * once (say-a-wait-once), and said again only when what is stuck changes: another kind of process ended, another run
+ * waiting longest, another runner pass, other pieces.
  */
 export function reportKey(found: Findings): string {
   return createHash("sha256")
     .update(
       JSON.stringify([
-        found.ended.map((kill) => [kill.kind, kill.pids[0]]),
+        [...new Set(found.ended.map((kill) => kill.kind))].sort(),
         found.settled.requeued > 0,
         found.settled.failed > 0,
-        found.pieces,
-        found.waitingRuns.count > 0,
+        found.pieces.map((piece) => piece.replace(/ \((queued|failed)\)$/, "")),
+        found.waitingRuns.count > 0 ? found.waitingRuns.oldestId : null,
+        found.waitingRuns.count > 0 ? (found.runner?.pid ?? null) : null,
         found.waitingPieces.map((piece) => piece.replace(/ \(\d+ min\)$/, "")),
       ]),
     )
@@ -411,7 +476,7 @@ async function tellAuthor(client: Db, messageId: string | null): Promise<void> {
 }
 
 /** Settles the runs ended runners held; a runner that started on the same id after the kill is left alone. */
-async function settleRuns(
+export async function settleRuns(
   client: Db,
   ended: (Kill & { ok: boolean })[],
   killedAt: number,
@@ -449,7 +514,23 @@ async function sweep(dry: boolean): Promise<void> {
   const say = (line: string) => {
     console.log(`${new Date().toISOString()} ${line}`);
   };
-  const kills = planSweep(listProcesses(), now, process.pid);
+  const procs = listProcesses();
+  // The database part needs the network; a laptop offline still ends its stuck processes below.
+  let client: Db | null = null;
+  let claims = new Map<number, number | null>();
+  try {
+    const { serviceDb } = await import("./env.ts");
+    client = serviceDb();
+    const old = launchedPasses(procs).filter((pass) => now - pass.started > RUN_CEILING_MS);
+    if (old.length > 0)
+      claims = await readClaims(
+        client,
+        old.map((pass) => pass.pid),
+      );
+  } catch (failure: unknown) {
+    say(`database not reached: ${failure instanceof Error ? failure.message : String(failure)}`);
+  }
+  const kills = planSweep(procs, now, process.pid, claims);
   for (const kill of kills)
     say(`${dry ? "would end" : "ending"} ${kill.kind} ${kill.pids.join(",")}: ${kill.reason}`);
   if (dry) return;
@@ -465,26 +546,30 @@ async function sweep(dry: boolean): Promise<void> {
   const studio = join(HOME, "studio");
   const pieces = passAlive ? [] : returnOrphanedPieces(studio, now);
 
-  // The database part needs the network; a laptop offline still ends its stuck processes above.
   let settled = { requeued: 0, failed: 0 };
-  let waitingRuns = { count: 0, oldestMs: 0 };
-  let client: Db | null = null;
+  let waitingRuns = { count: 0, oldestMs: 0, oldestId: "" };
   try {
-    const { serviceDb } = await import("./env.ts");
-    client = serviceDb();
-    settled = await settleRuns(client, ended, killedAt);
-    const { data: queued } = await client
-      .from("agent_runs")
-      .select("created_at")
-      .eq("state", "queued")
-      .lt("created_at", new Date(now - WAIT_MS).toISOString())
-      .order("created_at")
-      .limit(50);
-    if (queued !== null && queued.length > 0)
-      waitingRuns = {
-        count: queued.length,
-        oldestMs: now - Date.parse(queued[0]?.created_at ?? new Date(now).toISOString()),
-      };
+    if (client !== null) {
+      settled = await settleRuns(client, ended, killedAt);
+      // runs that wait by design are not a stall: a paused or off colleague's, and every run while the breaker holds
+      const { data: queued } = breakerOn(now)
+        ? { data: [] }
+        : await client
+            .from("agent_runs")
+            .select("id, created_at, agents!inner(state)")
+            .eq("state", "queued")
+            .in("agents.state", ["idle", "working"])
+            .lt("created_at", new Date(now - WAIT_MS).toISOString())
+            .order("created_at")
+            .limit(50);
+      const oldest = queued?.[0];
+      if (queued !== null && oldest !== undefined)
+        waitingRuns = {
+          count: queued.length,
+          oldestMs: now - Date.parse(oldest.created_at),
+          oldestId: oldest.id,
+        };
+    }
   } catch (failure: unknown) {
     say(`database not reached: ${failure instanceof Error ? failure.message : String(failure)}`);
   }
@@ -496,7 +581,7 @@ async function sweep(dry: boolean): Promise<void> {
     waitingRuns,
     waitingPieces: waitingPieces(studio, now),
     passAlive,
-    runnerAgoMs: waitingRuns.count > 0 ? runnerStartedAgo(now) : null,
+    runner: runnerPass(after, now),
   };
   const keyFile = join(HOME, "sweep-last.txt");
   const text = report(found);

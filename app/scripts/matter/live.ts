@@ -6,7 +6,15 @@
 // Only a signed-in person's line reaches this session (claim_matter_live); everything else stays a one-shot read-only
 // run (ruling H101). Run: `bun scripts/matter/live.ts` from the runner's app folder (the scheduled task "MOP Matter Live").
 import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir, hostname } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -19,6 +27,7 @@ import { proposeCalls, say } from "../workforce/daemon.ts";
 import { childEnv, serviceDb } from "../workforce/env.ts";
 import { LIVE_WORKER_PREFIX } from "../workforce/follow.ts";
 import { applyHires } from "../workforce/hiring.ts";
+import { STALL_FILE } from "../workforce/sweep.ts";
 import { HEARTBEAT_FILE, heartbeatStale } from "./live-alive.ts";
 import {
   markUsed,
@@ -37,8 +46,6 @@ const MATTER_HOME = join(HOME, "matter");
 const LOCK_FILE = join(MATTER_HOME, "live.lock");
 // The process id of the CLI session this supervisor started, so the next supervisor can end one left running.
 const CHILD_FILE = join(MATTER_HOME, "live-child.pid");
-// The laptop sweep's stall report (scripts/workforce/sweep.ts STALL_FILE), handed to him once between turns.
-const STALL_FILE = join(MATTER_HOME, "stall.md");
 const SESSION_FILE = join(MATTER_HOME, "live-session.json");
 // Matter's goal (operator, 2026-10-15): a task-gate step list; between turns he is handed its next open step.
 const GOAL_FILE = join(MATTER_HOME, "goal.json");
@@ -403,6 +410,19 @@ function runnerHead(): string {
  * releaseHeld puts back in the queue is never answered by two sessions at once. The id is checked to still be that
  * session (its stream input) before anything is ended, since Windows reuses process ids.
  */
+function takeStall(): string {
+  // renamed first, so a report the sweep writes while this one is handed waits for the next turn
+  const taken = `${STALL_FILE}.taken`;
+  try {
+    renameSync(STALL_FILE, taken);
+    const text = readFileSync(taken, "utf8").trim();
+    rmSync(taken, { force: true });
+    return text;
+  } catch {
+    return "";
+  }
+}
+
 function endLostSession(): void {
   if (!existsSync(CHILD_FILE)) return;
   const pid = Number(readFileSync(CHILD_FILE, "utf8").trim());
@@ -883,13 +903,15 @@ export class Supervisor {
       goalAt: this.goalAt,
       backlog: staffPolicy().backlog,
     });
-    if (reason !== null) {
+    // the sweep's stall report waits only for an idle session, never for the staff policy or the goal's pace
+    const stallWaiting = this.child !== null && this.active.length === 0 && existsSync(STALL_FILE);
+    if (reason !== null && !stallWaiting) {
       this.noteSkip(reason, now);
       return;
     }
-    this.goalAt = now;
-    const step = nextGoalStep(GOAL_FILE);
-    const stall = existsSync(STALL_FILE) ? readFileSync(STALL_FILE, "utf8").trim() : "";
+    if (reason === null) this.goalAt = now;
+    const step = reason === null ? nextGoalStep(GOAL_FILE) : null;
+    const stall = stallWaiting ? takeStall() : "";
     const turn = goalTurn(stall, step);
     if (turn === null) {
       this.noteSkip("the goal file has no open step", now);
@@ -908,6 +930,8 @@ export class Supervisor {
       .select("id")
       .single();
     if (run === null) {
+      // the report waits for the next turn
+      if (stall !== "") writeFileSync(STALL_FILE, stall);
       this.noteSkip("the run row for the goal step could not be written", now);
       return;
     }
@@ -919,7 +943,6 @@ export class Supervisor {
     // H143 (4): a goal turn is self-started, so it shows no decision; the session keeps those an operator turn showed,
     // so goalLine repeats that none is taken up without his yes
     this.say(turn);
-    rmSync(STALL_FILE, { force: true });
   }
 
   /**

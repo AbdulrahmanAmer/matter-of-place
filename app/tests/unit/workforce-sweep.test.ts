@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import type { Db } from "../../src/server/lib/db";
 import { STALE_MS } from "../../scripts/workforce/reel.ts";
 import {
   FFMPEG_CAP_MS,
@@ -11,7 +12,9 @@ import {
   reportKey,
   returnOrphanedPieces,
   RUN_CEILING_MS,
+  runnerPass,
   runnerWorker,
+  settleRuns,
   waitingPieces,
   WAIT_MS,
   type Findings,
@@ -43,7 +46,8 @@ const LIVE_CLI =
 const BUILDER =
   "claude -p --settings E:/mop-build/live/app/scripts/matter/settings-full.json --model opus";
 const STUDIO_FFMPEG = "ffmpeg -i C:\\Users\\DELL\\.mop-workforce\\studio\\a\\shots\\01.png";
-const ended = (procs: Proc[], self = 999) => planSweep(procs, NOW, self).map((kill) => kill.pids);
+const ended = (procs: Proc[], self = 999, claims = new Map<number, number | null>()) =>
+  planSweep(procs, NOW, self, claims).map((kill) => kill.pids);
 
 describe("planSweep", () => {
   it("ends a runner whose task was stopped under it, with what it started, its runs back in the queue", () => {
@@ -63,19 +67,24 @@ describe("planSweep", () => {
     ).toEqual([{ pids: [22, 23], kind: "scheduled pass", runs: "requeue" }]);
   });
 
-  it("lets a launched runner answer with no clock up to its ceiling, then ends it and fails its runs (H150)", () => {
+  it("lets a launched runner's run answer with no clock up to its ceiling, then ends it and fails its runs (H150)", () => {
     const launched = (minutesAgo: number) => [
       proc(20, 1, "wscript.exe", minutesAgo, "wscript.exe hidden-run.vbs app"),
       proc(21, 20, "cmd.exe", minutesAgo, SHELL),
       proc(22, 21, "bun.exe", minutesAgo, DAEMON),
-      proc(23, 22, "claude.exe", minutesAgo - 1, COLLEAGUE),
+      proc(23, 22, "claude.exe", 20, COLLEAGUE),
     ];
+    const old = RUN_CEILING_MS / 60_000 + 30;
     expect(ended(launched(55))).toEqual([]);
-    expect(ended(launched(170))).toEqual([]);
-    const late = planSweep(launched(RUN_CEILING_MS / 60_000 + 5), NOW, 999);
+    // an old pass whose current run was claimed 20 minutes ago, or whose runs cannot be read, keeps working
+    expect(ended(launched(old), 999, new Map([[22, ago(20)]]))).toEqual([]);
+    expect(ended(launched(old))).toEqual([]);
+    // its run has answered past the ceiling, or it holds no run at all: it has hung
+    const late = planSweep(launched(old), NOW, 999, new Map([[22, ago(old - 1)]]));
     expect(late.map(({ pids, runs }) => ({ pids, runs }))).toEqual([
       { pids: [22, 23], runs: "fail" },
     ]);
+    expect(ended(launched(old), 999, new Map([[22, null]]))).toEqual([[22, 23]]);
   });
 
   it("never ends a daemon run by hand from a terminal's cmd, nor Matter's live supervisor", () => {
@@ -113,8 +122,9 @@ describe("planSweep", () => {
       proc(53, 4, "bun.exe", 10, PASS),
     ];
     expect(ended(procs)).toEqual([[50, 58], [53]]);
+    // with nothing under any pass, the old one is the one that hung: the newest stays
     const idle = [proc(54, 4, "bun.exe", 30, PASS), proc(55, 4, "bun.exe", 10, PASS)];
-    expect(ended(idle)).toEqual([[55]]);
+    expect(ended(idle)).toEqual([[54]]);
     const old = [
       proc(56, 4, "bun.exe", PASS_CAP_MS / 60_000 + 1, PASS),
       proc(57, 4, "bun.exe", 5, PASS),
@@ -136,6 +146,7 @@ describe("planSweep", () => {
 
   it("gives reel.ts's STALE_MS the first word on a pass", () => {
     expect(PASS_CAP_MS).toBeGreaterThan(STALE_MS);
+    expect(RUN_CEILING_MS).toBe(PASS_CAP_MS);
   });
 
   it("ends orphans of the workforce and nothing else", () => {
@@ -199,6 +210,20 @@ describe("planSweep", () => {
   });
 });
 
+describe("runnerPass", () => {
+  it("names the runner's launched pass and its age, and none when no pass is alive", () => {
+    const procs = [
+      proc(20, 1, "wscript.exe", 40, "wscript.exe hidden-run.vbs app"),
+      proc(21, 20, "cmd.exe", 40, SHELL),
+      proc(22, 21, "bun.exe", 40, DAEMON),
+      proc(31, 30, "cmd.exe", 90, SHELL),
+      proc(32, 31, "bun.exe", 90, DAEMON),
+    ];
+    expect(runnerPass(procs, NOW)).toEqual({ pid: 22, ageMs: 40 * 60_000 });
+    expect(runnerPass(procs.slice(3), NOW)).toBeNull();
+  });
+});
+
 describe("the studio folder", () => {
   const studioWith = (pieces: [string, Record<string, unknown>][]) => {
     const studio = mkdtempSync(join(tmpdir(), "sweep-studio-"));
@@ -238,15 +263,144 @@ describe("the studio folder", () => {
   });
 });
 
+describe("settleRuns", () => {
+  type Run = {
+    id: string;
+    state: string;
+    worker: string | null;
+    lease_until: string | null;
+    message_id: string | null;
+    error?: string;
+  };
+  const lines: Record<string, { thread: string; author_kind: string }> = {
+    "m-person": { thread: "matter", author_kind: "human" },
+    "m-colleague": { thread: "social", author_kind: "agent" },
+  };
+  // agent_runs updates and agent_messages reads and inserts: what settleRuns touches, nothing else
+  function fakeDb(runs: Run[], told: { thread: string; body: string }[]): Db {
+    const from = (table: string) => {
+      const tests: ((row: Record<string, unknown>) => boolean)[] = [];
+      let change: Partial<Run> = {};
+      const chain = {
+        update(next: Partial<Run>) {
+          change = next;
+          return chain;
+        },
+        eq(column: string, value: string) {
+          tests.push((row) => row[column] === value);
+          return chain;
+        },
+        lte(column: string, value: string) {
+          tests.push((row) => typeof row[column] === "string" && String(row[column]) <= value);
+          return chain;
+        },
+        select() {
+          if (table === "agent_messages") return chain;
+          const hit = runs.filter((row) => tests.every((test) => test(row)));
+          for (const row of hit) Object.assign(row, change);
+          return Promise.resolve({
+            data: hit.map(({ message_id }) => ({ message_id })),
+            error: null,
+          });
+        },
+        single() {
+          const id = Object.keys(lines).find((key) => tests.every((test) => test({ id: key })));
+          return Promise.resolve({ data: id === undefined ? null : lines[id], error: null });
+        },
+        insert(row: { thread: string; body: string }) {
+          told.push({ thread: row.thread, body: row.body });
+          return Promise.resolve({ error: null });
+        },
+      };
+      return chain;
+    };
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- a client of the two tables settleRuns touches; nothing else is reached
+    return { from } as unknown as Db;
+  }
+
+  it("requeues a stopped runner's runs, fails a hung one's and tells its person, and leaves a newer claim", async () => {
+    const killedAt = NOW;
+    const lease = (minutesFromKill: number) =>
+      new Date(killedAt + minutesFromKill * 60_000).toISOString();
+    const runs: Run[] = [
+      {
+        id: "a",
+        state: "running",
+        worker: runnerWorker(11),
+        lease_until: lease(20),
+        message_id: "m-person",
+      },
+      {
+        id: "b",
+        state: "running",
+        worker: runnerWorker(12),
+        lease_until: lease(40),
+        message_id: "m-person",
+      },
+      {
+        id: "c",
+        state: "running",
+        worker: runnerWorker(12),
+        lease_until: lease(45),
+        message_id: "m-colleague",
+      },
+      // claimed after the kill by a runner that got the same id: left alone
+      {
+        id: "d",
+        state: "running",
+        worker: runnerWorker(12),
+        lease_until: lease(55),
+        message_id: null,
+      },
+      {
+        id: "e",
+        state: "done",
+        worker: runnerWorker(12),
+        lease_until: lease(10),
+        message_id: null,
+      },
+      // a kill that did not take holds its runs
+      {
+        id: "f",
+        state: "running",
+        worker: runnerWorker(13),
+        lease_until: lease(10),
+        message_id: null,
+      },
+    ];
+    const told: { thread: string; body: string }[] = [];
+    const settled = await settleRuns(
+      fakeDb(runs, told),
+      [
+        { pids: [11], kind: "scheduled pass", reason: "stopped", runs: "requeue", ok: true },
+        { pids: [12], kind: "scheduled pass", reason: "hung", runs: "fail", ok: true },
+        { pids: [13], kind: "scheduled pass", reason: "hung", runs: "fail", ok: false },
+      ],
+      killedAt,
+    );
+    expect(settled).toEqual({ requeued: 1, failed: 2 });
+    expect(runs.map((run) => [run.id, run.state])).toEqual([
+      ["a", "queued"],
+      ["b", "failed"],
+      ["c", "failed"],
+      ["d", "running"],
+      ["e", "done"],
+      ["f", "running"],
+    ]);
+    expect(told.map((line) => line.thread)).toEqual(["matter"]);
+    expect(told[0]?.body).toContain("send it again");
+  });
+});
+
 describe("report", () => {
   const quiet: Findings = {
     ended: [],
     settled: { requeued: 0, failed: 0 },
     pieces: [],
-    waitingRuns: { count: 0, oldestMs: 0 },
+    waitingRuns: { count: 0, oldestMs: 0, oldestId: "" },
     waitingPieces: [],
     passAlive: false,
-    runnerAgoMs: null,
+    runner: null,
   };
   it("says nothing when nothing was stuck", () => {
     expect(report(quiet)).toBeNull();
@@ -256,28 +410,37 @@ describe("report", () => {
       ...quiet,
       ended: [{ pids: [7, 8], kind: "studio pass", reason: "a second studio pass", ok: true }],
       settled: { requeued: 2, failed: 1 },
-      waitingRuns: { count: 2, oldestMs: 45 * 60_000 },
+      waitingRuns: { count: 2, oldestMs: 45 * 60_000, oldestId: "run-1" },
       waitingPieces: ["2026-10-27-post (40 min)"],
-      runnerAgoMs: 52 * 60_000,
+      runner: { pid: 4242, ageMs: 52 * 60_000 },
     });
     expect(text).toContain("ended 1 stuck process tree(s)");
     expect(text).toContain("studio pass 7: a second studio pass");
     expect(text).toContain("2 run(s) the stopped runner held are back in the queue.");
     expect(text).toContain("1 run(s) the hung runner held are marked failed");
     expect(text).toContain(
-      "2 run(s) queued over 30 min, the oldest 45 min; the runner's task last started 52 min ago.",
+      "2 run(s) a colleague can take queued over 30 min, the oldest 45 min (run-1); the runner pass 4242 has been running 52 min.",
     );
     expect(text).toContain("2026-10-27-post (40 min); a studio pass is not running.");
     expect(text).toContain("Find why it hung and fix the cause.");
+    expect(report({ ...quiet, waitingRuns: { count: 1, oldestMs: 0, oldestId: "r" } })).toContain(
+      "no runner pass is alive",
+    );
   });
-  it("keys the same stall the same way as its numbers grow, so it is said once", () => {
-    const waiting = (count: number, minutes: number): Findings => ({
+  it("keys the same stall the same way as its numbers grow and passes come and go, so it is said once", () => {
+    const stall = (count: number, minutes: number, pid: number): Findings => ({
       ...quiet,
-      waitingRuns: { count, oldestMs: minutes * 60_000 },
+      ended: [{ pids: [pid], kind: "studio pass", reason: "second", ok: true }],
+      waitingRuns: { count, oldestMs: minutes * 60_000, oldestId: "run-1" },
       waitingPieces: [`a-piece (${String(minutes)} min)`],
-      runnerAgoMs: minutes * 60_000,
+      runner: { pid: 4242, ageMs: minutes * 60_000 },
     });
-    expect(reportKey(waiting(2, 45))).toBe(reportKey(waiting(3, 75)));
-    expect(reportKey(waiting(2, 45))).not.toBe(reportKey({ ...waiting(2, 45), waitingPieces: [] }));
+    expect(reportKey(stall(2, 45, 7))).toBe(reportKey(stall(3, 75, 9)));
+    expect(reportKey(stall(2, 45, 7))).not.toBe(
+      reportKey({ ...stall(2, 45, 7), waitingRuns: { count: 2, oldestMs: 0, oldestId: "run-2" } }),
+    );
+    expect(reportKey(stall(2, 45, 7))).not.toBe(
+      reportKey({ ...stall(2, 45, 7), runner: { pid: 5151, ageMs: 0 } }),
+    );
   });
 });
