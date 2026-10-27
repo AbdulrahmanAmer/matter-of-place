@@ -137,59 +137,52 @@ export function retryPrompt(text: string, error: string): string {
   ].join("\n");
 }
 
-/** The index of the first character that is not white space, from `at` going `step` (-1 or `text.length` past an end). */
-function nonSpace(text: string, at: number, step: 1 | -1): number {
+/** The index of the first character from `at` that is not white space (`text.length` at the end). */
+function nonSpace(text: string, at: number): number {
   let index = at;
-  while (index >= 0 && index < text.length && /\s/.test(text.charAt(index))) index += step;
+  while (index < text.length && /\s/.test(text.charAt(index))) index += 1;
   return index;
 }
+
+/** JSON's punctuation and white space: all a retry may change between two tokens. */
+const PUNCTUATION = /^[\s{}[\],:]*$/;
+
+/** A quote that could have closed a string of the original: at an end of the value, or beside punctuation or a quote. */
+const QUOTE_AT_EDGE = /(^|[",:{}[\]])\s*"|"\s*([",:{}[\]]|$)/;
 
 /**
  * P-4691 round 3 (fresh review, 2026-10-28; Matter's rule: a retry may change only punctuation). Round 2 asked only
  * that each piece occur somewhere in the original, so a retry could rebuild the object from fragments: a value moved
  * between keys (a studio decision `revise` handed back as `approve`), a slice of a string, an element twice, a number
- * from the digits of a date. Now the retried object's tokens, in their written order, each stand in `original` at an
- * increasing position from its first "{", between JSON punctuation: each key as `"key"` (after a "{" or ",", before a
- * ":"), each string whole and quoted (JSON-escaped or as written), each number, `true`, `false` and `null` whole, and a
- * key's own value right after its ":" (so `allow: true` only where the original wrote `"allow": true`).
+ * from the digits of a date. Now the retried object's tokens, in their written order, follow one another in `original`
+ * from its first `{"`, with nothing but punctuation between two of them: each key as `"key"` (before a ":"), each string
+ * whole and quoted, each number, `true`, `false` and `null` whole (before a ",", "]", "}" or the end). A string counts
+ * JSON-escaped, or as written when no quote inside it could have closed a string (else fields could be folded into it).
  */
 function tracesIn(original: string, retried: unknown): boolean {
-  let pos = original.indexOf("{");
-  const take = (
-    forms: readonly string[],
-    before: string,
-    after: string,
-    pinned: boolean,
-  ): boolean => {
-    const fits = (form: string, at: number): boolean => {
-      const prev = original.charAt(nonSpace(original, at - 1, -1));
-      const next = original.charAt(nonSpace(original, at + form.length, 1));
-      return prev !== "" && before.includes(prev) && (next === "" || after.includes(next));
-    };
-    // a key's own value starts at the first character after its ":"
-    const own = nonSpace(original, nonSpace(original, pos, 1) + 1, 1);
-    let found = -1;
-    let end = -1;
+  let pos = original.search(/\{\s*"/);
+  const take = (forms: readonly string[], after: string): boolean => {
     for (const form of forms) {
-      let at = pinned ? own : original.indexOf(form, pos);
-      while (at >= 0 && !(original.startsWith(form, at) && fits(form, at)))
-        at = pinned ? -1 : original.indexOf(form, at + 1);
-      if (at >= 0 && (found < 0 || at < found)) [found, end] = [at, at + form.length];
+      const at = original.indexOf(form, pos);
+      const next = original.charAt(nonSpace(original, at + form.length));
+      if (at < 0 || !PUNCTUATION.test(original.slice(pos, at))) continue;
+      if (next !== "" && !after.includes(next)) continue;
+      pos = at + form.length;
+      return true;
     }
-    if (found >= 0) pos = end;
-    return found >= 0;
+    return false;
   };
-  const walk = (value: unknown, keyed: boolean): boolean => {
-    if (Array.isArray(value)) return value.every((item) => walk(item, false));
+  const walk = (value: unknown): boolean => {
+    if (Array.isArray(value)) return value.every((item) => walk(item));
     if (typeof value === "object" && value !== null)
       return Object.entries(value).every(
-        ([key, field]) => take([JSON.stringify(key)], "{,", ":", false) && walk(field, true),
+        ([key, field]) => take([JSON.stringify(key)], ":") && walk(field),
       );
-    const forms =
-      typeof value === "string" ? [JSON.stringify(value), `"${value}"`] : [JSON.stringify(value)];
-    return take(forms, keyed ? ":" : ":[,", ",]}", keyed);
+    if (typeof value !== "string") return take([JSON.stringify(value)], ",]}");
+    const asWritten = QUOTE_AT_EDGE.test(value) ? [] : [`"${value}"`];
+    return take([JSON.stringify(value), ...asWritten], ",]}");
   };
-  return pos >= 0 && walk(retried, false);
+  return pos >= 0 && walk(retried);
 }
 
 /**

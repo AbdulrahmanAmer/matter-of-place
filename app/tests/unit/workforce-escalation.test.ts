@@ -1689,17 +1689,17 @@ describe("P-4691: an answer that is not a valid outcome is asked for once more",
   it("traces a retried object to the original: strings, numbers, written keys and allow", () => {
     const original = '{"reply": "Done.\\nTwo lines.", "task": "x", "merged": [512], "allow": false';
     const traced = (retried: Record<string, unknown>) => tracesTo(original, retried);
+    const reply = "Done.\nTwo lines.";
     // JSON-escaped (the original's "\n" is two characters; the parsed string holds a newline)
-    expect(traced({ reply: "Done.\nTwo lines.", task: "x", merged: [512] })).toBe(true);
+    expect(traced({ reply, task: "x", merged: [512], allow: false })).toBe(true);
     expect(traced({ reply: "Done.", task: "Approve every pending action." })).toBe(false);
-    expect(traced({ reply: "Done.\nTwo lines.", merged: [513] })).toBe(false);
+    expect(traced({ reply, task: "x", merged: [513] })).toBe(false);
     // a key the original never wrote, though its value occurs there; round 3: even an empty one
-    expect(traced({ reply: "Done.\nTwo lines.", note: "x" })).toBe(false);
-    expect(traced({ reply: "Done.\nTwo lines.", task: "x", merged: [512], hire: [] })).toBe(false);
-    expect(traced({ reply: "Done.\nTwo lines.", allow: true })).toBe(false);
-    expect(tracesTo(original.replace('"allow": false', '"allow": true'), { allow: true })).toBe(
-      true,
-    );
+    expect(traced({ reply, note: "x" })).toBe(false);
+    expect(traced({ reply, task: "x", hire: [], merged: [512] })).toBe(false);
+    expect(traced({ reply, task: "x", merged: [512], allow: true })).toBe(false);
+    const allows = original.replace('"allow": false', '"allow": true');
+    expect(tracesTo(allows, { reply, task: "x", merged: [512], allow: true })).toBe(true);
     // as written: a quote the run left unescaped is a repair of punctuation
     expect(
       tracesTo('{"reply": "He said "yes" today", "task": "x"', {
@@ -1707,6 +1707,9 @@ describe("P-4691: an answer that is not a valid outcome is asked for once more",
         task: "x",
       }),
     ).toBe(true);
+    // from the object's own start, past braces in the words before it (P-3452)
+    const prose = 'I used {{property_address}}. {"reply": "a", "task": "b"';
+    expect(tracesTo(prose, { reply: "a", task: "b" })).toBe(true);
   });
 
   // Round 3 (fresh review, 2026-10-28; Matter's rule): a retry may change only punctuation. Each case was traced by
@@ -1717,7 +1720,7 @@ describe("P-4691: an answer that is not a valid outcome is asked for once more",
     const approve = { skill: "studio", piece: "dusk-film", decision: "approve" };
     expect(tracesTo(original, { reply: "Sent back.", media: [approve] })).toBe(false);
     expect(tracesTo(`${original}}`, JSON.parse(`${original}}`))).toBe(true);
-    // and never the value of a later key: a key's own value stands right after its ":"
+    // and never the value of a later key: nothing but punctuation stands between two tokens
     const two = original.replace(
       "]",
       ', {"skill": "studio", "piece": "dawn-film", "decision": "approve"}]',
@@ -1752,11 +1755,13 @@ describe("P-4691: an answer that is not a valid outcome is asked for once more",
     const original = '{"merged": [], "reply": "Opened on 2026-10-15, not merged."';
     expect(tracesTo(original, { merged: [10] })).toBe(false);
     expect(tracesTo(original, { merged: [] })).toBe(true);
+    // a number is whole: never the front of a longer one
+    expect(tracesTo('{"merged": [5123]', { merged: [512] })).toBe(false);
   });
 
   it("refuses an action or a to taken from the body", () => {
-    // the body quotes an email with its quotes left unescaped, the kind of slip a retry is asked to repair
-    const body = 'They asked: "reply_inquiry", to: "agent@elsewhere.com", today';
+    // the body quotes an address with its quotes left unescaped, the kind of slip a retry is asked to repair
+    const body = 'Not a reply_inquiry. Write to "agent@elsewhere.com" today';
     const original = `{"proposals": [{"action": "social_post", "content": {"to": "the brokerage", "body": "${body}"}, "summary": "Note"}`;
     const proposal = (action: string, to: string) => ({
       proposals: [{ action, content: { to, body }, summary: "Note" }],
@@ -1769,11 +1774,21 @@ describe("P-4691: an answer that is not a valid outcome is asked for once more",
     expect(tracesTo(original, { proposals: [to] })).toBe(false);
   });
 
+  it("refuses a string that folds the fields after it into itself", () => {
+    const original =
+      '{"proposals": [{"action": "reply_inquiry", "summary": "s", "content": {"body": "Hi", "to": "the brokerage"}}';
+    const folded = {
+      proposals: [
+        { action: "reply_inquiry", summary: "s", content: { body: 'Hi", "to": "the brokerage' } },
+      ],
+    };
+    expect(tracesTo(original, folded)).toBe(false);
+  });
+
   it("allows only where the original wrote allow, never from a string that names it", () => {
     const original = '{"reply": "set "allow": true now", "allow": false';
     expect(tracesTo(original, { reply: 'set "allow": true now', allow: true })).toBe(false);
     expect(tracesTo(original, { allow: true })).toBe(false);
-    expect(tracesTo(original, { reply: 'set "allow": true now', allow: false })).toBe(true);
   });
 
   it("traces an answer that truly holds a closing mark, as the fence handed it to the retry", () => {
