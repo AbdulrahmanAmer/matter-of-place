@@ -55,7 +55,14 @@ import { breakerUntil, type CliUsage, runClaude, UsageLimitError } from "./cli.t
 import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } from "./growth.ts";
 import { followMain, mapDue, runnerBusy } from "./follow.ts";
 import { readJsonAnswer, type Outcome } from "./answer.ts";
-import { fileProposedPost, isStructuredPost, postDeps, postToolLine } from "./proposed-post.ts";
+import {
+  fileProposedPost,
+  isStructuredPost,
+  postDeps,
+  postToolLine,
+  UNFILED_POST_RULE,
+  unfiledPostLine,
+} from "./proposed-post.ts";
 import type { SourceName } from "./criteria.ts";
 import { explainsHeld, handToMatter, handUnavailableOwners, ownerExplanation } from "./explain.ts";
 import { HOW_REFUSED, postureOf, type Posture } from "./posture.ts";
@@ -110,6 +117,8 @@ import {
 import { placePieces, placedLine, sourcesFor } from "./placement.ts";
 
 const HOME = join(homedir(), ".mop-workforce");
+/** The post tool line naming the runner's own Drive folder, the one `postDeps` checks paths against (P-4650). */
+const runnerPostLine = (): string => postToolLine(driveSocialFolder(join(HOME, "config.json")));
 const CURSOR_FILE = join(HOME, "cursor.json");
 const BREAKER_FILE = join(HOME, "breaker.json");
 const WORKER = `${hostname()}:${String(process.pid)}`;
@@ -844,9 +853,7 @@ function promptFor(
       : []),
     ...(agent.tools.includes("request_reel") ? [REEL_TOOL_LINE] : []),
     // P-4650: the Drive folder the line names is the one `postDeps` checks paths against, from the runner's config
-    ...(agent.tools.includes("draft_post")
-      ? [postToolLine(driveSocialFolder(join(HOME, "config.json")))]
-      : []),
+    ...(agent.tools.includes("draft_post") ? [runnerPostLine(), UNFILED_POST_RULE] : []),
     ...(toolkit === "" ? [] : [toolkit]),
     situation,
     'Answer with one JSON object and nothing else: {"reply": "what you say in the conversation, short", "task": "a few words for the office board on what you did", "proposals": [{"action": "reply_inquiry|social_post|newsletter_issue|campaign_plan", "summary": "one line", "content": {"body": "the full text", "to": "who it is for if any"}}], "hire": [{"slug": "handle", "name": "Name", "role": "what they do", "instructions": "their brief", "model": "sonnet", "wake_on": [], "tools": ["read_business", "chat"]}]}. Leave proposals and hire empty unless they are needed and you may do them.',
@@ -1152,6 +1159,12 @@ export async function runOnce(client: Db): Promise<boolean> {
             ? `The post "${proposal.summary}" waits in Proposed posts for a person's approval.`
             : `The post "${proposal.summary}" was not proposed: ${filed.refused}.`,
         );
+        continue;
+      }
+      // W8 item 2 (H146): a post with neither its pictures nor a reel of this run is not filed: it would make nothing.
+      if (proposal.action === "social_post" && reel === null) {
+        const reelLine = agent.tools.includes("request_reel") ? REEL_TOOL_LINE : null;
+        await say(client, thread, unfiledPostLine(proposal.summary, runnerPostLine(), reelLine));
         continue;
       }
       // W7 item 20: a post or a plan of this run carries the reel it asked for; the hash covers what is stored.

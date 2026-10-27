@@ -19,6 +19,9 @@ import type * as Run from "../../scripts/matter/run.ts";
 import { takeQueuedMerges } from "../../scripts/matter/lessons.ts";
 import { matterPrompt } from "../../scripts/matter/run.ts";
 import { allowForOwner, answerPlan, runOnce } from "../../scripts/workforce/daemon.ts";
+import { driveSocialFolder } from "../../scripts/workforce/config.ts";
+import { postToolLine, UNFILED_POST_RULE } from "../../scripts/workforce/proposed-post.ts";
+import { REEL_TOOL_LINE } from "../../scripts/workforce/reel.ts";
 import {
   EXPLANATION_FAILED,
   EXPLANATION_MAX,
@@ -332,7 +335,11 @@ function memoryDb(
   };
 
   // a test's side effect just before a table is read: another runner acting between two of the runner's own reads
-  const hooks: { beforeRead?: ((table: string) => void) | undefined } = {};
+  // and a test's own answer for another function the runner calls (W8 item 2: `create_proposed_post`)
+  const hooks: {
+    beforeRead?: ((table: string) => void) | undefined;
+    rpc?: ((name: string, args: unknown) => Promise<Answer>) | undefined;
+  } = {};
   const client = {
     from: (table: string) => ({
       select: (_columns?: string, options?: { head?: boolean }) => {
@@ -354,7 +361,8 @@ function memoryDb(
       insert: (input: Row | Row[]) => insert(table, input),
       upsert: (input: Row | Row[]) => insert(table, input),
     }),
-    rpc: (name: string) => {
+    rpc: (name: string, args?: unknown) => {
+      if (name !== "claim_agent_run" && hooks.rpc !== undefined) return hooks.rpc(name, args);
       if (name !== "claim_agent_run") throw new Error(`unexpected rpc ${name}`);
       // as the function does: only an idle or working colleague takes a run
       const available = (run: Row) =>
@@ -1290,6 +1298,128 @@ describe("H115, review of 2026-10-16: only a run a person started holds its tool
     // nothing of the request in the work folder, which the run cannot read; its own folder goes when it ends
     expect(existsSync(join(home, "desks", "editor", "work", "requests"))).toBe(false);
     expect(existsSync(own)).toBe(false);
+  });
+});
+
+describe("W8 item 2 (H146): a social post is filed only in a shape that makes something", () => {
+  const SOCIAL_ID = "a0000000-0000-4000-8000-000000000005";
+  const LINE_ID = "f0000000-0000-4000-8000-000000000002";
+  const home = join(tmpdir(), "mop-w8-0d-home", ".mop-workforce");
+  const BODY = "Malibu, at the end of the day.";
+  const textPost = { action: "social_post", summary: "Malibu at dusk", content: { body: BODY } };
+
+  /** Social, woken by a person's line, answers `fields`: what the runner filed, said and asked the database to create. */
+  async function socialRun(tools: string[], fields: Record<string, unknown>) {
+    mkdirSync(join(home, "drive-social"), { recursive: true });
+    writeFileSync(
+      join(home, "config.json"),
+      JSON.stringify({ driveSocial: join(home, "drive-social") }),
+    );
+    const memory = memoryDb({
+      agents: [
+        agentRow(MATTER_ID, "matter", "Matter", []),
+        agentRow(SOCIAL_ID, "social", "Social", tools),
+      ],
+      agent_messages: [
+        {
+          id: LINE_ID,
+          thread: "social",
+          body: "@social draft the Malibu post",
+          author_kind: "human",
+          author_id: "u1",
+          author_name: "Dave",
+        },
+      ],
+      agent_approvals: [],
+      agent_lessons: [],
+      agent_decisions: [],
+      agent_runs: [],
+    });
+    void memory.insert("agent_runs", {
+      agent_id: SOCIAL_ID,
+      cause: "message",
+      message_id: LINE_ID,
+    });
+    const created: unknown[] = [];
+    memory.hooks.rpc = (name, args) => {
+      if (name !== "create_proposed_post") throw new Error(`unexpected rpc ${name}`);
+      created.push(args);
+      return Promise.resolve({ data: "post-1", error: null });
+    };
+    const photo = readFileSync("src/assets/los-altos.jpg");
+    const db = Object.assign(memory.db, {
+      storage: {
+        from: () => ({
+          download: () => Promise.resolve({ data: new Blob([photo]), error: null }),
+        }),
+      },
+    });
+    cli.answer = () => JSON.stringify({ reply: "Drafted.", task: "Drafted", ...fields });
+    expect(await runOnce(db)).toBe(true);
+    const said = (memory.tables["agent_messages"] ?? [])
+      .filter((line) => line["author_id"] === "system")
+      .map((line) => String(line["body"]));
+    return { approvals: memory.tables["agent_approvals"] ?? [], said, created };
+  }
+
+  it("files no text-only post, says in the thread the shapes a post takes, and still files a plan", async () => {
+    const POST_LINE = postToolLine(
+      driveSocialFolder(join(tmpdir(), "mop-w8-0d-home", ".mop-workforce", "config.json")),
+    );
+    const plan = { action: "campaign_plan", summary: "Malibu plan", content: { body: "A plan." } };
+    const ran = await socialRun(["read_business", "chat", "draft_post", "draft_campaign"], {
+      proposals: [textPost, plan],
+    });
+    expect(ran.approvals.map((row) => row["action"])).toEqual(["campaign_plan"]);
+    expect(ran.said).toContain(
+      `The post "Malibu at dusk" was not filed: a social post carries its pictures ("post"). ${POST_LINE}`,
+    );
+    // the brief says it once, beside the tool line it does not repeat
+    expect(lastPrompt("the colleague").split(UNFILED_POST_RULE)).toHaveLength(2);
+    // a colleague that may ask for a reel is told that shape too
+    const reeler = await socialRun(["read_business", "chat", "draft_post", "request_reel"], {
+      proposals: [textPost],
+    });
+    expect(reeler.approvals).toEqual([]);
+    expect(reeler.said).toContain(
+      `The post "Malibu at dusk" was not filed: a social post carries its pictures ("post") or asks for a reel. ${POST_LINE} ${REEL_TOOL_LINE}`,
+    );
+  });
+
+  it("files a post whose run asked for a reel, with its reel, as before", async () => {
+    const ran = await socialRun(["read_business", "chat", "draft_post", "request_reel"], {
+      proposals: [textPost],
+      media: [{ skill: "reel", name: "Malibu light", kind: "brand", titles: ["A quiet house"] }],
+    });
+    expect(ran.approvals.map((row) => row["action"])).toEqual(["social_post"]);
+    expect(ran.approvals[0]?.["content"]).toMatchObject({
+      body: BODY,
+      reel: { name: "Malibu light" },
+    });
+    expect(JSON.stringify(ran.approvals[0]?.["content"])).toMatch(/"request_id":"[0-9a-f-]{36}"/);
+    expect(ran.said.filter((line) => line.includes("was not filed"))).toEqual([]);
+  });
+
+  it("sends a post with its pictures to Proposed posts, as before", async () => {
+    const post = {
+      title: "Malibu",
+      channels: [
+        {
+          channel: "instagram",
+          format: "single",
+          caption: BODY,
+          images: [{ key: "proposed/w8-2/malibu.jpg", alt: "The house at dusk" }],
+        },
+      ],
+    };
+    const ran = await socialRun(["read_business", "chat", "draft_post"], {
+      proposals: [{ ...textPost, content: { body: BODY, post } }],
+    });
+    expect(ran.approvals).toEqual([]);
+    expect(ran.created).toMatchObject([{ p_title: "Malibu", p_proposer_agent: "social" }]);
+    expect(ran.said).toContain(
+      `The post "Malibu at dusk" waits in Proposed posts for a person's approval.`,
+    );
   });
 });
 
