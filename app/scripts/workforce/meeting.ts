@@ -461,7 +461,8 @@ export function meetingArgs(model: string, research: boolean): string[] {
  * whole, scorecard, every colleague's lines and the decisions, in 1.8 to 6.2 minutes from start to marker. On 10-27 one
  * colleague's three lines ran past the old 8 minutes on a prompt PR 502 did not change: a step that long is stuck.
  * The worst case, every step just inside its limit with a full team (TEAM_CEILING), is 10 + 10 x 5 + 15 = 75 minutes,
- * inside the 100 minutes the "MOP Meeting" task allows a start (install.ps1, $auditSettings).
+ * inside the 195 minutes after which MOP Sweep ends a scheduled pass (sweep.ts RUN_CEILING_MS; since P-4660 the task
+ * itself has no time limit).
  */
 export const STEP_LIMIT_MS = {
   // the analyst searches the web, the slowest voice of the meeting

@@ -73,8 +73,9 @@ Write-Output "task: MOP Captions registered (every ten minutes, hidden)"
 
 # 6. The scheduled task "MOP Meeting": the team's daily meeting at 17:45 local (W2 step 7, scripts/workforce/meeting.ts);
 #    the decisions land by 18:00 Cairo time, and Windows follows Egypt's clock changes. W8 0j round 3: it starts again
-#    every hour until 21:45 (LAST_START_HOUR in meeting.ts), so a step that stopped is run again the same day; a start
-#    after the day's marker does nothing, and each start keeps inside the task's 100 minutes ($auditSettings).
+#    every hour until 21:45 (LAST_START in meeting.ts), so a step that stopped is run again the same day; a start
+#    after the day's marker does nothing, and each start keeps inside MOP Sweep's ceiling (its steps' own limits). W8 0j
+#    round 4: a missed start run late by StartWhenAvailable before 17:45 (after midnight) does nothing.
 $meetingAction = New-ScheduledTaskAction -Execute "wscript.exe" `
   -Argument ("`"" + $vbs + "`" `"" + $app + "`" scripts\workforce\meeting.ts meeting")
 $meetingTrigger = New-ScheduledTaskTrigger -Daily -At "17:45"

@@ -8,6 +8,7 @@ import { localSpecShape, propertySchema } from "../../scripts/lib/render-spec.mj
 import { goalLine, openDecisionsText, Supervisor } from "../../scripts/matter/live";
 import { context } from "../../scripts/workforce/daemon";
 import { TEAM_CEILING } from "../../scripts/workforce/hiring";
+import { RUN_CEILING_MS } from "../../scripts/workforce/sweep";
 import {
   beforeFirstStart,
   closedDecisions,
@@ -546,21 +547,19 @@ describe("MEETING-FIX round 3: each step timed, said when it stops, run again th
     );
   });
 
-  it("keeps a full team's worst case, every step just inside its limit, inside the MOP Meeting task's limit", () => {
+  it("keeps a full team's worst case, every step just inside its limit, inside the sweep's ceiling for a scheduled pass", () => {
+    // round 4: since P-4660 the MOP Meeting task has no time limit; MOP Sweep ends a scheduled pass past RUN_CEILING_MS
     const registered =
       install.find((line) => line.startsWith('Register-ScheduledTask -TaskName "MOP Meeting"')) ??
       "";
     const settings = /-Settings (\$\w+)/.exec(registered)?.[1] ?? "none";
     const declared =
       install.find((line) => line.startsWith(`${settings} = New-ScheduledTaskSettingsSet`)) ?? "";
-    const minutes = Number(
-      /-ExecutionTimeLimit \(New-TimeSpan -Minutes (\d+)\)/.exec(declared)?.[1] ?? "0",
-    );
     // the analyst and Matter speak once; every other colleague of a full team says its three lines
     const worst =
       STEP_LIMIT_MS.scorecard + (TEAM_CEILING - 2) * STEP_LIMIT_MS.lines + STEP_LIMIT_MS.decisions;
-    expect(minutes).toBe(100);
-    expect(worst).toBeLessThanOrEqual(minutes * 60_000);
+    expect(declared).toContain("-ExecutionTimeLimit (New-TimeSpan -Seconds 0)");
+    expect(worst).toBeLessThanOrEqual(RUN_CEILING_MS);
   });
 
   it("never runs a finished step twice in a day: a second start takes what the first one kept", async () => {
