@@ -17,6 +17,7 @@ import {
   type Renderer,
   type Toolkit,
 } from "../../src/domain/toolkits.ts";
+import { localSpecShape } from "../lib/render-spec.mjs";
 import { renderPlan } from "./render-run.mjs";
 
 /** The checkout this runner runs from (`app/`): where the render scripts live. Node and Bun both know `import.meta.url`. */
@@ -152,6 +153,8 @@ export function toolkitLine(toolkit: Toolkit, paths: ToolkitPaths, research: boo
       ? []
       : [
           `To have ${series(toolkit.render.map((name) => renderers[name].label))} rendered, write its spec (and keep its photographs) in your folder and add to your JSON a "renders" list: {"renderer": "${toolkit.render.join("|")}", "spec": "the spec file, relative to your folder", "out": "${outs}"}. The runner renders each after your run and says the result in the thread.`,
+          // W8 0e proof (P-4644): the spec's shape, read from the schema the render checks it with, so it is never guessed
+          `A spec is one JSON file of this shape (a key marked ? may be left out): ${localSpecShape()}. Each image's "path" is a photograph in the spec's own folder, relative to the spec; a slide's "image" is a photograph's place in "images", counted from 0.`,
         ];
   return [
     `${lines.join("; ")}. You run no command; anything that leaves the company is still a proposal a person approves.`,
