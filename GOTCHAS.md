@@ -9241,7 +9241,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - added: 2026-10-27
 - hit again: 2026-10-27, W8 0h gaps round 2: even on a scratch folder of the 11 staged files, `gitleaks detect --no-git --source <folder>` printed nothing for 300 s and was ended by `timeout`; `Get-Process` stalled with it. The staged diff was grepped for key shapes instead, and CI's scan judges.
 
-## P-4648 · A long builder run dropped by the network leaves its edits uncommitted, and the next run re-reads and re-checks all of them
+## P-4651 · A long builder run dropped by the network leaves its edits uncommitted, and the next run re-reads and re-checks all of them
 - symptom: W8 item 1 round 5, 2026-10-27: two runs of the same brief stopped on network failures (12:17 and about 16:59) with findings 1 to 4 mostly written in `reel.ts`, `daemon.ts` and the test, nothing committed; the third start had to read the whole diff, re-derive which finding each hunk served, and found the registry entry `w8-1-pass-log-file` STALE against the half-done code. In the same run `node ~/.claude/hooks/edit-impact.mjs` failed with `Cannot find module 'E:\c\Users\DELL\.claude\hooks\edit-impact.mjs'`.
 - cause: the brief commits once at the end, so an interrupted run leaves no marker of what is finished. Git Bash exports `MSYS_NO_PATHCONV=1` here (P-015), so `~` expands to `/c/Users/DELL` unconverted and node on drive E reads it as `E:\c\Users\...`.
 - rule: in a multi-finding round, commit each finding with its test and registry entry as it turns green (a local commit, pushed at the end; never stash, never force-push), so a restart reads `git log` rather than a diff. Call a hook or script under the home folder by its Windows path: `node "C:/Users/DELL/.claude/hooks/edit-impact.mjs" --changed "E:/mop-build/<worktree>"`.
@@ -9260,4 +9260,26 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the round cut links in the body and redacted the header values it thought sensitive by name (signatures, ids), and never walked the headers one by one.
 - rule: clean a mail fixture header by header: every value the runner does not read is `[redacted]`, `List-Unsubscribe` and `List-Unsubscribe-Post` always (`isBulk` needs only the header to exist), and every link in header or body is cut to its host. The test "carries no unsubscribe link or token in any mail fixture" refuses one. A link already pushed stays in history (never rewritten); say so.
 - proof: `cd app && bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t "carries no unsubscribe link or token"` → passes; registry `w8-0h7-fixture-unsubscribe` turns it red.
+- added: 2026-10-27
+
+## P-4648 · Two branches took the same next bank number, and the merge of GOTCHAS.md dropped one entry without markers
+- symptom: 2026-10-27, W8 item 1 round 4 merged with main: both sides had added `## P-4645` (main: the gitleaks stall; the branch: the hung studio pass). `git status` said `UU GOTCHAS.md`, yet the file held no `<<<<<<<` lines and main's P-4645 with its hit-again line was simply gone. The merge, backgrounded after a 120 s timeout, also left `.git/worktrees/od-w8-1b/index.lock` behind with no git process running, and the commit refused until it was removed.
+- cause: each builder picks "the next number" from its own branch; a merge resolution that keeps one side's block of a numbered heading loses the other.
+- rule: after merging main into a branch, compare `grep -c "^## P-" GOTCHAS.md` with the sum of new headings on both sides (`git diff --stat` is not enough) and renumber the branch's entry to the next free number, updating every reference (`git grep -n P-<old>`). A lock with no `git` process (`Get-Process git`) is stale: remove it, then commit.
+- proof: `git show origin/main:GOTCHAS.md | grep -c "^## P-4645"` → 1 (gitleaks); on cff2df82 `grep -n "^## P-464[5-7]" GOTCHAS.md` → P-4645 gitleaks, P-4646, P-4647 the studio pass.
+- added: 2026-10-27
+- hit again: 2026-10-27, W8 item 1 round 5 merged with main: the round 5 builder took P-4648 for its own entry while main's P-4648 (this one) had landed in PR 506; the merge kept the branch's and dropped this one, again with no markers. Renumbered to P-4651.
+
+## P-4649 · A reviewer's critical claim about the runtime was taken from the spec; a 30-second repro refuted it
+- symptom: 2026-10-27, review rv23 of W8 item 1 round 4 FAILED it as critical: a static import back into `reel.ts` (still in its top-level await) "deadlocks the same way" as the dynamic one, citing ECMAScript evaluation; its shell was denied, so it was not measured.
+- cause: module-cycle behaviour differs by runtime and by edge kind; a reviewer without a shell argues from the spec.
+- rule: before a builder is sent to fix a critical claim about runtime behaviour, measure it in a scratch folder (two files, `timeout 30 bun a.ts`); send only what holds, and write the measurement into the brief so the builder does not re-argue it.
+- proof: `.tmp/cycle-repro` on bun 1.4.3: `b.ts` with `import { x } from "./a.ts"` → all lines, exit 0; `b.ts` with `await import("./a.ts")` inside `f()` → `timeout 30` exit 124.
+- added: 2026-10-27
+
+## P-4650 · A colleague's tool line left out what the runner checks, so a right post was refused twice
+- symptom: 2026-10-27, W8 items 10 and 11 live: Maya's structured `social_post` for the Fairfield TEST set was refused at 08:58 UTC ("Carousels/2400 Azure Pl, Fairfield (TEST)/slide-0.c82f91d4.jpg is not in the studio or the Drive folder", the file was there) and at 09:08 UTC with the database's own words ("Key (property_id)=(4a3c2563-...) is not present in table \"properties\""); the third filing, with full paths and `submission_id`, made post 672d3eb4.
+- cause: `POST_TOOL_LINE` (`scripts/workforce/proposed-post.ts`) says "the file in the studio or the Google Drive folder" while `inside()` takes only an absolute path, and names `property_id` but never `submission_id`, though `postPlanSchema` takes both; the id is not checked before upload, so a foreign-key error is the refusal.
+- rule: a tool line a colleague reads states every shape the runner will check (absolute or relative to which folder, which id field for which kind of subject), from the same source the check uses; the runner checks every named id before it uploads anything and refuses in plain words. Fix round `overdrive/w8-10-paths`.
+- proof: `bun .tmp/thread-read.ts social 2026-10-27T08:50:00Z` from the live checkout shows the two refusals and the filed post.
 - added: 2026-10-27
