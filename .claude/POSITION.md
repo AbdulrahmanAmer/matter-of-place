@@ -2502,3 +2502,17 @@ registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3
   a same-day rerun skipping finished steps, hourly retry until 21:45) under fresh review; why Chief's step hung is
   UNPROVEN. NOT DONE: items 2 and 10 need a person's approval of a TEST structured post (operator sign-in); posting
   needs W8 6 (Meta app). Bank: P-4654, P-4651 hit again; builders added P-4653, P-4655, P-4656.
+
+- 2026-10-27 20:05 +0300, workforce stuck work and CPU (operator: "reel.ts kept stacking ... make sure that they are
+  able to check if things are stuck and clean behind them and things shouldn't sit in queue"): PR 508 merged 6286dc61
+  (5 fresh Opus reviews, every MUST fixed; CI green). Cause: a task time limit ends only wscript, so passes ran on and
+  a new one started beside them; reel.ts --pass started 20-51 times an hour (P-4660). Now: no MOP task but MOP Sweep
+  has a limit; `scripts/workforce/sweep.ts` ("MOP Sweep", every 5 min) ends stuck work by exact pids (a run past
+  3 h 15 min on its claim, ruling H150; stopped passes, extra studio passes keeping the lock holder, orphaned runner
+  CLIs, studio ffmpeg/renders), settles their runs, names claimable runs queued over 30 min, and hands one stall report
+  per stall to Matter's live session (`~/.mop-workforce/matter/stall.md`); live.ts releases held runs and ends a lost
+  session at restart. Installed 20:02 (install.ps1 from E:/mop-build/live/app, at 6286dc61): every MOP task limit PT0S
+  but MOP Sweep PT4M and MOP Backup PT30M (registered outside install.ps1; the sweep covers it). First real sweep 20:02:57
+  exit 0, nothing to end. Matter's goal run 0951ea21 closed by hand. Matter's own studio lock merged in PR 509.
+  UNPROVEN: the sweep ending a real stack; a stall report reaching Matter's live session. Bank P-4660, P-4661, P-4662
+  (raw insert into agent_messages reaches no one), P-4643 cause corrected.
