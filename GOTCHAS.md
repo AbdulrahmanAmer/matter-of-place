@@ -9383,3 +9383,9 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `grep -n "max_rows" app/supabase/config.toml` → `max_rows = 1000`; `grep -n 'rpc("newsletter_interest_counts"' app/scripts/workforce/interest.ts` → the one call.
 - added: 2026-10-27
 
+## P-4680 · Matter's goal line is re-handed every ten minutes while he waits on his own background work
+- symptom: 2026-10-27 18:03-18:39 UTC, Matter posted "Nothing new ... still building" six times, 31 lines in two hours, while a builder ran in the background and the meeting rerun was due at 18:45.
+- cause: `continueGoal` (scripts/matter/live.ts) handed the first unticked step every ten minutes whatever he was waiting on; `goalSkipReason` ignored his open background tasks, and a turn that only answered cost nothing to repeat.
+- rule: no goal line while a background task of his started under an hour ago is open (its end wakes the session, and that wake turn covers the goal); after each goal turn that did no work (no Edit, Write, Agent, Task, task started or merge; a status read is not work) the gap doubles, ten minutes to an hour; a person's line or a finished task starts the pace over; an error result is not counted.
+- proof: `cd app && bunx vitest run --project unit tests/unit/matter-autonomy.test.ts` (registry ma-d-*); live: `select count(*) from agent_messages where thread='matter' and author_name='Matter' and created_at > now() - interval '2 hours'` after the merge.
+- added: 2026-10-27

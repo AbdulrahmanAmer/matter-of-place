@@ -276,11 +276,45 @@ export function shouldTouch(touchedAt: number, now: number): boolean {
   return now - touchedAt >= 60_000;
 }
 
+/** The longest a goal line waits once his goal turns keep doing nothing, and the longest open tasks hold it back. */
+export const GOAL_GAP_MAX_MS = 60 * 60_000;
+
 /**
- * Why Matter is not handed his next goal step now, or null when he is: a session is up, no line is in hand, a minute has
- * passed since his last answer, not more than every 10 min, and the staff policy lets self-started work run. Open
- * background tasks do not block it (a task that never reported back kept the supervisor busy for seven hours,
- * 2026-10-16, P-3580): he works on while they run, as he does for a person's line.
+ * The gap before the next goal line: ten minutes, doubled after each goal turn in a row that used no tool (it only
+ * answered, "nothing new, still waiting"), up to an hour (operator, 2026-10-27: 31 such lines in two hours).
+ */
+export function goalGapMs(quiet: number): number {
+  return Math.min(GOAL_GAP_MS * 2 ** quiet, GOAL_GAP_MAX_MS);
+}
+
+/** Tools that change something: a file, a builder, a delegated agent. A status read (`date; tail log`) is not work. */
+export function isWorkTool(name: string): boolean {
+  return /^(Edit|Write|MultiEdit|NotebookEdit|Agent|Task)$/.test(name);
+}
+
+/** Goal turns in a row that did no work, after one turn's result (an error, a usage limit, is not counted). */
+export function quietAfter(input: {
+  goalTurn: boolean;
+  work: number;
+  quiet: number;
+  isError: boolean;
+}): number {
+  if (!input.goalTurn || input.isError) return input.quiet;
+  return input.work === 0 ? input.quiet + 1 : 0;
+}
+
+/**
+ * His open background tasks that may still hold the goal back: those started under GOAL_GAP_MAX_MS ago. One that
+ * never reports back (P-3580: seven hours, 2026-10-16), or a watcher he leaves running, stops holding it then.
+ */
+export function youngTasks(open: ReadonlyMap<string, number>, now: number): number {
+  return [...open.values()].filter((startedAt) => now - startedAt < GOAL_GAP_MAX_MS).length;
+}
+
+/**
+ * Why Matter is not handed his next goal step now, or null when he is: a session is up, no line is in hand, no young
+ * background task of his runs (its end wakes him by itself), a minute has passed since his last answer, at least ten
+ * minutes and the quiet-turn gap since the last goal line, and the staff policy lets self-started work run.
  */
 export function goalSkipReason(input: {
   hasSession: boolean;
@@ -289,12 +323,21 @@ export function goalSkipReason(input: {
   lastResultAt: number;
   goalAt: number;
   backlog: "all" | "person" | "off";
+  /** Background tasks of his still running: each one's end wakes the session by itself. */
+  open?: number;
+  /** Goal turns in a row that used no tool. */
+  quiet?: number;
 }): string | null {
   if (!input.hasSession) return "no live session is up";
   if (input.active > 0) return `${String(input.active)} line(s) in hand`;
+  const open = input.open ?? 0;
+  if (open > 0) return `${String(open)} background task(s) of his running; their end wakes him`;
   if (input.now - input.lastResultAt < AFTER_RESULT_MS)
     return "under a minute since his last answer";
   if (input.now - input.goalAt < GOAL_GAP_MS) return "under ten minutes since the last goal line";
+  const quiet = input.quiet ?? 0;
+  if (input.now - input.goalAt < goalGapMs(quiet))
+    return `his last ${String(quiet)} goal turn(s) did no work; the next waits ${String(goalGapMs(quiet) / 60_000)} minutes`;
   if (input.backlog === "off") return "the staff policy has self-started work off";
   return null;
 }
@@ -525,6 +568,10 @@ export class Supervisor {
   private seeded = false;
   private lastResultAt = 0;
   private goalAt = 0;
+  // the goal's pace: tools used in the turn now open, whether it is a goal turn, and goal turns in a row with none
+  private turnWork = 0;
+  private goalTurnOpen = false;
+  private quietGoals = 0;
   // A rotation stops the process on purpose: its exit is not a crash.
   private rotating = false;
   // Jay's first condition: what Matter's one-shot runs did since the last line this session read.
@@ -615,6 +662,7 @@ export class Supervisor {
         const shown = postableText(event.text);
         if (shown !== "") await this.post(thread, shown);
       } else if (event.kind === "tool") {
+        if (isWorkTool(event.name) || event.merged !== undefined) this.turnWork += 1;
         if (event.merged !== undefined) this.noteMerge(event.merged);
         await this.setTask(event.label);
       } else if (event.kind === "task") {
@@ -622,6 +670,12 @@ export class Supervisor {
           event.state === "started" ? `Background: ${event.label}` : `Finished: ${event.label}`,
         );
         this.open = openTasks(this.open, event);
+        // starting work is work; work of his that ended is news, and the turn it wakes covers the goal for now
+        if (event.state === "started") this.turnWork += 1;
+        else {
+          this.quietGoals = 0;
+          this.goalAt = Date.now();
+        }
         await this.recordTask(event);
       } else if (event.kind === "result") {
         await this.onResult(event);
@@ -631,6 +685,14 @@ export class Supervisor {
 
   async onResult(event: Extract<LiveEvent, { kind: "result" }>): Promise<void> {
     this.lastResultAt = Date.now();
+    this.quietGoals = quietAfter({
+      goalTurn: this.goalTurnOpen,
+      work: this.turnWork,
+      quiet: this.quietGoals,
+      isError: event.isError,
+    });
+    this.goalTurnOpen = false;
+    this.turnWork = 0;
     if (event.session !== null)
       writeFileSync(
         SESSION_FILE,
@@ -763,6 +825,8 @@ export class Supervisor {
     const runs = this.active;
     this.active = [];
     this.open = new Map();
+    this.goalTurnOpen = false;
+    this.turnWork = 0;
     await this.stopRunningTasks();
     if (this.rotating) {
       this.rotating = false;
@@ -903,6 +967,8 @@ export class Supervisor {
       lastResultAt: this.lastResultAt,
       goalAt: this.goalAt,
       backlog: staffPolicy().backlog,
+      open: youngTasks(this.open, now),
+      quiet: this.quietGoals,
     });
     // the sweep's stall report waits only for an idle session, never for the staff policy or the goal's pace
     const stallWaiting = this.child !== null && this.active.length === 0 && existsSync(STALL_FILE);
@@ -943,6 +1009,8 @@ export class Supervisor {
     await this.setTask(stall === "" ? "Working on his goal" : "Fixing what the sweep found stuck");
     // H143 (4): a goal turn is self-started, so it shows no decision; the session keeps those an operator turn showed,
     // so goalLine repeats that none is taken up without his yes
+    this.goalTurnOpen = true;
+    this.turnWork = 0;
     this.say(turn);
   }
 
@@ -1047,6 +1115,9 @@ export class Supervisor {
           .single();
         if (line === null) continue;
         this.active.push({ runId: run.id, thread: line.thread });
+        // a person's line starts the goal's pace over, and a goal turn it lands in is no longer a goal turn
+        this.quietGoals = 0;
+        this.goalTurnOpen = false;
         await this.setTask("Reading your line");
         const digest = await this.digest();
         this.say(
