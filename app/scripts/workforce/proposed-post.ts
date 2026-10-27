@@ -75,6 +75,22 @@ export function isStructuredPost(proposal: {
   return proposal.action === "social_post" && proposal.content.post !== undefined;
 }
 
+/**
+ * W8 item 2 (ruling H146): a social post with neither its pictures nor a reel of its run is not filed, because approving
+ * it would record a decision and make nothing. Said once in the brief of a colleague that drafts posts.
+ */
+export const UNFILED_POST_RULE =
+  'A social post that carries neither its pictures ("post") nor a reel asked for in the same answer is not filed: approving it would make nothing.';
+
+/** The thread line for such a post: what it lacked in plain words, then the shapes this colleague can give it. */
+export function unfiledPostLine(summary: string, reelLine: string | null): string {
+  return [
+    `The post "${summary}" was not filed: a social post carries its pictures ("post")${reelLine === null ? "" : " or asks for a reel"}.`,
+    POST_TOOL_LINE,
+    ...(reelLine === null ? [] : [reelLine]),
+  ].join(" ");
+}
+
 const TYPES: Readonly<Record<string, { type: string; video: boolean }>> = {
   ".jpg": { type: "image/jpeg", video: false },
   ".jpeg": { type: "image/jpeg", video: false },
