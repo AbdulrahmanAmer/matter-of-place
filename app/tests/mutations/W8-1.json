@@ -617,5 +617,266 @@
     "replace": "    types: [opened, synchronize, reopened, ready_for_review]\n    paths-ignore: [\"workspace/**\", \"launch/**\", \"launch/01-launch-film/**\"",
     "run": "bunx vitest run --project unit tests/unit/merge-gate.test.ts",
     "expect": "× .*refuses a pull request that changes only the post page sandbox with no checks"
+  },
+  {
+    "id": "w8-1-pass-no-import-cycle",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "  const { childEnv } = await import(\"./env.ts\");",
+    "replace": "  await import(\"./reel.ts\");\n  const { childEnv } = await import(\"./env.ts\");",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*never hangs on an import\\(\\) of a runnable script"
+  },
+  {
+    "id": "w8-1-pass-log-lines",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "    say(\"studio pass ended\");",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*writes each line of a studio pass with its time"
+  },
+  {
+    "id": "w8-1-pass-log-file",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "      stdio: out === null ? \"ignore\" : [\"ignore\", out, out],",
+    "replace": "      stdio: \"ignore\",",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*is started by the runner with its output and errors appended"
+  },
+  {
+    "id": "w8-1-font-served-path",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": ".join('url(\"/app/public/fonts/'),",
+    "replace": ".join('url(\"/fonts/'),",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*gives the post and reel designers the site's own @font-face rule"
+  },
+  {
+    "id": "w8-1-font-rule-post",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "    HOUSE,\n    fontRule(),\n    `The frames",
+    "replace": "    HOUSE,\n    `The frames",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*gives the post and reel designers the site's own @font-face rule"
+  },
+  {
+    "id": "w8-1-error-lines",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "    if (line === \"\" || line.startsWith(\"at \") || /^Node\\.js v\\d/.test(line)) continue;",
+    "replace": "    if (line === \"\") continue;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*keeps the engine's message lines in a failed render's reason"
+  },
+  {
+    "id": "w8-1-font-rule-revise",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "    HOUSE,\n    fontRule(),\n    carousel\n",
+    "replace": "    HOUSE,\n    carousel\n",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*gives the post and reel designers the site's own @font-face rule"
+  },
+  {
+    "id": "w8-1-font-rule-scene",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "    fontRule(),\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*gives the post and reel designers the site's own @font-face rule"
+  },
+  {
+    "id": "w8-1-pass-lock-alive",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "      (Number.isNaN(started) || Math.abs(started - held.started) <= START_SLACK_MS)",
+    "replace": "      started < 0",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*starts no second studio pass while the first one's process lives"
+  },
+  {
+    "id": "w8-1-pass-lock-dead",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "    rmSync(lock, { force: true });\n    rmSync(said, { force: true });",
+    "replace": "    rmSync(said, { force: true });",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*starts no second studio pass while the first one's process lives"
+  },
+  {
+    "id": "w8-1-pass-lock-outlived-kept",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "      if (now - held.started <= LOCK_LIMIT_MS) return [running];",
+    "replace": "      if (now - held.started > LOCK_LIMIT_MS) return startStudioPass(run, log, lock, () => null, now);\n      if (now - held.started <= LOCK_LIMIT_MS) return [running];",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*starts no second pass beside a live one past its limit"
+  },
+  {
+    "id": "w8-1-pass-lock-outlived-once",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "        if (readFileSync(said, \"utf8\") === key) return [running];",
+    "replace": "        if (readFileSync(said, \"utf8\") === \"\") return [running];",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*starts no second pass beside a live one past its limit"
+  },
+  {
+    "id": "w8-1-pass-lock-reused",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "Math.abs(started - held.started) <= START_SLACK_MS",
+    "replace": "Math.abs(started - held.started) >= 0",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*takes over the lock when its id belongs to a process started later"
+  },
+  {
+    "id": "w8-1-pass-lock-claimed",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "{ flag: \"wx\" }",
+    "replace": "{ flag: \"w\" }",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*lets the pass claim the lock once"
+  },
+  {
+    "id": "w8-1-pass-lock-parent-none",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "  child.unref();\n  lines.push(",
+    "replace": "  child.unref();\n  writeFileSync(lock, String(child.pid));\n  lines.push(",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*is started by the runner with its output and errors appended"
+  },
+  {
+    "id": "w8-1-pass-lock-unreadable",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "    return parsed.success ? parsed.data : null;\n  } catch {\n    return null;\n  }",
+    "replace": "    return parsed.success ? parsed.data : null;\n  } catch (failure: unknown) {\n    throw failure;\n  }",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*counts a lock that cannot be read as none"
+  },
+  {
+    "id": "w8-1-pass-child-limit",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/render-reel.mjs",
+    "find": "{ ...options, timeout: limit, killSignal: \"SIGKILL\" }",
+    "replace": "{ ...options }",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*ends a step whose blocking child runs past its limit"
+  },
+  {
+    "id": "w8-1-pass-log-unopened",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "    lines.push(`studio log not opened, the pass runs without its lines: ${failureText(failure)}`);",
+    "replace": "    throw failure;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*starts the studio pass without its lines when the log cannot be opened"
+  },
+  {
+    "id": "w8-1-pass-watchdog",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "    exit(1);\n  }, limitMs);",
+    "replace": "  }, limitMs);",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*ends a studio pass that hangs past its limit"
+  },
+  {
+    "id": "w8-1-pass-watchdog-whole",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "  }, limitMs);\n  watchdog.unref();",
+    "replace": "  }, limitMs + 40_000);\n  watchdog.unref();",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*ends a studio pass that hangs past its limit"
+  },
+  {
+    "id": "w8-1-pass-limit",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "export const PASS_LIMIT_MS = 3 * 60 * 60_000;",
+    "replace": "export const PASS_LIMIT_MS = 10 * 60_000;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*ends a studio pass that hangs past its limit"
+  },
+  {
+    "id": "w8-1-import-guard-chain",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "tests/unit/workforce-brand-post.test.ts",
+    "find": "          } else if (graph.has(to) && !via.has(to)) {",
+    "replace": "          } else if (graph.has(to) && !via.has(to) && dynamic) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*finds an import\\(\\) back into a runnable script through a third module"
+  },
+  {
+    "id": "w8-1-import-guard-static",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "tests/unit/workforce-brand-post.test.ts",
+    "find": "            if (dynamic) found.push(",
+    "replace": "            found.push(",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*finds an import\\(\\) back into a runnable script through a third module"
+  },
+  {
+    "id": "w8-1-pass-deadline-cut",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/lib/pass-deadline.mjs",
+    "find": "return Math.min(limitMs, left);",
+    "replace": "return limitMs;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*cuts a child's limit to what is left of the studio pass"
+  },
+  {
+    "id": "w8-1-pass-deadline-none",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/lib/pass-deadline.mjs",
+    "find": "if (left <= 0) throw new Error(",
+    "replace": "if (left < -Infinity) throw new Error(",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*cuts a child's limit to what is left of the studio pass"
+  },
+  {
+    "id": "w8-1-pass-deadline-spawn",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/render-reel.mjs",
+    "find": "const limit = childLimit(limitMs);",
+    "replace": "const limit = limitMs;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*cuts a child's limit to what is left of the studio pass"
+  },
+  {
+    "id": "w8-1-pass-deadline-set",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "setPassDeadline(Date.now() + limitMs);",
+    "replace": "void limitMs;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*holds the pass's own limit as the deadline of every child"
+  },
+  {
+    "id": "w8-1-pass-child-name",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/render-reel.mjs",
+    "find": "first === undefined || first.startsWith(\"-\") ? command : first",
+    "replace": "first ?? command",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*names the program, not its first flag, when a child times out"
+  },
+  {
+    "id": "w8-1-pass-deadline-reset",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "setPassDeadline(Number.POSITIVE_INFINITY);",
+    "replace": "void 0;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*holds the pass's own limit as the deadline of every child"
   }
 ]

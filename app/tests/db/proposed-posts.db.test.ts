@@ -95,7 +95,7 @@ async function matterAccount(db: Db): Promise<string> {
 }
 
 describe("create_proposed_post", () => {
-  it("files a colleague's post with one row per channel of revision 1 and a system audit row naming it", async () => {
+  it("files a colleague's post with one row per channel of revision 1 and an audit row whose actor is the colleague", async () => {
     await withRollback(async (db) => {
       await stored(db);
       const id = await propose(db, FAIRFIELD);
@@ -123,12 +123,19 @@ describe("create_proposed_post", () => {
         { channel: "linkedin", format: "carousel", images: 2 },
         { channel: "x", format: "single", images: 1 },
       ]);
+      // the colleague is the actor: its own agents row, as an agent (no account, so no user id)
       const audit = await db.query<Record<string, unknown>>(
-        "select actor_id, action, note from public.audit_log where entity_id = $1",
+        `select l.actor_id = a.id as colleague, l.actor_kind, l.action, l.note
+         from public.audit_log l, public.agents a where l.entity_id = $1 and a.slug = 'chief'`,
         [id],
       );
       expect(audit.rows).toEqual([
-        { actor_id: null, action: "channels.proposed_create", note: "agent:chief" },
+        {
+          colleague: true,
+          actor_kind: "agent",
+          action: "channels.proposed_create",
+          note: "agent:chief",
+        },
       ]);
     });
   });

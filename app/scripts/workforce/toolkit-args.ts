@@ -245,8 +245,15 @@ export function runRenders(
       maxBuffer: 16 * 1024 * 1024,
     });
     if (run.status === 0) {
-      const files = run.stdout.split("\n").filter((line) => line.trim().endsWith(" ok")).length;
-      return `Rendered ${label} from ${ask.spec} into ${ask.out}: ${String(files)} ${files === 1 ? "file" : "files"}.`;
+      // the render script prints `<file> <w>x<h> ok` per file; naming them tells a colleague this run's batch (P-4650)
+      const files = run.stdout
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line.endsWith(" ok"))
+        .map((line) => line.split(" ")[0] ?? "");
+      const count = `${String(files.length)} ${files.length === 1 ? "file" : "files"}`;
+      const names = files.length === 0 ? "" : ` (${files.join(", ")})`;
+      return `Rendered ${label} from ${ask.spec} into ${ask.out}: ${count}${names}.`;
     }
     const why = run.error?.message ?? run.stderr.trim().split("\n").at(-1) ?? "";
     return `The render of ${label} from ${ask.spec} failed (exit ${String(run.status)}${why === "" ? "" : `: ${why}`}).`;

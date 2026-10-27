@@ -5,7 +5,7 @@
 // No model key exists anywhere (H34): the CLI is the operator's own account. It prints no secret and no prompt.
 //   bun scripts/workforce/daemon.ts          one pass, then exit (the scheduled task runs it every minute)
 //   bun scripts/workforce/daemon.ts --loop   pass after pass until stopped (for watching it live)
-import { spawn, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, hostname } from "node:os";
@@ -48,6 +48,7 @@ import {
   REEL_TOOL_LINE,
   reelWork,
   reelWorking,
+  startStudioPass,
   withReel,
 } from "./reel.ts";
 import { breakerUntil, type CliUsage, runClaude, UsageLimitError } from "./cli.ts";
@@ -57,8 +58,8 @@ import { readJsonAnswer, type Outcome } from "./answer.ts";
 import {
   fileProposedPost,
   isStructuredPost,
-  POST_TOOL_LINE,
   postDeps,
+  postToolLine,
   UNFILED_POST_RULE,
   unfiledPostLine,
 } from "./proposed-post.ts";
@@ -116,6 +117,8 @@ import {
 import { placePieces, placedLine, sourcesFor } from "./placement.ts";
 
 const HOME = join(homedir(), ".mop-workforce");
+/** The post tool line naming the runner's own Drive folder, the one `postDeps` checks paths against (P-4650). */
+const runnerPostLine = (): string => postToolLine(driveSocialFolder(join(HOME, "config.json")));
 const CURSOR_FILE = join(HOME, "cursor.json");
 const BREAKER_FILE = join(HOME, "breaker.json");
 const WORKER = `${hostname()}:${String(process.pid)}`;
@@ -849,7 +852,8 @@ function promptFor(
         ]
       : []),
     ...(agent.tools.includes("request_reel") ? [REEL_TOOL_LINE] : []),
-    ...(agent.tools.includes("draft_post") ? [POST_TOOL_LINE, UNFILED_POST_RULE] : []),
+    // P-4650: the Drive folder the line names is the one `postDeps` checks paths against, from the runner's config
+    ...(agent.tools.includes("draft_post") ? [runnerPostLine(), UNFILED_POST_RULE] : []),
     ...(toolkit === "" ? [] : [toolkit]),
     situation,
     'Answer with one JSON object and nothing else: {"reply": "what you say in the conversation, short", "task": "a few words for the office board on what you did", "proposals": [{"action": "reply_inquiry|social_post|newsletter_issue|campaign_plan", "summary": "one line", "content": {"body": "the full text", "to": "who it is for if any"}}], "hire": [{"slug": "handle", "name": "Name", "role": "what they do", "instructions": "their brief", "model": "sonnet", "wake_on": [], "tools": ["read_business", "chat"]}]}. Leave proposals and hire empty unless they are needed and you may do them.',
@@ -1160,7 +1164,7 @@ export async function runOnce(client: Db): Promise<boolean> {
       // W8 item 2 (H146): a post with neither its pictures nor a reel of this run is not filed: it would make nothing.
       if (proposal.action === "social_post" && reel === null) {
         const reelLine = agent.tools.includes("request_reel") ? REEL_TOOL_LINE : null;
-        await say(client, thread, unfiledPostLine(proposal.summary, reelLine));
+        await say(client, thread, unfiledPostLine(proposal.summary, runnerPostLine(), reelLine));
         continue;
       }
       // W7 item 20: a post or a plan of this run carries the reel it asked for; the hash covers what is stored.
@@ -1508,14 +1512,9 @@ async function pass(client: Db): Promise<void> {
   // W7 item 19: the oldest queued reel is made by a process of its own, one at a time, so passes keep their minute. It
   // does not wait for colleague runs: Matter's live session is one and is nearly always running (P-3480). W8 0f: the same
   // pass uploads an approved draft, sends a waiting piece's preview and writes the rows of the studio.
+  // W8 item 1, round 5: the pass keeps its own lock, so one hung before its piece is `working` is not started again.
   if (!reelBusy && reelWork()) {
-    spawn("bun", [join(import.meta.dir, "reel.ts"), "--pass"], {
-      cwd: resolve(import.meta.dir, "../.."),
-      detached: true,
-      stdio: "ignore",
-      windowsHide: true,
-    }).unref();
-    console.log(`${new Date().toISOString()} reel pass started`);
+    for (const line of startStudioPass()) console.log(`${new Date().toISOString()} ${line}`);
   }
   await makeApprovedCalls(client);
   // W4: replies to our email reach their colleague; W8 0h: every other message of every folder is recorded once and

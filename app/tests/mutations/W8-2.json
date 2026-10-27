@@ -39,7 +39,7 @@
     "id": "w8-2-line-names-shape",
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/proposed-post.ts",
-    "find": "    POST_TOOL_LINE,",
+    "find": "    postLine,",
     "replace": "    \"\",",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t \"W8 item 2\"",
     "expect": "× .*files no text-only post, says in the thread the shapes a post takes, and still files a plan"
@@ -48,8 +48,8 @@
     "id": "w8-2-brief-says-it-once",
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/daemon.ts",
-    "find": "[POST_TOOL_LINE, UNFILED_POST_RULE]",
-    "replace": "[POST_TOOL_LINE]",
+    "find": "[runnerPostLine(), UNFILED_POST_RULE]",
+    "replace": "[runnerPostLine()]",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t \"W8 item 2\"",
     "expect": "× .*files no text-only post, says in the thread the shapes a post takes, and still files a plan"
   },

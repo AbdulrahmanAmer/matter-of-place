@@ -19,7 +19,8 @@ import type * as Run from "../../scripts/matter/run.ts";
 import { takeQueuedMerges } from "../../scripts/matter/lessons.ts";
 import { matterPrompt } from "../../scripts/matter/run.ts";
 import { allowForOwner, answerPlan, runOnce } from "../../scripts/workforce/daemon.ts";
-import { POST_TOOL_LINE, UNFILED_POST_RULE } from "../../scripts/workforce/proposed-post.ts";
+import { driveSocialFolder } from "../../scripts/workforce/config.ts";
+import { postToolLine, UNFILED_POST_RULE } from "../../scripts/workforce/proposed-post.ts";
 import { REEL_TOOL_LINE } from "../../scripts/workforce/reel.ts";
 import {
   EXPLANATION_FAILED,
@@ -1362,13 +1363,16 @@ describe("W8 item 2 (H146): a social post is filed only in a shape that makes so
   }
 
   it("files no text-only post, says in the thread the shapes a post takes, and still files a plan", async () => {
+    const POST_LINE = postToolLine(
+      driveSocialFolder(join(tmpdir(), "mop-w8-0d-home", ".mop-workforce", "config.json")),
+    );
     const plan = { action: "campaign_plan", summary: "Malibu plan", content: { body: "A plan." } };
     const ran = await socialRun(["read_business", "chat", "draft_post", "draft_campaign"], {
       proposals: [textPost, plan],
     });
     expect(ran.approvals.map((row) => row["action"])).toEqual(["campaign_plan"]);
     expect(ran.said).toContain(
-      `The post "Malibu at dusk" was not filed: a social post carries its pictures ("post"). ${POST_TOOL_LINE}`,
+      `The post "Malibu at dusk" was not filed: a social post carries its pictures ("post"). ${POST_LINE}`,
     );
     // the brief says it once, beside the tool line it does not repeat
     expect(lastPrompt("the colleague").split(UNFILED_POST_RULE)).toHaveLength(2);
@@ -1378,7 +1382,7 @@ describe("W8 item 2 (H146): a social post is filed only in a shape that makes so
     });
     expect(reeler.approvals).toEqual([]);
     expect(reeler.said).toContain(
-      `The post "Malibu at dusk" was not filed: a social post carries its pictures ("post") or asks for a reel. ${POST_TOOL_LINE} ${REEL_TOOL_LINE}`,
+      `The post "Malibu at dusk" was not filed: a social post carries its pictures ("post") or asks for a reel. ${POST_LINE} ${REEL_TOOL_LINE}`,
     );
   });
 
