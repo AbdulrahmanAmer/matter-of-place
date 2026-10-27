@@ -150,17 +150,22 @@ const PUNCTUATION = /^[\s{}[\],:]*$/;
 /** A quote that could have closed a string of the original: at an end of the value, or beside punctuation or a quote. */
 const QUOTE_AT_EDGE = /(^|[",:{}[\]])\s*"|"\s*([",:{}[\]]|$)/;
 
+/** What may follow the last token: closing punctuation, and the fence the answer was written in. */
+const TAIL = /^[\s{}[\],:]*(```\s*)?$/;
+
 /**
  * P-4691 round 3 (fresh review, 2026-10-28; Matter's rule: a retry may change only punctuation). Round 2 asked only
  * that each piece occur somewhere in the original, so a retry could rebuild the object from fragments: a value moved
  * between keys (a studio decision `revise` handed back as `approve`), a slice of a string, an element twice, a number
  * from the digits of a date. Now the retried object's tokens, in their written order, follow one another in `original`
- * from its first `{"`, with nothing but punctuation between two of them: each key as `"key"` (before a ":"), each string
- * whole and quoted, each number, `true`, `false` and `null` whole (before a ",", "]", "}" or the end). A string counts
- * JSON-escaped, or as written when no quote inside it could have closed a string (else fields could be folded into it).
+ * from a "{" to its end, with nothing but punctuation between two of them and after the last (a closing fence aside):
+ * each key as `"key"` (before a ":"), each string whole and quoted, each number, `true`, `false` and `null` whole
+ * (before a ",", "]", "}" or the end). A string counts JSON-escaped, or as written when no quote inside it could have
+ * closed a string (else fields could be folded into it). Ending at the end, the object is the run's own closing one,
+ * never one quoted in its words, and nothing of it is left out.
  */
-function tracesIn(original: string, retried: unknown): boolean {
-  let pos = original.search(/\{\s*"/);
+function tracesFrom(original: string, start: number, retried: unknown): boolean {
+  let pos = start;
   const take = (forms: readonly string[], after: string): boolean => {
     for (const form of forms) {
       const at = original.indexOf(form, pos);
@@ -182,7 +187,14 @@ function tracesIn(original: string, retried: unknown): boolean {
     const asWritten = QUOTE_AT_EDGE.test(value) ? [] : [`"${value}"`];
     return take([JSON.stringify(value), ...asWritten], ",]}");
   };
-  return pos >= 0 && walk(retried);
+  return walk(retried) && TAIL.test(original.slice(pos));
+}
+
+/** `tracesFrom` any "{" of the answer: words before the object may hold braces of their own (P-3452). */
+function tracesIn(original: string, retried: unknown): boolean {
+  for (let start = original.indexOf("{"); start >= 0; start = original.indexOf("{", start + 1))
+    if (tracesFrom(original, start, retried)) return true;
+  return false;
 }
 
 /**

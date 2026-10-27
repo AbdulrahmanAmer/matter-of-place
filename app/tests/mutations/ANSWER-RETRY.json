@@ -210,8 +210,8 @@
     "id": "ar-r3-trace-whole-string",
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/answer.ts",
-    "find": "    return take([JSON.stringify(value), ...asWritten], \",]}\");",
-    "replace": "    return take([JSON.stringify(value), ...asWritten, JSON.stringify(value).slice(0, -1)], \",]}\");",
+    "find": "    return take([JSON.stringify(value), ...asWritten], \",]}\");\n  };\n  return walk(retried) && TAIL.test(original.slice(pos));",
+    "replace": "    return take([JSON.stringify(value), ...asWritten, JSON.stringify(value).slice(0, -1)], \",]}\");\n  };\n  return walk(retried);",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
     "expect": "× .*refuses a retry that slices a string"
   },
@@ -225,12 +225,21 @@
     "expect": "× .*traces an answer that truly holds a closing mark"
   },
   {
-    "id": "ar-r3-trace-object-start",
+    "id": "ar-r3-trace-each-start",
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/answer.ts",
-    "find": "  let pos = original.search(/\\{\\s*\"/);",
-    "replace": "  let pos = original.indexOf(\"{\");",
+    "find": "  for (let start = original.indexOf(\"{\"); start >= 0; start = original.indexOf(\"{\", start + 1))",
+    "replace": "  for (let start = original.indexOf(\"{\"); start >= 0; start = -1)",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*traces a retried object to the original"
+    "expect": "× .*traces only the answer's own closing object"
+  },
+  {
+    "id": "ar-r3-trace-whole-object",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "  return walk(retried) && TAIL.test(original.slice(pos));",
+    "replace": "  return walk(retried);",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
+    "expect": "× .*traces only the answer's own closing object"
   }
 ]

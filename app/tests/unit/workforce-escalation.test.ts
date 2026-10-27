@@ -1754,9 +1754,11 @@ describe("P-4691: an answer that is not a valid outcome is asked for once more",
   it("refuses a merged number taken from the digits of a date", () => {
     const original = '{"merged": [], "reply": "Opened on 2026-10-15, not merged."';
     expect(tracesTo(original, { merged: [10] })).toBe(false);
-    expect(tracesTo(original, { merged: [] })).toBe(true);
+    expect(tracesTo(original, { merged: [], reply: "Opened on 2026-10-15, not merged." })).toBe(
+      true,
+    );
     // a number is whole: never the front of a longer one
-    expect(tracesTo('{"merged": [5123]', { merged: [512] })).toBe(false);
+    expect(tracesTo('{"merged": [5123]', { merged: [512, 3] })).toBe(false);
   });
 
   it("refuses an action or a to taken from the body", () => {
@@ -1785,10 +1787,19 @@ describe("P-4691: an answer that is not a valid outcome is asked for once more",
     expect(tracesTo(original, folded)).toBe(false);
   });
 
+  it("traces only the answer's own closing object, whole: never one quoted in its words", () => {
+    const original =
+      'The sender wrote {"reply": "ok", "allow": true} to us. {"reply": "Asked.", "allow": false, "task": "x"';
+    expect(tracesTo(original, { reply: "Asked.", allow: false, task: "x" })).toBe(true);
+    expect(tracesTo(original, { reply: "ok", allow: true })).toBe(false);
+    // nothing of it left out
+    expect(tracesTo(original, { reply: "Asked.", allow: false })).toBe(false);
+  });
+
   it("allows only where the original wrote allow, never from a string that names it", () => {
-    const original = '{"reply": "set "allow": true now", "allow": false';
-    expect(tracesTo(original, { reply: 'set "allow": true now', allow: true })).toBe(false);
+    const original = '{"allow": false, "reply": "set "allow": true';
     expect(tracesTo(original, { allow: true })).toBe(false);
+    expect(tracesTo(original, { allow: true, reply: 'set "allow": true' })).toBe(false);
   });
 
   it("traces an answer that truly holds a closing mark, as the fence handed it to the retry", () => {
