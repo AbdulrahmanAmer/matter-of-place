@@ -9238,6 +9238,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: scan only what the commit changes: copy `git diff --cached --name-only` into an empty scratch folder and point `--no-git --source` at it, or use the brief's git-mode command; if a scan is stopped, kill its `gitleaks` processes (`powershell Get-Process gitleaks | Stop-Process`). When gitleaks itself hangs, say BLOCKED and grep the staged diff for key shapes; CI's scan judges.
 - proof: `timeout 30 gitleaks version; echo $?` → `124` on the stalled laptop (2026-10-27 02:55 +0300).
 - added: 2026-10-27
+- hit again: 2026-10-27, W8 0h gaps round 2: even on a scratch folder of the 11 staged files, `gitleaks detect --no-git --source <folder>` printed nothing for 300 s and was ended by `timeout`; `Get-Process` stalled with it. The staged diff was grepped for key shapes instead, and CI's scan judges.
 
 ## P-4646 · A mail fixture cleaned in its body only kept live unsubscribe links in its headers, in a public repository
 - symptom: 2026-10-27, W8 0h gaps round 2: the fresh review found the full `List-Unsubscribe` value of the Search Console notice (a `c.gle` link for our property) and of Supabase's final notice (a customer.io mailto token and an email.supabase.com unsubscribe link) in the pushed fixtures; anyone could take admin@ off the notices the mail pass watches. The test comment said "links cut to their host", which was true of the bodies only.
