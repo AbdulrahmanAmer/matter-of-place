@@ -402,6 +402,24 @@ describe("checkMigrations: a new table in public is granted in its own file", ()
     ]).toEqual([[], [], [], [], []]);
   });
 
+  it("reads quoted names and roles as written, and a column grant as its privilege", () => {
+    expect([
+      granting(
+        'create table public."Ledger" (id uuid);\ngrant all on public."Ledger" to "service_role";',
+      ),
+      granting(
+        'create table "public"."memos" (id uuid);\ngrant select (id) on "public"."memos" to "authenticated";\ngrant all on public.memos to service_role;',
+      ),
+      granting('create table public."Ledger" (id uuid);'),
+    ]).toEqual([
+      [],
+      [],
+      [
+        `public.ledger is not granted to service_role in its own file (the Data API needs it): ${FILE}`,
+      ],
+    ]);
+  });
+
   it("never counts a grant to another role, or one inside a comment, as the service role's", () => {
     expect([
       granting(

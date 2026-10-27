@@ -141,7 +141,8 @@ const partsOf = (line: string) =>
     .map((part) => part.trim().replace(/\s+/g, " "));
 
 /**
- * W8 0h (2026-10-27, ruling H144): whether a message is Zoho's own DMARC aggregate report about our domain. Measured on
+ * W8 0h (2026-10-27, ruling H144): whether a message is Zoho's own DMARC aggregate report (the domain it covers is not
+ * checked here; `readReport` reads it). A free Zoho Mail user's mail delivered inside Zoho is ASSUMED, not measured. Measured on
  * the real reports (2026-10-07 to 10-26, every one alike): Zoho hands them to its own mailbox inside Zoho (`Received:
  * from mail.zoho.com by mx.zohomail.com with SMTP`), so they carry no `Authentication-Results` and no `Received-SPF`,
  * only Zoho's one ARC set (i=1, `cv=none`, `d=zohomail.com`) whose verdict says DKIM passed for zoho.com and DMARC passed
@@ -358,7 +359,7 @@ const ACTION_NOTICES: readonly (readonly [string, RegExp])[] = [
   ["a final notice", /\bfinal (notice|reminder|warning)\b/i],
   [
     "a deadline",
-    /\b(deadline|action (is )?required|required action|\d{1,3} days? left|will (expire|end|stop|be (deleted|removed|disabled)))\b/i,
+    /\b(deadline|action (is )?required|required action|\d{1,3} days? left|will (expire|be (deleted|removed|disabled)))\b/i,
   ],
   [
     "a suspension",
@@ -370,7 +371,7 @@ const ACTION_NOTICES: readonly (readonly [string, RegExp])[] = [
   ],
   [
     "a quota stop",
-    /\b(quota|usage limit|(limit|cap) (reached|exceeded)|exceeded (your|the) (limit|quota|plan)|over (your|the) (limit|quota))\b/i,
+    /\b((quota|usage limit) (has been |was |is )?(reached|exceeded|exhausted)|(limit|cap) (reached|exceeded)|exceeded (your|the) (limit|quota|plan)|over (your|the) (limit|quota))\b/i,
   ],
   [
     "a security change",
@@ -379,11 +380,12 @@ const ACTION_NOTICES: readonly (readonly [string, RegExp])[] = [
 ];
 
 /**
- * The senders that relay a person's words (a shared document's title, a calendar invitation, an issue on a public
- * repository): their mail never escalates on words, which anyone could make them write.
+ * W8 0h gaps review (ruling H144 (2)): the quiet service addresses whose words only the service writes, the only ones
+ * that may escalate on words. Any other address of a service's domain can carry a stranger's words (a shared document's
+ * title, an invitation, a Stripe invoice from the stranger's own account) and stays recorded, as `escalatedFrom` says.
+ * Measured: Supabase's account notices (the final notice of 2026-10-20). An address joins only once read in the mailbox.
  */
-const RELAYS =
-  /^(comments-noreply@docs\.google\.com|drive-shares-[a-z-]*noreply@google\.com|calendar-notification@google\.com|forms-receipts-noreply@google\.com|notifications@github\.com|.*@reply\.github\.com)$/;
+const ACTION_SENDERS = ["noreply@supabase.com"] as const;
 
 /** The folders Zoho files promotions under: their mail stays recorded, whatever words it uses. */
 const PROMOTION_FOLDERS = ["Newsletter", "Promotions"];
@@ -395,7 +397,7 @@ const FIRST_LINES = 5;
  * W8 0h (2026-10-27): a known service's mail from an address that wakes no one can still need action (Supabase's final
  * notice of 2026-10-20 that new tables need grants). Its subject and the first lines of its text are matched against
  * `ACTION_NOTICES`; the summary names the kinds found in fixed words, so no word of the message reaches a prompt. Null
- * when nothing matched, the sender relays a person's words, or Zoho filed it as a promotion.
+ * when nothing matched, the sender is not one of `ACTION_SENDERS`, or Zoho filed it as a promotion.
  */
 export function actionNotice(input: {
   service: string;
@@ -404,7 +406,10 @@ export function actionNotice(input: {
   subject: string;
   content: string;
 }): string | null {
-  if (RELAYS.test(addressOf(input.from)) || PROMOTION_FOLDERS.includes(input.folderName))
+  if (
+    !(ACTION_SENDERS as readonly string[]).includes(addressOf(input.from)) ||
+    PROMOTION_FOLDERS.includes(input.folderName)
+  )
     return null;
   const lines = plainText(input.content)
     .split("\n")

@@ -1,9 +1,9 @@
 // W8 0h (operator, 2026-10-16): every email that reaches us is seen. The real messages of the admin@ mailbox, replayed
 // from fixtures (every header line kept in order, the values the runner never reads redacted, links cut to their
-// host), go where the item says: Google's clean DMARC and TLS
+// host, unsubscribe headers redacted), go where the item says: Google's clean DMARC and TLS
 // reports are recorded and not escalated, the Search Console notice goes to Matter, a spoof of Google is a stranger's,
 // and a person's email reaches its owner only as a triage. Reports are read with hard limits.
-import { readFileSync, writeFileSync } from "node:fs";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -31,6 +31,7 @@ import { readReport, reportFailed, reportSummary } from "../../scripts/workforce
 import {
   actionNotice,
   authenticatedDomain,
+  headerValues,
   sortMessage,
   zohoReport,
 } from "../../scripts/workforce/service-notice.ts";
@@ -1375,10 +1376,14 @@ describe("W8 0h: a run on an event is queued through queue_event_runs", () => {
 // W8 0h, 2026-10-27: the gaps Matter found in the live mailbox. Zoho's own DMARC reports were held as a stranger's,
 // Supabase's HTML-only final notice woke no one, and the proof needed a replay with no writes.
 describe("W8 0h: Zoho's own DMARC reports are read as reports, and a forged one still holds", () => {
-  /** The real report with Zoho's stamps for a message from outside Zoho on top, as a stranger's copy would arrive. */
+  /**
+   * The real report with the stamps Zoho writes for a message from outside Zoho, after its ARC set and before the
+   * sender's DKIM-Signature as on the Search Console notice of 22 October: every other condition holds, so only the
+   * count of those stamps refuses it.
+   */
   const FROM_OUTSIDE = ZOHO_DMARC.header.replace(
-    "Delivered-To: admin@matterofplace.com\r\n",
-    "Delivered-To: admin@matterofplace.com\r\nReceived-SPF: fail (zohomail.com: domain of zoho.com does not designate 203.0.113.9 as permitted sender) client-ip=203.0.113.9;\r\nAuthentication-Results: mx.zohomail.com; dkim=fail; spf=fail; dmarc=fail(p=reject dis=quarantine) header.from=zoho.com\r\n",
+    "\r\nDKIM-Signature: ",
+    "\r\nReceived-SPF: fail (zohomail.com: domain of zoho.com does not designate 203.0.113.9 as permitted sender) client-ip=203.0.113.9;\r\nAuthentication-Results: mx.zohomail.com; dkim=fail; spf=fail; dmarc=fail(p=reject dis=quarantine) header.from=zoho.com\r\nDKIM-Signature: ",
   );
   /** The real report with a second ARC verdict written into the message's own headers. */
   const SECOND_VERDICT = ZOHO_DMARC.header.replace(
@@ -1478,29 +1483,43 @@ describe("W8 0h: an HTML-only service mail is read as text, and a notice that ne
       expect(recorded.args.p_line).not.toContain(word);
   });
 
-  it("never escalates on words a person can make a service write, like a shared document's title", () => {
+  it("escalates on words only from a listed sender: an unlisted Google or Stripe address stays recorded", () => {
     const notice = {
-      service: "Google",
       folderName: "Notification",
-      subject: "Final notice: your account will be suspended",
+      subject: "Final notice: your account will be suspended, payment failed",
       content: "",
     };
-    expect(actionNotice({ ...notice, from: "comments-noreply@docs.google.com" })).toBeNull();
-    expect(actionNotice({ ...notice, from: "notifications@github.com" })).toBeNull();
-    expect(actionNotice({ ...notice, from: "noreply@supabase.com" })).toBe(
-      "Google sent a notice that may need action: a final notice, a suspension.",
+    for (const [service, from] of [
+      ["Google", "comments-noreply@docs.google.com"],
+      ["Google", "photos-noreply@google.com"],
+      ["Google", "payments-noreply@google.com"],
+      ["GitHub", "notifications@github.com"],
+      ["Stripe", "invoice+statements@stripe.com"],
+    ] as const)
+      expect(actionNotice({ ...notice, service, from })).toBeNull();
+    expect(actionNotice({ ...notice, service: "Supabase", from: "noreply@supabase.com" })).toBe(
+      "Supabase sent a notice that may need action: a final notice, a suspension, a billing stop.",
     );
   });
 
-  it("keeps a promotion Zoho filed under Newsletter, and a quiet service mail, recorded", () => {
+  it("keeps a listed sender's promotion recorded, filed under Newsletter or worded like an offer", () => {
     const promotion = {
-      service: "UptimeRobot",
-      from: "hello@mail.uptimerobot.com",
-      subject: "[50% OFF] Last chance: your monitors will stop at the usage limit",
+      service: "Supabase",
+      from: "noreply@supabase.com",
+      subject: "Last chance: final reminder, this offer will end Friday",
       content: "",
     };
     expect(actionNotice({ ...promotion, folderName: "Newsletter" })).toBeNull();
-    expect(actionNotice({ ...promotion, folderName: "Notification" })).not.toBeNull();
+    expect(actionNotice({ ...promotion, folderName: "Notification" })).toBe(
+      "Supabase sent a notice that may need action: a final notice.",
+    );
+    expect(
+      actionNotice({
+        ...promotion,
+        folderName: "Notification",
+        subject: "More quota for less: your free plan will stop being the only choice",
+      }),
+    ).toBeNull();
     expect(
       actionNotice({
         service: "Google",
@@ -1510,6 +1529,25 @@ describe("W8 0h: an HTML-only service mail is read as text, and a notice that ne
         content: "<p>Welcome to Google AI Studio.</p><p>Start building with Gemini.</p>",
       }),
     ).toBeNull();
+  });
+});
+
+describe("W8 0h: a mail fixture is cleaned header by header", () => {
+  // The repository is public: a live unsubscribe link or token in a fixture lets anyone take admin@ off the very notices
+  // the pass watches. `isBulk` needs only the header to exist, so its value is `[redacted]` in every fixture.
+  it("carries no unsubscribe link or token in any mail fixture, header or body", () => {
+    const files = readdirSync("tests/fixtures/mail").filter((file) => file.endsWith(".json"));
+    expect(files.length).toBeGreaterThan(0);
+    for (const name of files) {
+      const { header, content } = fixture(name);
+      for (const field of ["List-Unsubscribe", "List-Unsubscribe-Post"])
+        for (const value of headerValues(header, field))
+          expect([name, value]).toEqual([name, "[redacted]"]);
+      for (const text of [header, content]) {
+        expect(text).not.toMatch(/@unsubscribe[\w.-]*\.\w+/i);
+        expect(text).not.toMatch(/https?:\/\/[^\s"'<>/]+\/[^\s"'<>]/);
+      }
+    }
   });
 });
 

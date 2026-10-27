@@ -777,13 +777,22 @@
     "expect": "× .*sends Supabase's final notice to Matter in the runner's words"
   },
   {
-    "id": "w8-0h6-action-relay",
+    "id": "w8-0h7-action-allowlist",
     "test": "tests/unit/workforce-inbound-mail.test.ts",
     "file": "scripts/workforce/service-notice.ts",
-    "find": "RELAYS.test(addressOf(input.from)) ||",
-    "replace": "false ||",
-    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"never escalates on words a person can make a service write\"",
-    "expect": "× .*never escalates on words a person can make a service write"
+    "find": "    !(ACTION_SENDERS as readonly string[]).includes(addressOf(input.from)) ||",
+    "replace": "    false ||",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"escalates on words only from a listed sender\"",
+    "expect": "× .*escalates on words only from a listed sender"
+  },
+  {
+    "id": "w8-0h7-action-senders",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/service-notice.ts",
+    "find": "const ACTION_SENDERS = [\"noreply@supabase.com\"] as const;",
+    "replace": "const ACTION_SENDERS = [\"noreply@supabase.com\", \"invoice+statements@stripe.com\"] as const;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"escalates on words only from a listed sender\"",
+    "expect": "× .*escalates on words only from a listed sender"
   },
   {
     "id": "w8-0h6-action-promotion",
@@ -791,8 +800,35 @@
     "file": "scripts/workforce/service-notice.ts",
     "find": "PROMOTION_FOLDERS.includes(input.folderName)",
     "replace": "false",
-    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"keeps a promotion Zoho filed under Newsletter\"",
-    "expect": "× .*keeps a promotion Zoho filed under Newsletter"
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"keeps a listed sender's promotion recorded\"",
+    "expect": "× .*keeps a listed sender's promotion recorded"
+  },
+  {
+    "id": "w8-0h7-action-deadline-words",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/service-notice.ts",
+    "find": "will (expire|be (deleted|removed|disabled))",
+    "replace": "will (expire|end|stop|be (deleted|removed|disabled))",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"keeps a listed sender's promotion recorded\"",
+    "expect": "× .*keeps a listed sender's promotion recorded"
+  },
+  {
+    "id": "w8-0h7-action-quota-words",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/service-notice.ts",
+    "find": "(quota|usage limit) (has been |was |is )?(reached|exceeded|exhausted)",
+    "replace": "quota|usage limit",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"keeps a listed sender's promotion recorded\"",
+    "expect": "× .*keeps a listed sender's promotion recorded"
+  },
+  {
+    "id": "w8-0h7-fixture-unsubscribe",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "tests/fixtures/mail/supabase-final-notice-2026-10-20.json",
+    "find": "List-Unsubscribe: [redacted]",
+    "replace": "List-Unsubscribe: <https://email.supabase.com/unsubscribe/token>",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"carries no unsubscribe link or token in any mail fixture\"",
+    "expect": "× .*carries no unsubscribe link or token in any mail fixture"
   },
   {
     "id": "w8-0h6-replay-by-id",
@@ -865,5 +901,23 @@
     "replace": "        .filter(() => true)",
     "run": "bunx vitest run --project unit tests/unit/check-migrations.test.ts -t \"never counts a grant to another role\"",
     "expect": "× .*never counts a grant to another role"
+  },
+  {
+    "id": "w8-0h7-grant-quoted",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "  return text.replace(/\"\"/g, () => names[next++] ?? \"\");",
+    "replace": "  return text;",
+    "run": "bunx vitest run --project unit tests/unit/check-migrations.test.ts -t \"reads quoted names and roles as written\"",
+    "expect": "× .*reads quoted names and roles as written"
+  },
+  {
+    "id": "w8-0h7-grant-column",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "items((match[1] ?? \"\").replace(/\\s*\\([^)]*\\)/g, \"\"))",
+    "replace": "items(match[1] ?? \"\")",
+    "run": "bunx vitest run --project unit tests/unit/check-migrations.test.ts -t \"reads quoted names and roles as written\"",
+    "expect": "× .*reads quoted names and roles as written"
   }
 ]

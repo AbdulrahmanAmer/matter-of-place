@@ -144,16 +144,18 @@ function quoted(sql, start, backslash) {
  * Splits SQL into statements. Comments go; every string, quoted name and dollar-quoted body is
  * replaced by an empty one in `text`, and the string and body texts are kept in `literals`.
  * Each run of blanks in `text` becomes one space, so a rule's lookahead after `\s+` cannot be
- * met by backtracking into the run.
+ * met by backtracking into the run. The quoted names are kept in `names`, in order.
  * @param {string} sql
- * @returns {{ text: string, literals: string[] }[]}
+ * @returns {{ text: string, literals: string[], names: string[] }[]}
  */
 function statementsOf(sql) {
-  /** @type {{ text: string, literals: string[] }[]} */
+  /** @type {{ text: string, literals: string[], names: string[] }[]} */
   const statements = [];
   let text = "";
   /** @type {string[]} */
   let literals = [];
+  /** @type {string[]} */
+  let names = [];
   let index = 0;
   while (index < sql.length) {
     const char = sql.charAt(index);
@@ -174,8 +176,10 @@ function statementsOf(sql) {
       text += "''";
       index = end;
     } else if (char === '"') {
+      const { body, end } = quoted(sql, index, false);
+      names.push(body);
       text += '""';
-      index = quoted(sql, index, false).end;
+      index = end;
     } else if (tag !== null) {
       const close = sql.indexOf(tag[0], index + tag[0].length);
       const end = close === -1 ? sql.length : close;
@@ -183,16 +187,17 @@ function statementsOf(sql) {
       text += "''";
       index = end + tag[0].length;
     } else if (char === ";") {
-      statements.push({ text: text.trim(), literals });
+      statements.push({ text: text.trim(), literals, names });
       text = "";
       literals = [];
+      names = [];
       index += 1;
     } else {
       text += char;
       index += 1;
     }
   }
-  statements.push({ text: text.trim(), literals });
+  statements.push({ text: text.trim(), literals, names });
   return statements
     .map((statement) => ({ ...statement, text: statement.text.replace(/\s+/g, " ") }))
     .filter((statement) => statement.text !== "");
@@ -344,14 +349,26 @@ function destructiveKinds(statements, inDoBlock, bodies, createdLater) {
 }
 
 /**
- * What each statement grants: its privileges, the tables it names (or `*` for every table of
- * `public`) and its roles, all in lower case.
- * @param {{ text: string }[]} statements
+ * A statement's text with each quoted name back in place without its quotes (W8 0h gaps review:
+ * `public."Ledger"` and `to "service_role"` are read as written), for the grant rule only.
+ * @param {{ text: string, names: string[] }} statement
+ * @returns {string}
+ */
+function unquoted({ text, names }) {
+  let next = 0;
+  return text.replace(/""/g, () => names[next++] ?? "");
+}
+
+/**
+ * What each statement grants: its privileges (a column grant, `select (a, b)`, read as its
+ * privilege), the tables it names (or `*` for every table of `public`) and its roles, all in
+ * lower case.
+ * @param {{ text: string, names: string[] }[]} statements
  * @returns {{ privileges: string[], tables: string[], roles: string[] }[]}
  */
 function grantsOf(statements) {
-  return statements.flatMap(({ text }) => {
-    const match = GRANT.exec(text);
+  return statements.flatMap((statement) => {
+    const match = GRANT.exec(unquoted(statement));
     if (match === null) return [];
     const target = (match[2] ?? "").replace(/^table\s+/i, "");
     const schema = ALL_IN_SCHEMA.exec(target)?.[1];
@@ -359,7 +376,9 @@ function grantsOf(statements) {
     const items = (list) => list.split(",").map((item) => item.trim().toLowerCase());
     return [
       {
-        privileges: items(match[1] ?? "").map((item) => item.replace(/\s+privileges$/, "")),
+        privileges: items((match[1] ?? "").replace(/\s*\([^)]*\)/g, "")).map((item) =>
+          item.replace(/\s+privileges$/, ""),
+        ),
         tables:
           schema === undefined
             ? items(target).map((name) => qualified(...splitName(name)))
@@ -384,13 +403,14 @@ function splitName(name) {
 /**
  * The tables a file creates in `public` that it does not grant as the Data API needs (W8 0h):
  * `service_role` any privilege, `authenticated` each operation of the table's matrix row.
- * @param {{ text: string }[]} statements
+ * @param {{ text: string, names: string[] }[]} statements
  * @param {Record<string, Partial<Record<string, readonly string[]>>>} matrix
  * @returns {string[]}
  */
 function ungranted(statements, matrix) {
   const grants = grantsOf(statements);
-  return statements.flatMap(({ text }) => {
+  return statements.flatMap((statement) => {
+    const text = unquoted(statement);
     const match = CREATE_TABLE.exec(text);
     const name = match?.[2];
     if (name === undefined || PARTITION_OF.test(text)) return [];
