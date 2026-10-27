@@ -1027,6 +1027,8 @@ describe("the live proof's failures (W8 item 1, 2026-10-27)", () => {
 
   it("names the program, not its first flag, when a child times out", () => {
     // ffprobe and ffmpeg are called with "-v" first; the reason named "-v" before round 7
+    const program = basename(process.execPath).split(".").join("\\.");
+    const reason = new RegExp(`^${program} timed out after 0\\.3 s`);
     expect(() =>
       spawnLimited(
         process.execPath,
@@ -1034,7 +1036,7 @@ describe("the live proof's failures (W8 item 1, 2026-10-27)", () => {
         { encoding: "utf8" },
         300,
       ),
-    ).toThrow(new RegExp(`^${basename(process.execPath).split(".").join("\\.")} timed out after 0\\.3 s`));
+    ).toThrow(reason);
   }, 15_000);
 
   it("starts the studio pass without its lines when the log cannot be opened, and says why to the runner", () => {
@@ -1098,6 +1100,8 @@ describe("the live proof's failures (W8 item 1, 2026-10-27)", () => {
       ]);
     } finally {
       vi.useRealTimers();
+      // the hung post never reaches studioPass's finally, so its deadline is let go here (round 7 review)
+      setPassDeadline(Number.POSITIVE_INFINITY);
     }
   });
 

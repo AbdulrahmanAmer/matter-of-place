@@ -869,5 +869,14 @@
     "replace": "first ?? command",
     "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
     "expect": "× .*names the program, not its first flag, when a child times out"
+  },
+  {
+    "id": "w8-1-pass-deadline-reset",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "setPassDeadline(Number.POSITIVE_INFINITY);",
+    "replace": "void 0;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*holds the pass's own limit as the deadline of every child"
   }
 ]

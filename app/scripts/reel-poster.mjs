@@ -2,6 +2,7 @@
 // poster. ffmpeg cuts the frame as PNG, sharp writes the JPEG, because ffmpeg's JPEG encoder has no 0 to 100 scale.
 import { spawnSync } from "node:child_process";
 import sharp from "sharp";
+import { childLimit } from "./lib/pass-deadline.mjs";
 
 /**
  * @param {string} mp4
@@ -14,8 +15,9 @@ export async function extractPoster(mp4) {
       ...["-v", "error", "-ss", "2.4", "-i", mp4],
       ...["-frames:v", "1", "-f", "image2pipe", "-c:v", "png", "-"],
     ],
-    // FFMPEG_LIMIT_MS of render-reel.mjs, which imports this file: one frame of a reel that ran on is never waited for
-    { maxBuffer: 1 << 26, timeout: 5 * 60_000, killSignal: "SIGKILL" },
+    // FFMPEG_LIMIT_MS of render-reel.mjs, which imports this file: one frame of a reel that ran on is never waited for;
+    // never past what is left of a studio pass (W8 item 1, round 7)
+    { maxBuffer: 1 << 26, timeout: childLimit(5 * 60_000), killSignal: "SIGKILL" },
   );
   if (frame.status !== 0) {
     throw new Error(
