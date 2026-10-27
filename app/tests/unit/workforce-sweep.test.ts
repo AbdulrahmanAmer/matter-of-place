@@ -17,6 +17,7 @@ import {
   settleRuns,
   waitingPieces,
   WAIT_MS,
+  type Claim,
   type Findings,
   type Proc,
 } from "../../scripts/workforce/sweep.ts";
@@ -46,7 +47,12 @@ const LIVE_CLI =
 const BUILDER =
   "claude -p --settings E:/mop-build/live/app/scripts/matter/settings-full.json --model opus";
 const STUDIO_FFMPEG = "ffmpeg -i C:\\Users\\DELL\\.mop-workforce\\studio\\a\\shots\\01.png";
-const ended = (procs: Proc[], self = 999, claims = new Map<number, number | null>()) =>
+// a lease as Postgres writes it, to the microsecond (a JavaScript date keeps milliseconds only)
+const claim = (minutesAgo: number): Claim => ({
+  at: ago(minutesAgo),
+  lease: new Date(ago(minutesAgo) + 3000_000).toISOString().replace("Z", "456+00:00"),
+});
+const ended = (procs: Proc[], self = 999, claims = new Map<number, Claim | null>()) =>
   planSweep(procs, NOW, self, claims).map((kill) => kill.pids);
 
 describe("planSweep", () => {
@@ -79,12 +85,12 @@ describe("planSweep", () => {
     expect(ended(launched(55))).toEqual([]);
     expect(ended(launched(55), 999, new Map([[22, null]]))).toEqual([]);
     // an old pass whose current run was claimed 20 minutes ago, or whose runs cannot be read, keeps working
-    expect(ended(launched(old), 999, new Map([[22, ago(20)]]))).toEqual([]);
+    expect(ended(launched(old), 999, new Map([[22, claim(20)]]))).toEqual([]);
     expect(ended(launched(old))).toEqual([]);
     // its run has answered past the ceiling: it has hung, and the run read before the kill is the one failed
-    const late = planSweep(launched(old), NOW, 999, new Map([[22, ago(old - 1)]]));
+    const late = planSweep(launched(old), NOW, 999, new Map([[22, claim(old - 1)]]));
     expect(late.map(({ pids, runs, lease }) => ({ pids, runs, lease }))).toEqual([
-      { pids: [22, 23], runs: "fail", lease: new Date(ago(old - 1) + 3000_000).toISOString() },
+      { pids: [22, 23], runs: "fail", lease: claim(old - 1).lease },
     ]);
     // holding no run when read, it is ended with no run to fail
     const idle = planSweep(launched(old), NOW, 999, new Map([[22, null]]));
@@ -132,7 +138,10 @@ describe("planSweep", () => {
     const idle = [proc(54, 4, "bun.exe", 30, PASS), proc(55, 4, "bun.exe", 10, PASS)];
     expect(ended(idle)).toEqual([[54]]);
     // a piece marked `working` 20 minutes ago was marked by a pass started before it, between its child processes
-    expect(planSweep(idle, NOW, 999, new Map(), ago(20)).map((kill) => kill.pids)).toEqual([[55]]);
+    // the pass holding the studio's lock is kept, and a lock whose start is not that process's is someone else's id
+    const locked = (started: number) => planSweep(idle, NOW, 999, new Map(), { pid: 54, started });
+    expect(locked(ago(30)).map((kill) => kill.pids)).toEqual([[55]]);
+    expect(locked(ago(5)).map((kill) => kill.pids)).toEqual([[54]]);
     const old = [
       proc(56, 4, "bun.exe", PASS_CAP_MS / 60_000 + 1, PASS),
       proc(57, 4, "bun.exe", 5, PASS),
@@ -334,6 +343,14 @@ describe("settleRuns", () => {
     const lease = (minutesFromKill: number) =>
       new Date(killedAt + minutesFromKill * 60_000).toISOString();
     const runs: Run[] = [
+      // claimed after the kill by a runner that got the stopped one's id: not the stopped runner's run
+      {
+        id: "h",
+        state: "running",
+        worker: runnerWorker(11),
+        lease_until: lease(55),
+        message_id: null,
+      },
       {
         id: "a",
         state: "running",
@@ -407,6 +424,7 @@ describe("settleRuns", () => {
     );
     expect(settled).toEqual({ requeued: 1, failed: 2 });
     expect(runs.map((run) => [run.id, run.state])).toEqual([
+      ["h", "running"],
       ["a", "queued"],
       ["b", "failed"],
       ["c", "failed"],
@@ -473,7 +491,8 @@ describe("report", () => {
     expect(reportKey(cycling("run-1", 5151))).toBe(reportKey(cycling("run-2", 6161)));
     // a runner pass held past the wait is another stall than one that cycles, and than none alive
     expect(reportKey(stall(2, 45, 7))).not.toBe(reportKey(cycling("run-1", 4242)));
-    expect(reportKey(cycling("run-1", 5151))).not.toBe(
+    // and a sweep that finds the cycling runner between two passes sees the same stall
+    expect(reportKey(cycling("run-1", 5151))).toBe(
       reportKey({ ...cycling("run-1", 5151), runner: null }),
     );
   });
