@@ -6,7 +6,7 @@
 // for `window.__post.ready` when the page sets it. frames.json is { page, out, report, query?, frames: [{ name, width,
 // height }] }; each frame is written to <out>/<name>.png, and <report> receives, per frame, what the page drew with:
 // the font families and the smallest size of its text, its visible text, the colours of its text, fills and borders,
-// and every gradient, shadow, blur or backdrop filter in its computed styles (the house rules forbid them; the caller
+// and every gradient, shadow, filter, blend mode or backdrop filter in its computed styles (the house rules forbid them; the caller
 // judges). Pixels a canvas draws are not in the report: the caller reads the page's source for those. The page was
 // written by a model, so it reaches only a post's own files and nothing past this machine (post-guard.mjs): a refused
 // request fails the frame, like any request that fails.
@@ -53,7 +53,9 @@ function audit() {
   const byId = new Map();
   for (const el of document.querySelectorAll("[id]")) if (!byId.has(el.id)) byId.set(el.id, el);
   const copies = [];
-  let uses = [...document.querySelectorAll("use")];
+  const drawnSymbols = new Set();
+  // an HTML element named use draws nothing and has no href (round 10)
+  let uses = [...document.querySelectorAll("use")].filter((el) => el instanceof SVGUseElement);
   for (const use of uses) {
     const href = use.href.baseVal;
     if (href !== "" && !href.startsWith("#"))
@@ -62,17 +64,15 @@ function audit() {
   for (let depth = 0; uses.length > 0 && depth < 8; depth += 1) {
     const made = [];
     for (const use of uses) {
+      if (!(use instanceof SVGUseElement)) continue;
       const href = use.href.baseVal;
       const kept = href.startsWith("#") ? byId.get(href.slice(1)) : undefined;
       if (kept === undefined) continue;
       const copy = kept.cloneNode(true);
       for (const old of copy.querySelectorAll("[data-still-copy]")) old.remove();
-      let drawn = copy;
-      if (kept instanceof SVGSymbolElement) {
-        drawn = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        for (const attr of kept.attributes) drawn.setAttribute(attr.name, attr.value);
-        drawn.append(...copy.childNodes);
-      }
+      // Chrome draws a used symbol as a <symbol> in the use's shadow root: a page's symbol rule reaches it and its svg rule
+      // does not (measured on the engine's Chrome, round 10), so the copy stays a symbol, not counted as one kept unused
+      if (kept instanceof SVGSymbolElement) drawnSymbols.add(copy);
       const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
       group.setAttribute("data-still-copy", "");
       const cs = getComputedStyle(use);
@@ -86,13 +86,20 @@ function audit() {
         "font-size",
       ])
         group.style.setProperty(prop, cs.getPropertyValue(prop));
-      group.append(drawn);
+      // a use's currentColor paint is inherited as the keyword, so a shape that sets its own color paints that colour
+      for (const prop of ["fill", "stroke"])
+        if (cs.getPropertyValue(prop) === cs.color) group.style.setProperty(prop, "currentColor");
+      group.append(copy);
       made.push([use, group]);
     }
     for (const [use, group] of made) use.before(group);
     copies.push(...made.map(([, group]) => group));
     uses = made.flatMap(([, group]) => [...group.querySelectorAll("use")]);
   }
+  if (uses.some((use) => use instanceof SVGUseElement))
+    findings.push(
+      "<use> nested more than 8 deep, or drawing itself, which the gate cannot read: draw it flatter",
+    );
   try {
     return { ...read(), text };
   } finally {
@@ -124,7 +131,7 @@ function audit() {
         if (shapes) return false;
         const stored =
           at instanceof SVGDefsElement ||
-          at instanceof SVGSymbolElement ||
+          (at instanceof SVGSymbolElement && !drawnSymbols.has(at)) ||
           at instanceof SVGMarkerElement;
         if (stored && !drawn) return false;
       }
@@ -142,8 +149,15 @@ function audit() {
       }
       if (cs.textShadow && cs.textShadow !== "none") findings.push(`text-shadow on ${name(el)}`);
       if (cs.boxShadow && cs.boxShadow !== "none") findings.push(`box-shadow on ${name(el)}`);
-      if (cs.filter && /blur|drop-shadow/i.test(cs.filter))
-        findings.push(`filter ${cs.filter} on ${name(el)}`);
+      // a filter or a blend paints colours outside the palette from colours in it (round 10)
+      if (cs.filter && cs.filter !== "none")
+        findings.push(
+          `filter ${cs.filter} on ${name(el)}, which paints colours outside the palette`,
+        );
+      if (cs.mixBlendMode && cs.mixBlendMode !== "normal")
+        findings.push(
+          `mix-blend-mode ${cs.mixBlendMode} on ${name(el)}, which paints colours outside the palette`,
+        );
       if (cs.backdropFilter && cs.backdropFilter !== "none")
         findings.push(`backdrop-filter on ${name(el)}`);
       const ownText = [...el.childNodes].some(

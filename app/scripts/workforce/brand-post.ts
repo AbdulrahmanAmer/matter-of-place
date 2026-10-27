@@ -194,23 +194,25 @@ export function stillGate(
   return problems.length === 0 ? null : `gate_failed: ${problems.join("; ")}`;
 }
 
-const SOURCE_TYPES = new Set([".html", ".css", ".mjs", ".js", ".svg"]);
+/** The designer's reply, kept beside the page: neither served with it nor read by the gate. */
+const DESIGN_FILE = "design.txt";
 
-/** The page's own files, which the gate reads for what a canvas draws (the engine reports only the DOM). */
+/**
+ * The page's own files written as text (a picture or a font holds a zero byte, text never does), which the gate reads
+ * for what a canvas draws and for every colour written, since the engine reads the DOM in its own context (round 10).
+ */
 export function readSources(dir: string): { name: string; text: string }[] {
   if (!existsSync(dir)) return [];
-  return readdirSync(dir, { withFileTypes: true, recursive: true })
-    .filter((entry) => entry.isFile() && SOURCE_TYPES.has(extname(entry.name).toLowerCase()))
-    .map((entry) => {
-      const path = join(entry.parentPath, entry.name);
-      return {
-        name: path
-          .slice(dir.length + 1)
-          .split("\\")
-          .join("/"),
-        text: readFileSync(path, "utf8"),
-      };
-    });
+  return readdirSync(dir, { withFileTypes: true, recursive: true }).flatMap((entry) => {
+    const path = join(entry.parentPath, entry.name);
+    const name = path
+      .slice(dir.length + 1)
+      .split("\\")
+      .join("/");
+    if (!entry.isFile() || name === DESIGN_FILE) return [];
+    const bytes = readFileSync(path);
+    return bytes.includes(0) ? [] : [{ name, text: bytes.toString("utf8") }];
+  });
 }
 
 const SOURCE_RULES: [RegExp, string][] = [
@@ -224,6 +226,125 @@ const SOURCE_RULES: [RegExp, string][] = [
   ],
 ];
 
+/** The CSS named colours (CSS Color 4); none of them is in the palette. */
+const NAMED_COLOURS =
+  "aliceblue antiquewhite aqua aquamarine azure beige bisque black blanchedalmond blue blueviolet brown burlywood cadetblue chartreuse chocolate coral cornflowerblue cornsilk crimson cyan darkblue darkcyan darkgoldenrod darkgray darkgreen darkgrey darkkhaki darkmagenta darkolivegreen darkorange darkorchid darkred darksalmon darkseagreen darkslateblue darkslategray darkslategrey darkturquoise darkviolet deeppink deepskyblue dimgray dimgrey dodgerblue firebrick floralwhite forestgreen fuchsia gainsboro ghostwhite gold goldenrod gray green greenyellow grey honeydew hotpink indianred indigo ivory khaki lavender lavenderblush lawngreen lemonchiffon lightblue lightcoral lightcyan lightgoldenrodyellow lightgray lightgreen lightgrey lightpink lightsalmon lightseagreen lightskyblue lightslategray lightslategrey lightsteelblue lightyellow lime limegreen linen magenta maroon mediumaquamarine mediumblue mediumorchid mediumpurple mediumseagreen mediumslateblue mediumspringgreen mediumturquoise mediumvioletred midnightblue mintcream mistyrose moccasin navajowhite navy oldlace olive olivedrab orange orangered orchid palegoldenrod palegreen paleturquoise palevioletred papayawhip peachpuff peru pink plum powderblue purple rebeccapurple red rosybrown royalblue saddlebrown salmon sandybrown seagreen seashell sienna silver skyblue slateblue slategray slategrey snow springgreen steelblue tan teal thistle tomato turquoise violet wheat white whitesmoke yellow yellowgreen".split(
+    " ",
+  );
+const NAMED = new RegExp(`(?<![\\w-])(?:${NAMED_COLOURS.join("|")})(?![\\w-])`, "gi");
+/** Colours written in a form the gate does not convert: refused, a palette hex says the same thing. */
+const UNREAD =
+  /(?:\b(?:color-mix|lab|lch|oklab|oklch|hwb)|\bcolor(?=\(\s*(?:srgb|display-p3|a98-rgb|prophoto-rgb|rec2020|xyz))|\.set(?:RGB|HSL)|\bColor(?=\(\s*[\d.]+\s*,))\([^()]*\)?/g;
+const NUMBER = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i;
+/** A hue's unit, as the parts of a whole turn. */
+const TURN: Readonly<Record<string, number>> = {
+  "": 360,
+  deg: 360,
+  grad: 400,
+  rad: 2 * Math.PI,
+  turn: 1,
+};
+
+/**
+ * A word of a named colour sets a colour as a whole quoted string (not a class, id or name), a value after : or =, or
+ * in a colour property's value; the word in copy text sets none.
+ */
+function colourPosition(before: string, after: string): boolean {
+  const quote = /(["'`])\s*$/.exec(before)?.[1];
+  const label = /\b(?:class|id|name|for)\s*=\s*["'`]\s*$/i.test(before);
+  if (quote !== undefined && !label && after.trimStart().startsWith(quote)) return true;
+  if (/[:=]\s*$/.test(before) && /^\s*(?:[;}"'`,)!/]|$)/.test(after)) return true;
+  // an unquoted attribute's value ends at a space or at the tag's end
+  if (/=\s*$/.test(before) && /^[\s/>]/.test(after)) return true;
+  return /(?:fill|stroke|color|background|border|outline|decoration|--[\w-]+)[\w-]*\s*:[^;{}"'`<>:=]*$/i.test(
+    before,
+  );
+}
+
+/** A colour function's parts as numbers (a percentage as a fraction), or null when one is not a plain number. */
+function parts(args: string): { value: number; percent: boolean; unit: string }[] | null {
+  const read: { value: number; percent: boolean; unit: string }[] = [];
+  for (const part of args.trim().split(/\s*[,/]\s*|\s+/)) {
+    const found = /^(.*?)(%|deg|grad|rad|turn)?$/i.exec(part);
+    const [, number = "", unit = ""] = found ?? [];
+    if (!NUMBER.test(number)) return null;
+    read.push({ value: Number(number), percent: unit === "%", unit: unit.toLowerCase() });
+  }
+  return read.length === 3 || read.length === 4 ? read : null;
+}
+
+/** An rgb() or hsl() colour as the browser reports it, `rgb(r, g, b)` or `rgba(r, g, b, a)`, or null if unread. */
+function functionColour(name: string, args: string): string | null {
+  const read = parts(args);
+  if (read === null) return null;
+  const [first, second, third, last] = read;
+  if (first === undefined || second === undefined || third === undefined) return null;
+  const clamp = (value: number) => Math.min(1, Math.max(0, value));
+  let rgb: number[];
+  if (name.toLowerCase().startsWith("rgb")) {
+    rgb = [first, second, third].map((part) =>
+      part.percent ? part.value / 100 : part.value / 255,
+    );
+  } else {
+    const turn = TURN[first.unit] ?? 360;
+    const hue = (((first.value / turn) * 360) % 360) + 360;
+    const s = clamp(second.value / 100);
+    const l = clamp(third.value / 100);
+    const a = s * Math.min(l, 1 - l);
+    rgb = [0, 8, 4].map((n) => {
+      const k = (n + hue / 30) % 12;
+      return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+    });
+  }
+  const [r, g, b] = rgb.map((channel) => Math.round(clamp(channel) * 255));
+  const alpha =
+    last === undefined ? undefined : clamp(last.percent ? last.value / 100 : last.value);
+  return rgbText([r ?? 0, g ?? 0, b ?? 0], alpha);
+}
+
+function rgbText([r, g, b]: readonly number[], alpha: number | undefined): string {
+  const channels = [r, g, b].map((channel) => String(channel ?? 0)).join(", ");
+  return alpha === undefined ? `rgb(${channels})` : `rgba(${channels}, ${String(alpha)})`;
+}
+
+/**
+ * Every colour written in a file, as `[written, the colour as the browser reports it, or null if it cannot be read]`:
+ * hex of 3, 4, 6 or 8 digits (not an id named by `url(#` or `href="#`, a selector or an `&#` entity), a Three.js
+ * `0x` hex, rgb(), rgba(), hsl(), hsla(), the forms the gate does not convert, and a CSS named colour where it sets one.
+ */
+function writtenColours(text: string): [string, string | null][] {
+  const found: [number, string, string | null][] = [];
+  for (const match of text.matchAll(/(?<![&\w])#([0-9a-f]{3,8})(?![\w-])/gi)) {
+    const [written, digits = ""] = match;
+    if (![3, 4, 6, 8].includes(digits.length)) continue;
+    const before = text.slice(Math.max(0, match.index - 16), match.index);
+    const after = text.slice(match.index + written.length);
+    if (/(?:url\(\s*["']?|href\s*=\s*["']?)$/i.test(before) || /^\s*[{.:[>+~]/.test(after))
+      continue;
+    const full = digits.length <= 4 ? [...digits].map((digit) => digit + digit).join("") : digits;
+    const channels = [0, 2, 4].map((at) => Number.parseInt(full.slice(at, at + 2), 16));
+    const alpha = full.length === 8 ? Number.parseInt(full.slice(6), 16) / 255 : undefined;
+    found.push([match.index, written, rgbText(channels, alpha)]);
+  }
+  for (const match of text.matchAll(/(?<![\w.])0x([0-9a-f]{6})(?!\w)/gi)) {
+    const [written, digits = ""] = match;
+    const channels = [0, 2, 4].map((at) => Number.parseInt(digits.slice(at, at + 2), 16));
+    found.push([match.index, written, rgbText(channels, undefined)]);
+  }
+  for (const match of text.matchAll(/\b(rgba?|hsla?)\(([^()]*)\)?/gi)) {
+    const [written, name = "", args = ""] = match;
+    found.push([match.index, written, written.endsWith(")") ? functionColour(name, args) : null]);
+  }
+  for (const match of text.matchAll(UNREAD)) found.push([match.index, match[0], null]);
+  for (const match of text.matchAll(NAMED)) {
+    const before = text.slice(Math.max(0, match.index - 200), match.index);
+    const after = text.slice(match.index + match[0].length);
+    // a named colour is never a palette colour: the word itself is what inPalette refuses
+    if (colourPosition(before, after)) found.push([match.index, match[0], match[0]]);
+  }
+  return found.sort((a, b) => a[0] - b[0]).map(([, written, colour]) => [written, colour]);
+}
+
 /** Refusals read from the page's files: a canvas gradient, shadow or blur, a remote file, a colour outside the palette. */
 export function sourceGate(files: readonly { name: string; text: string }[]): string | null {
   const problems: string[] = [];
@@ -231,13 +352,16 @@ export function sourceGate(files: readonly { name: string; text: string }[]): st
     for (const [pattern, what] of SOURCE_RULES) {
       if (pattern.test(file.text)) problems.push(`${file.name}: ${what}`);
     }
-    if (file.name.endsWith(".js") || file.name.endsWith(".mjs")) {
-      for (const hex of file.text.match(/#[0-9a-f]{6}(?:[0-9a-f]{2})?\b/gi) ?? []) {
-        const rgb = [1, 3, 5].map((at) => Number.parseInt(hex.slice(at, at + 2), 16));
-        if (!inPalette(`rgb(${rgb.join(", ")})`))
-          problems.push(`${file.name}: colour ${hex} is not in the palette`);
-      }
+    const said = new Set<string>();
+    for (const [written, colour] of writtenColours(file.text)) {
+      if (colour !== null && inPalette(colour)) continue;
+      said.add(
+        colour === null
+          ? `${file.name}: colour ${written} cannot be read, write a palette hex`
+          : `${file.name}: colour ${written} is not in the palette`,
+      );
     }
+    problems.push(...said);
   }
   return problems.length === 0 ? null : `gate_failed: ${problems.join("; ")}`;
 }
@@ -429,11 +553,11 @@ export type PostDeps = {
 };
 
 function saveDesign(folder: string, text: string): void {
-  writeFileSync(join(folder, "post", "design.txt"), text);
+  writeFileSync(join(folder, "post", DESIGN_FILE), text);
 }
 
 function loadDesign(folder: string): string {
-  const path = join(folder, "post", "design.txt");
+  const path = join(folder, "post", DESIGN_FILE);
   return existsSync(path) ? readFileSync(path, "utf8") : "";
 }
 
@@ -638,7 +762,12 @@ export async function realPostDeps(): Promise<PostDeps> {
       // the page and its picture are copied under the served root, as a requested reel's scene is (render-reel.mjs)
       rmSync(WORK, { recursive: true, force: true });
       mkdirSync(WORK, { recursive: true });
-      cpSync(join(folder, "post"), join(WORK, "post"), { recursive: true });
+      // the designer's reply is not served, so the page cannot read a colour the source gate did not (round 10)
+      const reply = join(folder, "post", DESIGN_FILE);
+      cpSync(join(folder, "post"), join(WORK, "post"), {
+        recursive: true,
+        filter: (from) => from !== reply,
+      });
       cpSync(join(folder, "shots"), join(WORK, "shots"), { recursive: true });
       const served = z
         .object({ shots: z.array(z.object({ file: z.string(), alt: z.string() })) })

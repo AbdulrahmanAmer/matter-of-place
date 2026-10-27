@@ -7,6 +7,7 @@ import { get } from "node:http";
 import { createServer } from "node:net";
 import { join } from "node:path";
 import puppeteer from "puppeteer-core";
+import sharp from "sharp";
 import { afterAll, describe, expect, it } from "vitest";
 import { z } from "zod";
 import { CHROME_ARGS, findChrome } from "../../../../launch/engine/chrome.mjs";
@@ -17,7 +18,14 @@ import {
   postRequestAllowed,
 } from "../../../../launch/engine/post-guard.mjs";
 import { ROOT, serve } from "../../../../launch/engine/serve.mjs";
-import { inPalette } from "../../../scripts/workforce/brand-post.ts";
+import {
+  frameReportSchema,
+  inPalette,
+  readSources,
+  sourceGate,
+  stillGate,
+  type FrameReport,
+} from "../../../scripts/workforce/brand-post.ts";
 
 const ORIGIN = "http://127.0.0.1:4000";
 const FOLDER = `guard-test-${String(process.pid)}`;
@@ -83,22 +91,50 @@ function shoot(dir: string, page: string) {
   });
 }
 
-/** Shoots an svg on Obsidian paper, beside the files given, and returns its report's colours and findings. */
-async function shootSvg(name: string, svg: string, files: Record<string, string> = {}) {
+/** A page on Obsidian paper holding an svg. */
+const svgPage = (svg: string) =>
+  `<!doctype html><html style="background:#11110f"><body style="margin:0;color:#eeeae1">
+<svg width="320" height="400" viewBox="0 0 320 400">${svg}</svg></body></html>`;
+
+/** Shoots a page, beside the files given, and returns its report's colours and findings. */
+async function shootPage(name: string, html: string, files: Record<string, string> = {}) {
   const dir = join(PAGE, name);
   mkdirSync(dir, { recursive: true });
   for (const [file, text] of Object.entries(files)) writeFileSync(join(dir, file), text);
-  writeFileSync(
-    join(dir, "post.html"),
-    `<!doctype html><html style="background:#11110f"><body style="margin:0;color:#eeeae1">
-<svg width="320" height="400" viewBox="0 0 320 400">${svg}</svg></body></html>`,
-  );
+  writeFileSync(join(dir, "post.html"), html);
   const { status, stderr } = await shoot(dir, join(dir, "post.html"));
   if (status !== 0) throw new Error(stderr);
   const [frame] = z
     .array(z.object({ colors: z.array(z.string()), findings: z.array(z.string()) }))
     .parse(JSON.parse(readFileSync(join(dir, "report.json"), "utf8")));
   return { colors: frame?.colors ?? [], findings: frame?.findings ?? [] };
+}
+
+/** Shoots an svg on Obsidian paper, beside the files given, and returns its report's colours and findings. */
+const shootSvg = (name: string, svg: string, files: Record<string, string> = {}) =>
+  shootPage(name, svgPage(svg), files);
+
+/**
+ * The post pass's gates on an svg page, as `postPass` calls them: the source gate on the page's files, then the engine
+ * and the still gate on its report (the spread measured as `realPostDeps` does). Answers the first refusal, or null.
+ */
+async function postGates(name: string, svg: string) {
+  const dir = join(PAGE, name);
+  mkdirSync(join(dir, "post"), { recursive: true });
+  writeFileSync(join(dir, "post", "post.html"), svgPage(svg));
+  const source = sourceGate(readSources(join(dir, "post")));
+  if (source !== null) return source;
+  const { status, stderr } = await shoot(dir, join(dir, "post", "post.html"));
+  if (status !== 0) throw new Error(stderr);
+  const raw = z
+    .array(frameReportSchema.omit({ spread: true }))
+    .parse(JSON.parse(readFileSync(join(dir, "report.json"), "utf8")));
+  const reports: FrameReport[] = [];
+  for (const report of raw) {
+    const { channels } = await sharp(report.file).stats();
+    reports.push({ ...report, spread: Math.max(...channels.map((channel) => channel.stdev)) });
+  }
+  return stillGate(reports, [{ name: "slide-0", role: "slide", width: 320, height: 400 }], []);
 }
 
 /** Shoots an svg on Obsidian paper and returns the colours of its report outside the palette, as the gate reads them. */
@@ -458,6 +494,83 @@ window.__post = {
 <path d="M20 20 L120 20" fill="none" stroke="#C9C0B2" stroke-width="2" style='marker-end:url("#m)1")'/>`,
       ),
     ).toEqual(["rgb(255, 0, 0)"]);
+  }, 120_000);
+
+  // Round 10, 2026-10-27: the fresh review of round 9 painted gold and red where the engine read Bone, because it reads
+  // a <use>'s copy under the page's selectors and Chrome draws it in the use's shadow tree. The source gate refuses them.
+  it("refuses the two pages of the round 9 review through the post pass's gates", async () => {
+    expect([
+      await postGates(
+        "review-gold",
+        `<style>svg{fill:currentColor}</style><symbol id="e"><path d="M0 0H40V40H0Z"/></symbol><use href="#e" fill="#EEEAE1" color="#b08d57"/>`,
+      ),
+      await postGates(
+        "review-red",
+        `<style>svg rect{fill:#EEEAE1}</style><defs><rect id="r" width="40" height="40"/></defs><use href="#r" fill="#f00"/>`,
+      ),
+    ]).toEqual([
+      "gate_failed: post.html: colour #b08d57 is not in the palette",
+      "gate_failed: post.html: colour #f00 is not in the palette",
+    ]);
+  }, 120_000);
+
+  // Measured on the engine's Chrome (sampled pixels and the use's shadow root, round 10): a used symbol is drawn as a
+  // <symbol>, so a page's symbol rule paints it and its svg rule does not; round 9 read it as a <g>.
+  it("counts a used symbol as the <symbol> Chrome draws, which a symbol rule reaches and an svg rule does not", async () => {
+    expect([
+      await offPalette(
+        "use-symbol-rule",
+        `<style>symbol{fill:#f00}</style><symbol id="e"><path d="M0 0H40V40H0Z"/></symbol><use href="#e" fill="#EEEAE1"/>`,
+      ),
+      await offPalette(
+        "use-symbol-svg",
+        `<style>svg{fill:currentColor}</style><symbol id="e"><path d="M0 0H40V40H0Z"/></symbol><use href="#e" fill="#EEEAE1" color="#b08d57"/>`,
+      ),
+    ]).toEqual([["rgb(255, 0, 0)"], []]);
+  }, 120_000);
+
+  it("passes a <use>'s currentColor on as the keyword, so a shape with its own color counts that colour", async () => {
+    expect(
+      await offPalette(
+        "use-current-own",
+        `<defs><rect id="o" width="40" height="40" color="#f00"/></defs><use href="#o" x="20" y="20" fill="currentColor" color="#EEEAE1"/>`,
+      ),
+    ).toEqual(["rgb(255, 0, 0)"]);
+  }, 120_000);
+
+  it("refuses <use> nested deeper than the gate reads, or drawing itself", async () => {
+    const { findings } = await shootSvg(
+      "use-deep",
+      `<symbol id="a"><use href="#a"/></symbol><use href="#a" x="20" y="20"/>`,
+    );
+    expect(findings).toEqual([
+      "<use> nested more than 8 deep, or drawing itself, which the gate cannot read: draw it flatter",
+    ]);
+  }, 120_000);
+
+  it("reads a page with an HTML element named use, in its body or in a symbol a <use> draws", async () => {
+    const { findings } = await shootPage(
+      "use-html",
+      `<!doctype html><html style="background:#11110f"><body style="margin:0;color:#eeeae1"><p>A <use>quiet</use> post</p>
+<svg width="320" height="400"><symbol id="h"><foreignObject width="10" height="10"><use>x</use></foreignObject></symbol>
+<use href="#h"/></svg></body></html>`,
+    );
+    expect(findings).toEqual([]);
+  }, 120_000);
+
+  it("refuses a filter and a blend mode, which paint colours outside the palette from colours in it", async () => {
+    const { findings } = await shootSvg(
+      "filter-blend",
+      `<filter id="f"><feFlood flood-color="#EEEAE1"/></filter>
+<rect width="40" height="40" fill="#575751" filter="url(#f)"/>
+<rect x="60" width="40" height="40" fill="#575751" style="filter:saturate(2)"/>
+<rect x="120" width="40" height="40" fill="#C9C0B2" style="mix-blend-mode:multiply"/>`,
+    );
+    expect(findings).toEqual([
+      'filter url("#f") on <rect>, which paints colours outside the palette',
+      "filter saturate(2) on <rect>, which paints colours outside the palette",
+      "mix-blend-mode multiply on <rect>, which paints colours outside the palette",
+    ]);
   }, 120_000);
 
   it("refuses to open a page outside app/.tmp/post/", async () => {

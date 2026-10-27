@@ -1009,8 +1009,8 @@
     "id": "w8-1-still-use-symbol",
     "test": "tests/unit/reel/post-guard.test.ts",
     "file": "../launch/engine/still.mjs",
-    "find": "      if (kept instanceof SVGSymbolElement) {",
-    "replace": "      if (false) {",
+    "find": "      if (kept instanceof SVGSymbolElement) drawnSymbols.add(copy);",
+    "replace": "      void copy;",
     "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
     "expect": "× .*counts a <use> inside a symbol another <use> draws"
   },
@@ -1067,5 +1067,248 @@
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
     "expect": "× .*tells the designer and the reviser to set fill none on a path drawn only as a line"
+  },
+  {
+    "id": "w8-1-source-every-file",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "    return bytes.includes(0) ? [] : [{ name, text: bytes.toString(\"utf8\") }];",
+    "replace": "    return /\\.(?:html|css|mjs|js|svg)$/.test(name) ? [{ name, text: bytes.toString(\"utf8\") }] : [];",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*reads every text file of the page's folder"
+  },
+  {
+    "id": "w8-1-source-binary",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "bytes.includes(0) ? [] : ",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*reads every text file of the page's folder"
+  },
+  {
+    "id": "w8-1-source-design",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": " || name === DESIGN_FILE",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*reads every text file of the page's folder"
+  },
+  {
+    "id": "w8-1-source-hex",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "    found.push([match.index, written, rgbText(channels, alpha)]);",
+    "replace": "    void channels;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*refuses every colour outside the palette written"
+  },
+  {
+    "id": "w8-1-source-short-hex",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "if (![3, 4, 6, 8].includes(digits.length)) continue;",
+    "replace": "if (digits.length < 6) continue;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*refuses every colour outside the palette written"
+  },
+  {
+    "id": "w8-1-source-hex-expand",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "digits.length <= 4 ? [...digits].map((digit) => digit + digit).join(\"\") : digits",
+    "replace": "digits",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*passes a page whose only colours are the palette's"
+  },
+  {
+    "id": "w8-1-source-id-ref",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "/(?:url\\(\\s*[\"']?|href\\s*=\\s*[\"']?)$/i.test(before) || ",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*passes a page whose only colours are the palette's"
+  },
+  {
+    "id": "w8-1-source-selector",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": " || /^\\s*[{.:[>+~]/.test(after)",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*passes a page whose only colours are the palette's"
+  },
+  {
+    "id": "w8-1-source-entity",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "(?<![&\\w])#",
+    "replace": "(?<!\\w)#",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*passes a page whose only colours are the palette's"
+  },
+  {
+    "id": "w8-1-source-0x",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "    found.push([match.index, written, rgbText(channels, undefined)]);",
+    "replace": "    void channels;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*refuses every colour outside the palette written"
+  },
+  {
+    "id": "w8-1-source-function",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "    found.push([match.index, written, written.endsWith(\")\") ? functionColour(name, args) : null]);",
+    "replace": "    void name;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*refuses every colour outside the palette written"
+  },
+  {
+    "id": "w8-1-source-hsl",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "rgb = [0, 8, 4].map((n) => {",
+    "replace": "rgb = [0, 4, 8].map((n) => {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*passes a page whose only colours are the palette's"
+  },
+  {
+    "id": "w8-1-source-unread",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "for (const match of text.matchAll(UNREAD)) found.push([match.index, match[0], null]);",
+    "replace": "void UNREAD;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*refuses every colour outside the palette written"
+  },
+  {
+    "id": "w8-1-source-named",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "if (colourPosition(before, after)) found.push([match.index, match[0], match[0]]);",
+    "replace": "void colourPosition;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*refuses every colour outside the palette written"
+  },
+  {
+    "id": "w8-1-source-named-copy",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "  const label = /\\b(?:class|id|name|for)\\s*=\\s*[\"'`]\\s*$/i.test(before);\n",
+    "replace": "  const label = false;\n  if (quote === undefined) return true;\n",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*passes a page whose only colours are the palette's"
+  },
+  {
+    "id": "w8-1-source-named-label",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": " && !label && ",
+    "replace": " && ",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*passes a page whose only colours are the palette's"
+  },
+  {
+    "id": "w8-1-source-named-value",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "  if (/[:=]\\s*$/.test(before) && /^\\s*(?:[;}\"'`,)!/]|$)/.test(after)) return true;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*refuses every colour outside the palette written"
+  },
+  {
+    "id": "w8-1-source-named-attr",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "  if (/=\\s*$/.test(before) && /^[\\s/>]/.test(after)) return true;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*refuses every colour outside the palette written"
+  },
+  {
+    "id": "w8-1-source-named-property",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "  return /(?:fill|stroke|color|background|border|outline|decoration|--[\\w-]+)[\\w-]*\\s*:[^;{}\"'`<>:=]*$/i.test(",
+    "replace": "  return /^$/.test(",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*refuses every colour outside the palette written"
+  },
+  {
+    "id": "w8-1-gates-review",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "    found.push([match.index, written, rgbText(channels, alpha)]);",
+    "replace": "    void channels;",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*refuses the two pages of the round 9 review"
+  },
+  {
+    "id": "w8-1-still-use-symbol-rule",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": "      if (kept instanceof SVGSymbolElement) drawnSymbols.add(copy);",
+    "replace": "      void copy;",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*counts a used symbol as the <symbol> Chrome draws"
+  },
+  {
+    "id": "w8-1-still-use-current",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": "        if (cs.getPropertyValue(prop) === cs.color) group.style.setProperty(prop, \"currentColor\");",
+    "replace": "        void prop;",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*passes a <use>'s currentColor on as the keyword"
+  },
+  {
+    "id": "w8-1-still-use-deep",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": "  if (uses.some((use) => use instanceof SVGUseElement))\n",
+    "replace": "  if (uses.length < 0)\n",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*refuses <use> nested deeper than the gate reads"
+  },
+  {
+    "id": "w8-1-still-use-html",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": "[...document.querySelectorAll(\"use\")].filter((el) => el instanceof SVGUseElement);",
+    "replace": "[...document.querySelectorAll(\"use\")];",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*reads a page with an HTML element named use"
+  },
+  {
+    "id": "w8-1-still-use-html-nested",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": "      if (!(use instanceof SVGUseElement)) continue;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*reads a page with an HTML element named use"
+  },
+  {
+    "id": "w8-1-still-filter",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": "if (cs.filter && cs.filter !== \"none\")",
+    "replace": "if (cs.filter && /blur|drop-shadow/i.test(cs.filter))",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*refuses a filter and a blend mode"
+  },
+  {
+    "id": "w8-1-still-blend",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": "if (cs.mixBlendMode && cs.mixBlendMode !== \"normal\")",
+    "replace": "if (cs.mixBlendMode === \"never\")",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*refuses a filter and a blend mode"
   }
 ]

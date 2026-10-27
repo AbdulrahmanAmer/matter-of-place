@@ -27,6 +27,7 @@ import {
   postReviewPrompt,
   postRevisePrompt,
   readDesign,
+  readSources,
   sourceGate,
   stillGate,
   strayWords,
@@ -390,6 +391,77 @@ describe("the still gate", () => {
       "post.mjs: colour #D4AF37 is not in the palette",
       "post.html: a file from outside the site (use the served paths only)",
     ]);
+  });
+
+  // Round 10, 2026-10-27: the engine reads the copy of a <use> in another selector context from the one Chrome draws, so
+  // every colour written in the page's files is read where it is written, and only the palette passes.
+  it("passes a page whose only colours are the palette's, in any form, and the word gold in its copy", () => {
+    expect(
+      sourceGate([
+        {
+          name: "post.html",
+          text: `<style>svg{fill:#EEEAE1} .rule{stroke:#c9c0b2;background:rgba(17, 17, 15, 0.4)} #face{color:#F5F2EB80}
+p{color:currentColor;border-color:transparent;fill:none;stroke:hsl(60deg 3.5714% 32.9412%);outline-color:#f000}</style>
+<title>Gold light</title><h1 class="ivory">The gold hour, in Coral Gables</h1><img alt="Coral Gables at dusk" src="a.jpg">
+<svg><use href="#bed"/><rect clip-path="url(#fade)" fill="#11110f"/></svg><p>It&#8217;s quiet.</p>`,
+        },
+        { name: "post.mjs", text: 'ctx.fillStyle = "rgb(87 87 81)"; const ink = 0x8b877f;' },
+      ]),
+    ).toBeNull();
+  });
+
+  it("refuses every colour outside the palette written in any of the page's files, naming the file and the colour", () => {
+    expect(
+      sourceGate([
+        {
+          name: "post.html",
+          text: `<style>svg{fill:currentColor} rect{border:1px solid red} :root{--accent: Tomato}</style>
+<svg><use href="#e" fill="#EEEAE1" color="#b08d57"/><rect fill="#f00" stroke="gold"/><circle fill=plum r="2"/></svg>`,
+        },
+        {
+          name: "post.css",
+          text: "p{color:rgb(255 0 0 / 50%);background:hsl(40, 50%, 50%)} h1{color:#d4af3780} p{column-rule:teal}",
+        },
+        {
+          name: "post.mjs",
+          text: `ctx.fillStyle = 'navy'; mesh.material.color = new THREE.Color(0xff0000);
+ctx.strokeStyle = "rgb(" + r + ", 0, 0)"; el.style.fill = "oklch(0.7 0.1 80)";`,
+        },
+        { name: "data.json", text: '{"accent": "#C0FFEE"}' },
+      ])?.split("; "),
+    ).toEqual([
+      "gate_failed: post.html: colour red is not in the palette",
+      "post.html: colour Tomato is not in the palette",
+      "post.html: colour #b08d57 is not in the palette",
+      "post.html: colour #f00 is not in the palette",
+      "post.html: colour gold is not in the palette",
+      "post.html: colour plum is not in the palette",
+      "post.css: colour rgb(255 0 0 / 50%) is not in the palette",
+      "post.css: colour hsl(40, 50%, 50%) is not in the palette",
+      "post.css: colour #d4af3780 is not in the palette",
+      "post.css: colour teal is not in the palette",
+      "post.mjs: colour navy is not in the palette",
+      "post.mjs: colour 0xff0000 is not in the palette",
+      'post.mjs: colour rgb(" + r + ", 0, 0) cannot be read, write a palette hex',
+      "post.mjs: colour oklch(0.7 0.1 80) cannot be read, write a palette hex",
+      "data.json: colour #C0FFEE is not in the palette",
+    ]);
+  });
+
+  it("reads every text file of the page's folder, and not its pictures, its fonts or the designer's reply", () => {
+    const dir = mkdtempSync(join(tmpdir(), "post-sources-"));
+    mkdirSync(join(dir, "css"));
+    writeFileSync(join(dir, "post.html"), "<p>x</p>");
+    writeFileSync(join(dir, "css", "a.css"), "p{color:#11110F}");
+    writeFileSync(join(dir, "data.json"), "{}");
+    writeFileSync(join(dir, "notes.txt"), "quiet");
+    writeFileSync(join(dir, "pic.png"), new Uint8Array([137, 80, 78, 71, 0, 0, 0, 13]));
+    writeFileSync(join(dir, "design.txt"), "I replaced #b08d57 with Sandstone.");
+    expect(
+      readSources(dir)
+        .map((file) => file.name)
+        .sort(),
+    ).toEqual(["css/a.css", "data.json", "notes.txt", "post.html"]);
   });
 
   it("reads the designer's alt text, and for a carousel one per slide", () => {
