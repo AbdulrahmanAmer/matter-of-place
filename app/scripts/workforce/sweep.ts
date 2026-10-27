@@ -3,24 +3,23 @@
 // minutes, apart from the runner, so a runner that hangs cannot stop it. It is the one process that ends stuck work
 // (the studio's lock only refuses to start beside a live pass). Each sweep:
 //   1. reads every process once and ends, by exact process ids, the workforce processes nobody is waiting for:
-//      - a scheduled pass whose task ended it at its time limit: Windows stops the hidden launcher (wscript.exe) and
-//        never its children, so the pass ran on and a new one started beside it every minute (P-4660). One still
-//        running a colleague's CLI answer is kept until RUN_CEILING_MS (no clock on their work, 2026-10-15; ruling H150)
-//        and its run's lease is renewed, so no other runner claims the run it is answering;
-//      - every studio pass but one (`reel.ts --pass`; 262 were alive once), keeping the one doing work, and any pass
-//        older than PASS_CAP_MS;
+//      - a scheduled pass past RUN_CEILING_MS (ruling H150; the tasks themselves have no time limit, P-4660), and one
+//        whose launcher is gone (its task was stopped, or a limit of an older install ended only the launcher);
+//      - every studio pass but one (`reel.ts --pass`; 262 were alive once), keeping the one making a piece, and any
+//        pass older than PASS_CAP_MS;
 //      - a runner's or the live session's CLI child, a studio ffmpeg or a render whose starting process is gone;
 //      - an ffmpeg under a pass or a runner older than FFMPEG_CAP_MS;
-//   2. fails the runs an ended runner held (its person told in their own thread), and puts back in the queue a studio
-//      piece left `working` with no pass alive (failed after its second such return);
+//   2. settles the runs an ended runner held: back to the queue when its task was stopped, failed (its person told in
+//      their own thread) when it hung past the ceiling; puts back in the queue a studio piece left `working` with no
+//      pass alive (failed after its second such return);
 //   3. names what waits too long (runs queued, studio pieces queued) with what is in the way;
-//   4. says what it found in Matter's thread when that changed, waking him (a stall report: he finds the cause and
-//      fixes it), and keeps its lines in ~/.mop-workforce/sweep.log.
+//   4. hands what it found to Matter's live session once per stall (~/.mop-workforce/matter/stall.md, read by live.ts
+//      between turns: he finds the cause and fixes it), shows it in his thread, and keeps its lines in sweep.log.
 //   bun scripts/workforce/sweep.ts        one sweep
 //   bun scripts/workforce/sweep.ts --dry  what it would end, ending and writing nothing
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, hostname } from "node:os";
 import { join } from "node:path";
 import { z } from "zod";
@@ -28,20 +27,19 @@ import type { Db } from "../../src/server/lib/db.ts";
 
 const HOME = join(homedir(), ".mop-workforce");
 
+/** Where the sweep leaves a stall report for Matter's live session (live.ts STALL_FILE reads and removes it). */
+export const STALL_FILE = join(HOME, "matter", "stall.md");
+
 /** One process as Windows lists it; `started` in milliseconds. */
 export type Proc = { pid: number; parent: number; name: string; started: number; command: string };
 
-/** Processes to end, by exact id (the first is the one the reason is about), and why. */
-type Kill = { pids: number[]; kind: string; reason: string };
-
-/** What one sweep decides: what it ends, and the runner passes it keeps because a colleague's answer is under way. */
-type Plan = { kills: Kill[]; working: number[] };
-
 /**
- * The scripts a scheduled task starts through hidden-run.vbs (`cmd.exe /c ... bun <script>`) under a time limit, this
- * one included. Matter's live supervisor (scripts/matter/live.ts) is not one: it has no limit, runs without end and
- * keeps itself single (lockOrExit), so one whose launcher is gone is still the one supervisor.
+ * Processes to end, by exact id (the first is the one the reason is about), and why. `runs` says what becomes of the
+ * runs an ended runner held: `requeue` when its task was stopped under it, `fail` when it hung past the ceiling.
  */
+type Kill = { pids: number[]; kind: string; reason: string; runs?: "requeue" | "fail" };
+
+/** The scripts a scheduled task starts through hidden-run.vbs (`cmd.exe /c ... bun <script>`), this one included. */
 const SCHEDULED =
   /scripts[\\/](?:workforce[\\/](?:daemon|meeting|review|sweep)\.ts|captions-runner\.ts|audit-routine\.ts|usage-push\.ts)/;
 
@@ -51,14 +49,14 @@ const HIDDEN_RUN_SHELL = /\/c cd \/d .*\.mop-workforce[\\/][\w-]+\.log/i;
 /** The studio's own process, started detached by the runner (W7 item 19). */
 const STUDIO_PASS = /reel\.ts"?\s+--pass\b/;
 
-/** Render steps of the studio, under the runner's checkout or the studio folder. */
+/** Render steps of the studio, and the folders only the runner's checkout and the studio use. */
 const RENDER = /render-reel\.mjs|still\.mjs|brand-post\.ts|launch[\\/]engine[\\/]/;
-const OUR_PATHS = /mop-build|\.mop-workforce/i;
+const STUDIO_PATHS = /\.mop-workforce[\\/]studio|mop-build[\\/]live[\\/]/i;
 
 /** No pass of the studio outlives this: past it, reel.ts calls its `working` piece abandoned (STALE_MS, 3 h). */
 export const PASS_CAP_MS = 3 * 60 * 60_000 + 15 * 60_000;
 
-/** A colleague's answer still running this long after its runner's task ended is ended with it (ruling H150). */
+/** A scheduled pass still running this long has hung (ruling H150): Matter's longest run is 45 minutes. */
 export const RUN_CEILING_MS = PASS_CAP_MS;
 
 /** The longest render P-2100 measured was 836 s with the laptop loaded; an hour is a hung encoder. */
@@ -67,11 +65,10 @@ export const FFMPEG_CAP_MS = 60 * 60_000;
 /** A run or a studio piece queued longer than this is named, with what is in its way. */
 export const WAIT_MS = 30 * 60_000;
 
-/** A `working` piece younger than this may belong to a pass started after the sweep listed the processes. */
-const WORKING_GRACE_MS = 10 * 60_000;
+/** A process or a `working` piece younger than this may belong to work started after the listing. */
+const GRACE_MS = 10 * 60_000;
 
 const isBun = (proc: Proc) => /^(bun|node)(\.exe)?$/i.test(proc.name);
-const isLauncher = (proc: Proc) => /^wscript\.exe$/i.test(proc.name);
 const isFfmpeg = (proc: Proc) => /^ff(mpeg|probe)(\.exe)?$/i.test(proc.name);
 const isCli = (proc: Proc) => /^claude(\.exe)?$/i.test(proc.name);
 const isStudioPass = (proc: Proc) => isBun(proc) && STUDIO_PASS.test(proc.command);
@@ -95,7 +92,7 @@ const minutes = (ms: number) => `${String(Math.round(ms / 60_000))} min`;
  * child is a reused process id, so that child counts as orphaned. Ending is by exact ids: a runner's descendants are
  * ended with it, except a studio pass it started (judged on its own), so no stale parent id reaches another process.
  */
-export function planSweep(procs: Proc[], now: number, self: number): Plan {
+export function planSweep(procs: Proc[], now: number, self: number): Kill[] {
   const byPid = new Map(procs.map((proc) => [proc.pid, proc]));
   const parentOf = (proc: Proc): Proc | undefined => {
     const parent = byPid.get(proc.parent);
@@ -124,25 +121,27 @@ export function planSweep(procs: Proc[], now: number, self: number): Plan {
       found.push(at);
     return found;
   };
-  const busy = (proc: Proc) =>
-    tree(proc).some((under) => under !== proc && (isCli(under) || isFfmpeg(under) || isBun(under)));
 
   const kills: Kill[] = [];
   const taken = new Set<number>();
-  const end = (root: Proc, kind: string, reason: string) => {
+  const end = (root: Proc, kind: string, reason: string, runs?: Kill["runs"]) => {
     if (root.pid === self || taken.has(root.pid)) return;
     const pids = tree(root)
       .map((proc) => proc.pid)
       .filter((pid) => pid !== self && !taken.has(pid));
     for (const pid of pids) taken.add(pid);
-    kills.push({ pids, kind, reason });
+    kills.push(runs === undefined ? { pids, kind, reason } : { pids, kind, reason, runs });
   };
-  const working: number[] = [];
 
-  // One studio pass at a time: past its cap a pass ends; of the rest the oldest doing work stays (or the oldest).
+  // One studio pass at a time: past its cap a pass ends. Of the rest the one making a piece stays (its designer or
+  // reviewer is a CLI under it), else the oldest with any work under it, else the oldest.
   const passes = procs.filter(isStudioPass).sort((a, b) => a.started - b.started);
   const young = passes.filter((pass) => now - pass.started <= PASS_CAP_MS);
-  const keeper = young.find(busy) ?? young[0];
+  const under = (pass: Proc) => tree(pass).filter((proc) => proc !== pass);
+  const keeper =
+    young.find((pass) => under(pass).some(isCli)) ??
+    young.find((pass) => under(pass).length > 0) ??
+    young[0];
   for (const pass of passes) {
     if (now - pass.started > PASS_CAP_MS)
       end(
@@ -158,21 +157,22 @@ export function planSweep(procs: Proc[], now: number, self: number): Plan {
     if (taken.has(proc.pid) || isStudioPass(proc)) continue;
     const parent = parentOf(proc);
     if (isScheduled(proc)) {
-      // hidden-run.vbs: wscript.exe waits on cmd.exe, which runs bun. With the launcher gone, the task has ended.
-      const shell =
-        parent !== undefined && HIDDEN_RUN_SHELL.test(parent.command) ? parent : undefined;
-      const launcher = shell === undefined ? undefined : parentOf(shell);
-      if (shell === undefined || (launcher !== undefined && isLauncher(launcher))) continue;
+      // hidden-run.vbs: wscript.exe waits on cmd.exe, which runs bun. A pass started by hand is none of the sweep's.
+      if (parent === undefined || !HIDDEN_RUN_SHELL.test(parent.command)) continue;
       const age = now - proc.started;
-      const answering = tree(proc).some(isRunnerCli);
-      if (answering && age <= RUN_CEILING_MS) working.push(proc.pid);
-      else
+      if (parentOf(parent) === undefined)
         end(
           proc,
           "scheduled pass",
-          answering
-            ? `its scheduled task ended at the time limit and a colleague's answer under it ran past ${minutes(RUN_CEILING_MS)}`
-            : `its scheduled task ended at the time limit, but it ran on for ${minutes(age)} with no answer under way`,
+          `its scheduled task was stopped ${minutes(age)} into it, but the pass ran on`,
+          "requeue",
+        );
+      else if (age > RUN_CEILING_MS)
+        end(
+          proc,
+          "scheduled pass",
+          `running ${minutes(age)}, past its ceiling of ${minutes(RUN_CEILING_MS)}`,
+          "fail",
         );
       continue;
     }
@@ -183,9 +183,14 @@ export function planSweep(procs: Proc[], now: number, self: number): Plan {
           "CLI run",
           "the runner or session that started it is gone, so nobody reads its answer",
         );
-      else if (isFfmpeg(proc) && OUR_PATHS.test(proc.command))
+      else if (now - proc.started > GRACE_MS && isFfmpeg(proc) && STUDIO_PATHS.test(proc.command))
         end(proc, "ffmpeg", "the studio pass that started it is gone");
-      else if (isBun(proc) && RENDER.test(proc.command) && OUR_PATHS.test(proc.command))
+      else if (
+        now - proc.started > GRACE_MS &&
+        isBun(proc) &&
+        RENDER.test(proc.command) &&
+        STUDIO_PATHS.test(proc.command)
+      )
         end(proc, "render", "the studio pass that started it is gone");
       continue;
     }
@@ -196,7 +201,7 @@ export function planSweep(procs: Proc[], now: number, self: number): Plan {
     )
       end(proc, "ffmpeg", `running ${minutes(now - proc.started)}, past ${minutes(FFMPEG_CAP_MS)}`);
   }
-  return { kills, working };
+  return kills;
 }
 
 const rowsSchema = z.array(
@@ -237,6 +242,21 @@ function listProcesses(): Proc[] {
   }));
 }
 
+/** Minutes since the runner's task last started (no limit, IgnoreNew: a hung pass keeps it from starting again). */
+function runnerStartedAgo(now: number): number | null {
+  const read = spawnSync(
+    "powershell",
+    [
+      "-NoProfile",
+      "-Command",
+      "(Get-ScheduledTaskInfo -TaskName 'MOP Workforce').LastRunTime.ToUniversalTime().ToString('o')",
+    ],
+    { encoding: "utf8", windowsHide: true, timeout: 30_000 },
+  );
+  const at = Date.parse(read.stdout.trim());
+  return read.status === 0 && !Number.isNaN(at) ? now - at : null;
+}
+
 /** Ends exact processes, fifty to a call (one call per process would outlast the task's limit on a pegged laptop). */
 function endProcesses(pids: number[]): void {
   for (let at = 0; at < pids.length; at += 50) {
@@ -266,15 +286,15 @@ function folders(studio: string): string[] {
     .map((entry) => join(studio, entry.name));
 }
 
+const nameOf = (folder: string) => folder.split(/[\\/]/).pop() ?? folder;
+
 /** Studio pieces queued longer than WAIT_MS, oldest first, as "folder (N min)". */
 export function waitingPieces(studio: string, now: number): string[] {
   return folders(studio)
     .flatMap((folder) => {
       const brief = readBriefFile(folder);
       const at = Date.parse(brief?.at ?? "");
-      return brief?.state === "queued" && now - at > WAIT_MS
-        ? [{ name: folder.split(/[\\/]/).pop() ?? folder, at }]
-        : [];
+      return brief?.state === "queued" && now - at > WAIT_MS ? [{ name: nameOf(folder), at }] : [];
     })
     .sort((a, b) => a.at - b.at)
     .map((piece) => `${piece.name} (${minutes(now - piece.at)})`);
@@ -283,8 +303,8 @@ export function waitingPieces(studio: string, now: number): string[] {
 const RETURNED = "returned to the queue by the sweep: no pass was making it";
 
 /**
- * With no studio pass alive, a piece still `working` (and older than WORKING_GRACE_MS) has nobody making it: it goes
- * back to the queue, and fails the second time, so a piece that hangs every pass does not loop. Answers the names.
+ * With no studio pass alive, a piece still `working` (and older than GRACE_MS) has nobody making it: it goes back to
+ * the queue, and fails the second time, so a piece that hangs every pass does not loop. Answers the names.
  */
 export function returnOrphanedPieces(studio: string, now: number): string[] {
   const touched: string[] = [];
@@ -292,11 +312,9 @@ export function returnOrphanedPieces(studio: string, now: number): string[] {
     const brief = readBriefFile(folder);
     if (brief?.state !== "working") continue;
     const started = typeof brief["started"] === "string" ? Date.parse(brief["started"]) : NaN;
-    if (!(now - (Number.isNaN(started) ? Date.parse(brief.at) : started) > WORKING_GRACE_MS))
-      continue;
+    if (!(now - (Number.isNaN(started) ? Date.parse(brief.at) : started) > GRACE_MS)) continue;
     const before = typeof brief["reason"] === "string" ? brief["reason"] : "";
-    const next: Record<string, unknown> = { ...brief };
-    next["started"] = undefined;
+    const next: Record<string, unknown> = { ...brief, started: undefined };
     if (before.startsWith(RETURNED)) {
       next["state"] = "failed";
       next["reason"] = "abandoned twice: its pass stopped while making it";
@@ -305,53 +323,125 @@ export function returnOrphanedPieces(studio: string, now: number): string[] {
       next["reason"] = RETURNED;
     }
     writeFileSync(join(folder, "brief.json"), JSON.stringify(next, null, 2));
-    touched.push(`${folder.split(/[\\/]/).pop() ?? folder} (${String(next["state"])})`);
+    touched.push(`${nameOf(folder)} (${String(next["state"])})`);
   }
   return touched;
 }
 
-/** The report of one sweep, in plain words; null when there is nothing to say. */
-export function report(input: {
+/** What a sweep found, for its report. */
+export type Findings = {
   ended: (Kill & { ok: boolean })[];
-  failedRuns: number;
+  settled: { requeued: number; failed: number };
   pieces: string[];
   waitingRuns: { count: number; oldestMs: number };
   waitingPieces: string[];
   passAlive: boolean;
-  runnerAlive: boolean;
-}): string | null {
+  /** Minutes since the runner's task last started; null when it could not be read. */
+  runnerAgoMs: number | null;
+};
+
+/** The report of one sweep, in plain words; null when there is nothing to say. */
+export function report(found: Findings): string | null {
   const lines: string[] = [];
-  if (input.ended.length > 0) {
-    lines.push(`MOP Sweep ended ${String(input.ended.length)} stuck process tree(s):`);
-    for (const kill of input.ended)
+  if (found.ended.length > 0) {
+    lines.push(`MOP Sweep ended ${String(found.ended.length)} stuck process tree(s):`);
+    for (const kill of found.ended)
       lines.push(
         `- ${kill.kind} ${String(kill.pids[0] ?? 0)}: ${kill.reason}${kill.ok ? "" : " (it could not be ended)"}`,
       );
   }
-  if (input.failedRuns > 0)
+  if (found.settled.requeued > 0)
     lines.push(
-      `${String(input.failedRuns)} run(s) the ended runner held are marked failed, so none is claimed again into the same wall.`,
+      `${String(found.settled.requeued)} run(s) the stopped runner held are back in the queue.`,
     );
-  if (input.pieces.length > 0)
-    lines.push(`Studio pieces nobody was making: ${input.pieces.join(", ")}.`);
-  if (input.waitingRuns.count > 0)
+  if (found.settled.failed > 0)
     lines.push(
-      `${String(input.waitingRuns.count)} run(s) queued over ${minutes(WAIT_MS)}, the oldest ${minutes(input.waitingRuns.oldestMs)}; the runner ${input.runnerAlive ? "is passing" : "has not passed in 5 minutes"}.`,
+      `${String(found.settled.failed)} run(s) the hung runner held are marked failed; each person was told in their thread.`,
     );
-  if (input.waitingPieces.length > 0)
+  if (found.pieces.length > 0)
+    lines.push(`Studio pieces nobody was making: ${found.pieces.join(", ")}.`);
+  if (found.waitingRuns.count > 0)
     lines.push(
-      `Studio pieces queued over ${minutes(WAIT_MS)}: ${input.waitingPieces.join(", ")}; a studio pass is ${input.passAlive ? "running" : "not running"}.`,
+      `${String(found.waitingRuns.count)} run(s) queued over ${minutes(WAIT_MS)}, the oldest ${minutes(found.waitingRuns.oldestMs)}; the runner's task last started ${found.runnerAgoMs === null ? "at an unreadable time" : `${minutes(found.runnerAgoMs)} ago`}.`,
+    );
+  if (found.waitingPieces.length > 0)
+    lines.push(
+      `Studio pieces queued over ${minutes(WAIT_MS)}: ${found.waitingPieces.join(", ")}; a studio pass is ${found.passAlive ? "running" : "not running"}.`,
     );
   if (lines.length === 0) return null;
   lines.push("Find why it hung and fix the cause.");
   return lines.join("\n");
 }
 
-/** What a report is about, without its minutes: the same stall is said once, not every five minutes. */
-export function reportKey(text: string): string {
+/**
+ * What a report is about, without its numbers that grow: the same stall is said once (say-a-wait-once), and said again
+ * only when what is stuck changes.
+ */
+export function reportKey(found: Findings): string {
   return createHash("sha256")
-    .update(text.replace(/\d+ min\b/g, "N min"))
+    .update(
+      JSON.stringify([
+        found.ended.map((kill) => [kill.kind, kill.pids[0]]),
+        found.settled.requeued > 0,
+        found.settled.failed > 0,
+        found.pieces,
+        found.waitingRuns.count > 0,
+        found.waitingPieces.map((piece) => piece.replace(/ \(\d+ min\)$/, "")),
+      ]),
+    )
     .digest("hex");
+}
+
+/** A person whose line a hung run was answering hears it in their own thread (as the runner's failures say, P-3453). */
+async function tellAuthor(client: Db, messageId: string | null): Promise<void> {
+  if (messageId === null) return;
+  const { data: line } = await client
+    .from("agent_messages")
+    .select("thread, author_kind")
+    .eq("id", messageId)
+    .single();
+  if (line?.author_kind !== "human") return;
+  await client.from("agent_messages").insert({
+    thread: line.thread,
+    author_kind: "system",
+    author_id: "system",
+    author_name: "Matter of Place",
+    body: "Your line could not be finished: the run answering it hung for hours and was stopped. Please send it again.",
+  });
+}
+
+/** Settles the runs ended runners held; a runner that started on the same id after the kill is left alone. */
+async function settleRuns(
+  client: Db,
+  ended: (Kill & { ok: boolean })[],
+  killedAt: number,
+): Promise<Findings["settled"]> {
+  const settled = { requeued: 0, failed: 0 };
+  for (const kill of ended) {
+    if (!kill.ok || kill.runs === undefined) continue;
+    const held = client
+      .from("agent_runs")
+      .update(
+        kill.runs === "requeue"
+          ? { state: "queued", worker: null, lease_until: null }
+          : {
+              state: "failed",
+              finished_at: new Date(killedAt).toISOString(),
+              lease_until: null,
+              error: "stopped: its runner hung past the ceiling and the sweep ended it",
+            },
+      )
+      .eq("state", "running")
+      .eq("worker", runnerWorker(kill.pids[0] ?? 0))
+      .lte("lease_until", new Date(killedAt + 3000_000).toISOString());
+    const { data } = await held.select("message_id");
+    if (kill.runs === "requeue") settled.requeued += data?.length ?? 0;
+    else {
+      settled.failed += data?.length ?? 0;
+      for (const run of data ?? []) await tellAuthor(client, run.message_id);
+    }
+  }
+  return settled;
 }
 
 async function sweep(dry: boolean): Promise<void> {
@@ -359,15 +449,12 @@ async function sweep(dry: boolean): Promise<void> {
   const say = (line: string) => {
     console.log(`${new Date().toISOString()} ${line}`);
   };
-  const { kills, working } = planSweep(listProcesses(), now, process.pid);
+  const kills = planSweep(listProcesses(), now, process.pid);
   for (const kill of kills)
     say(`${dry ? "would end" : "ending"} ${kill.kind} ${kill.pids.join(",")}: ${kill.reason}`);
-  if (dry) {
-    for (const pid of working)
-      say(`would keep scheduled pass ${String(pid)}: an answer is under way`);
-    return;
-  }
-  mkdirSync(HOME, { recursive: true });
+  if (dry) return;
+  mkdirSync(join(HOME, "matter"), { recursive: true });
+  const killedAt = Date.now();
   endProcesses(kills.flatMap((kill) => kill.pids));
   const after = listProcesses();
   const alive = new Set(after.map((proc) => proc.pid));
@@ -377,42 +464,15 @@ async function sweep(dry: boolean): Promise<void> {
   const passAlive = after.some(isStudioPass);
   const studio = join(HOME, "studio");
   const pieces = passAlive ? [] : returnOrphanedPieces(studio, now);
-  const log = join(HOME, "daemon.log");
-  const runnerAlive = existsSync(log) && now - statSync(log).mtimeMs < 5 * 60_000;
 
   // The database part needs the network; a laptop offline still ends its stuck processes above.
-  let failedRuns = 0;
+  let settled = { requeued: 0, failed: 0 };
   let waitingRuns = { count: 0, oldestMs: 0 };
   let client: Db | null = null;
   try {
     const { serviceDb } = await import("./env.ts");
     client = serviceDb();
-    const killedRunners = ended.filter((kill) => kill.ok && kill.kind === "scheduled pass");
-    for (const kill of killedRunners) {
-      // a runner that started on the same pid after the kill holds leases from after it, which this leaves alone
-      const { data } = await client
-        .from("agent_runs")
-        .update({
-          state: "failed",
-          finished_at: new Date().toISOString(),
-          lease_until: null,
-          error:
-            "stopped: its runner ran past the scheduled task's time limit and the sweep ended it",
-        })
-        .eq("state", "running")
-        .eq("worker", runnerWorker(kill.pids[0] ?? 0))
-        .lte("lease_until", new Date(now + 3000_000).toISOString())
-        .select("message_id");
-      failedRuns += data?.length ?? 0;
-      for (const run of data ?? []) await tellAuthor(client, run.message_id);
-    }
-    // a colleague's answer under a runner whose task ended keeps its run, so no other runner claims it again
-    for (const pid of working)
-      await client
-        .from("agent_runs")
-        .update({ lease_until: new Date(now + 3000_000).toISOString() })
-        .eq("state", "running")
-        .eq("worker", runnerWorker(pid));
+    settled = await settleRuns(client, ended, killedAt);
     const { data: queued } = await client
       .from("agent_runs")
       .select("created_at")
@@ -429,65 +489,41 @@ async function sweep(dry: boolean): Promise<void> {
     say(`database not reached: ${failure instanceof Error ? failure.message : String(failure)}`);
   }
 
-  const text = report({
+  const found: Findings = {
     ended,
-    failedRuns,
+    settled,
     pieces,
     waitingRuns,
     waitingPieces: waitingPieces(studio, now),
     passAlive,
-    runnerAlive,
-  });
-  if (text === null) return;
-  say(text.replaceAll("\n", " | "));
-  // Said once per stall (say-a-wait-once): the same report with only its minutes changed is not posted again.
+    runnerAgoMs: waitingRuns.count > 0 ? runnerStartedAgo(now) : null,
+  };
   const keyFile = join(HOME, "sweep-last.txt");
-  const key = reportKey(text);
-  if (client === null || (existsSync(keyFile) && readFileSync(keyFile, "utf8") === key)) return;
-  if (await tellMatter(client, text)) writeFileSync(keyFile, key);
-}
-
-/** A person whose line a stopped run was answering hears it in their own thread (as the runner's failures say, P-3453). */
-async function tellAuthor(client: Db, messageId: string | null): Promise<void> {
-  if (messageId === null) return;
-  const { data: line } = await client
-    .from("agent_messages")
-    .select("thread, author_kind")
-    .eq("id", messageId)
-    .single();
-  if (line?.author_kind !== "human") return;
-  await client.from("agent_messages").insert({
-    thread: line.thread,
-    author_kind: "system",
-    author_id: "system",
-    author_name: "Matter of Place",
-    body: "Your line could not be finished: the run answering it hung past its time limit and was stopped. Please send it again.",
-  });
-}
-
-/** Matter's thread, and a run that wakes him on it (a line alone queues nothing, P-4662; reel.ts tellMatter's way). */
-async function tellMatter(client: Db, body: string): Promise<boolean> {
-  const { data: line } = await client
-    .from("agent_messages")
-    .insert({
+  const text = report(found);
+  if (text === null) {
+    // a quiet sweep forgets the last stall, so the same stall later is said again
+    rmSync(keyFile, { force: true });
+    return;
+  }
+  say(text.replaceAll("\n", " | "));
+  const key = reportKey(found);
+  if (existsSync(keyFile) && readFileSync(keyFile, "utf8") === key) return;
+  // Matter's live session reads the file between turns (live.ts); the thread line is for the operator's eyes.
+  writeFileSync(STALL_FILE, text);
+  writeFileSync(keyFile, key);
+  if (client !== null)
+    await client.from("agent_messages").insert({
       thread: "matter",
       author_kind: "system",
       author_id: "system",
       author_name: "Matter of Place",
-      body: body.slice(0, 20000),
-    })
-    .select("id")
-    .single();
-  const { data: matter } = await client.from("agents").select("id").eq("slug", "matter").single();
-  if (line === null || matter === null) return false;
-  const { error } = await client
-    .from("agent_runs")
-    .insert({ agent_id: matter.id, cause: "message", message_id: line.id });
-  return error === null;
+      body: text.slice(0, 20000),
+    });
 }
 
 if (import.meta.main) {
-  // The task's own limit ends only its launcher (P-4660), so the sweep ends itself first.
+  // The task's own limit ends only its launcher (P-4660), so the sweep ends itself first; the next sweep ends one that
+  // could not (a timer cannot fire inside a blocking call).
   setTimeout(() => {
     console.log(`${new Date().toISOString()} sweep: past 3.5 minutes, ending itself`);
     process.exit(2);

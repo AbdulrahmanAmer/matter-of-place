@@ -6,7 +6,7 @@
 // Only a signed-in person's line reaches this session (claim_matter_live); everything else stays a one-shot read-only
 // run (ruling H101). Run: `bun scripts/matter/live.ts` from the runner's app folder (the scheduled task "MOP Matter Live").
 import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { homedir, hostname } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -37,6 +37,8 @@ const MATTER_HOME = join(HOME, "matter");
 const LOCK_FILE = join(MATTER_HOME, "live.lock");
 // The process id of the CLI session this supervisor started, so the next supervisor can end one left running.
 const CHILD_FILE = join(MATTER_HOME, "live-child.pid");
+// The laptop sweep's stall report (scripts/workforce/sweep.ts STALL_FILE), handed to him once between turns.
+const STALL_FILE = join(MATTER_HOME, "stall.md");
 const SESSION_FILE = join(MATTER_HOME, "live-session.json");
 // Matter's goal (operator, 2026-10-15): a task-gate step list; between turns he is handed its next open step.
 const GOAL_FILE = join(MATTER_HOME, "goal.json");
@@ -308,6 +310,16 @@ export function goalLine(step: string): string {
   return `Your goal is not met. The next open step: ${step}\nDo it now, through to a merged pull request or a decided approval, then go on to the next one. If it needs the operator's hands (a password, a card, an account), say so once and take the next step instead. The daily meeting's decisions are not steps of your goal: never take one up without the operator's yes.`;
 }
 
+/**
+ * The turn handed to Matter between turns: the laptop sweep's stall report first when one waits (sweep.ts writes it
+ * once per stall), then his next goal step; null when there is neither.
+ */
+export function goalTurn(stall: string, step: string | null): string | null {
+  const report = stall === "" ? null : `MOP Sweep's stall report (said once):\n${stall}`;
+  if (step === null) return report;
+  return report === null ? goalLine(step) : `${report}\n\n${goalLine(step)}`;
+}
+
 /** The next open step of a task-gate list, or null when there is none, no list, or it cannot be read. */
 export function nextGoalStep(
   file: string,
@@ -394,21 +406,39 @@ function runnerHead(): string {
 function endLostSession(): void {
   if (!existsSync(CHILD_FILE)) return;
   const pid = Number(readFileSync(CHILD_FILE, "utf8").trim());
+  const savedAt = statSync(CHILD_FILE).mtimeMs;
+  rmSync(CHILD_FILE, { force: true });
   if (!Number.isInteger(pid) || pid <= 0 || !processAlive(pid)) return;
   const found = spawnSync(
     "powershell",
     [
       "-NoProfile",
       "-Command",
-      `(Get-CimInstance Win32_Process -Filter 'ProcessId=${String(pid)}').CommandLine`,
+      `$p = Get-CimInstance Win32_Process -Filter 'ProcessId=${String(pid)}'; if ($p) { $p.CreationDate.ToUniversalTime().ToString('o'); $p.CommandLine }`,
     ],
     { encoding: "utf8", windowsHide: true, timeout: 30_000 },
   );
-  if (!/--input-format\s+stream-json/.test(found.stdout)) return;
+  const [started = "", ...command] = found.stdout.split(/\r?\n/);
+  if (!isLostSession(command.join(" "), Date.parse(started), savedAt)) return;
   console.log(
     `${new Date().toISOString()} live: ended the session ${String(pid)} the last supervisor left`,
   );
   killTree(pid);
+}
+
+/**
+ * Whether a process is the live session a supervisor before this one started: Matter's CLI with his full settings, fed
+ * by stream input, and started before its id was saved. The desktop app's own sessions use stream input too, and a
+ * reused id is a newer process, so neither is ever ended.
+ */
+export function isLostSession(command: string, startedMs: number, savedMs: number): boolean {
+  return (
+    /(?:^|\s)-p(?:\s|$)/.test(command) &&
+    /--input-format\s+stream-json/.test(command) &&
+    /scripts[\\/]matter[\\/]settings-full\.json/.test(command) &&
+    !Number.isNaN(startedMs) &&
+    startedMs <= savedMs
+  );
 }
 
 /**
@@ -859,7 +889,9 @@ export class Supervisor {
     }
     this.goalAt = now;
     const step = nextGoalStep(GOAL_FILE);
-    if (step === null) {
+    const stall = existsSync(STALL_FILE) ? readFileSync(STALL_FILE, "utf8").trim() : "";
+    const turn = goalTurn(stall, step);
+    if (turn === null) {
       this.noteSkip("the goal file has no open step", now);
       return;
     }
@@ -879,12 +911,15 @@ export class Supervisor {
       this.noteSkip("the run row for the goal step could not be written", now);
       return;
     }
-    console.log(`${new Date(now).toISOString()} live: goal step ${step}`);
+    console.log(
+      `${new Date(now).toISOString()} live: ${stall === "" ? "" : "stall report, "}goal step ${step ?? "none"}`,
+    );
     this.active.push({ runId: run.id, thread: "matter" });
-    await this.setTask("Working on his goal");
+    await this.setTask(stall === "" ? "Working on his goal" : "Fixing what the sweep found stuck");
     // H143 (4): a goal turn is self-started, so it shows no decision; the session keeps those an operator turn showed,
     // so goalLine repeats that none is taken up without his yes
-    this.say(goalLine(step));
+    this.say(turn);
+    rmSync(STALL_FILE, { force: true });
   }
 
   /**

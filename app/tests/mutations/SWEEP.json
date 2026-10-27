@@ -1,37 +1,37 @@
 [
   {
-    "id": "sw-a-detached-runner",
+    "id": "sw-a-stopped-runner-requeued",
     "test": "tests/unit/workforce-sweep.test.ts",
     "file": "scripts/workforce/sweep.ts",
-    "find": "      if (shell === undefined || (launcher !== undefined && isLauncher(launcher))) continue;",
-    "replace": "      continue;",
+    "find": "      if (parentOf(parent) === undefined)",
+    "replace": "      if (parent.pid < 0)",
     "run": "bunx vitest run --project unit tests/unit/workforce-sweep.test.ts",
-    "expect": "× .*ends a runner whose launcher the task's time limit ended"
+    "expect": "× .*ends a runner whose task was stopped under it"
   },
   {
-    "id": "sw-b-keep-the-busy-pass",
+    "id": "sw-b-keep-the-making-pass",
     "test": "tests/unit/workforce-sweep.test.ts",
     "file": "scripts/workforce/sweep.ts",
-    "find": "  const keeper = young.find(busy) ?? young[0];",
-    "replace": "  const keeper = young[0];",
+    "find": "    young.find((pass) => under(pass).some(isCli)) ??",
+    "replace": "    young.find((pass) => under(pass).some(isFfmpeg)) ??",
     "run": "bunx vitest run --project unit tests/unit/workforce-sweep.test.ts",
-    "expect": "× .*keeps one studio pass, the one doing work"
+    "expect": "× .*keeps one studio pass, the one making a piece"
   },
   {
-    "id": "sw-c-answer-under-way",
+    "id": "sw-c-runner-ceiling",
     "test": "tests/unit/workforce-sweep.test.ts",
     "file": "scripts/workforce/sweep.ts",
-    "find": "      if (answering && age <= RUN_CEILING_MS) working.push(proc.pid);",
-    "replace": "      if (answering && age < 0) working.push(proc.pid);",
+    "find": "      else if (age > RUN_CEILING_MS)",
+    "replace": "      else if (age > 0)",
     "run": "bunx vitest run --project unit tests/unit/workforce-sweep.test.ts",
-    "expect": "× .*keeps a runner whose task ended while a colleague's answer is under way"
+    "expect": "× .*lets a launched runner answer with no clock up to its ceiling"
   },
   {
     "id": "sw-d-hidden-run-shell-only",
     "test": "tests/unit/workforce-sweep.test.ts",
     "file": "scripts/workforce/sweep.ts",
-    "find": "      const shell =\n        parent !== undefined && HIDDEN_RUN_SHELL.test(parent.command) ? parent : undefined;",
-    "replace": "      const shell = parent;",
+    "find": "      if (parent === undefined || !HIDDEN_RUN_SHELL.test(parent.command)) continue;",
+    "replace": "      if (parent === undefined) continue;",
     "run": "bunx vitest run --project unit tests/unit/workforce-sweep.test.ts",
     "expect": "× .*never ends a daemon run by hand from a terminal's cmd"
   },
@@ -84,8 +84,8 @@
     "id": "sw-j-waiting-age",
     "test": "tests/unit/workforce-sweep.test.ts",
     "file": "scripts/workforce/sweep.ts",
-    "find": "      return brief?.state === \"queued\" && now - at > WAIT_MS",
-    "replace": "      return brief?.state === \"queued\"",
+    "find": "      return brief?.state === \"queued\" && now - at > WAIT_MS ? [{ name: nameOf(folder), at }] : [];",
+    "replace": "      return brief?.state === \"queued\" ? [{ name: nameOf(folder), at }] : [];",
     "run": "bunx vitest run --project unit tests/unit/workforce-sweep.test.ts",
     "expect": "× .*names queued pieces older than the wait"
   },
@@ -102,7 +102,7 @@
     "id": "sw-l-working-grace",
     "test": "tests/unit/workforce-sweep.test.ts",
     "file": "scripts/workforce/sweep.ts",
-    "find": "    if (!(now - (Number.isNaN(started) ? Date.parse(brief.at) : started) > WORKING_GRACE_MS))\n      continue;",
+    "find": "    if (!(now - (Number.isNaN(started) ? Date.parse(brief.at) : started) > GRACE_MS)) continue;",
     "replace": "    if (Number.isNaN(started) && now < 0) continue;",
     "run": "bunx vitest run --project unit tests/unit/workforce-sweep.test.ts",
     "expect": "× .*puts a piece nobody is making back in the queue"
@@ -120,10 +120,19 @@
     "id": "sw-n-said-once",
     "test": "tests/unit/workforce-sweep.test.ts",
     "file": "scripts/workforce/sweep.ts",
-    "find": "    .update(text.replace(/\\d+ min\\b/g, \"N min\"))",
-    "replace": "    .update(text)",
+    "find": "        found.waitingPieces.map((piece) => piece.replace(/ \\(\\d+ min\\)$/, \"\")),",
+    "replace": "        found.waitingPieces,",
     "run": "bunx vitest run --project unit tests/unit/workforce-sweep.test.ts",
-    "expect": "× .*keys the same stall the same way as its minutes grow"
+    "expect": "× .*keys the same stall the same way as its numbers grow"
+  },
+  {
+    "id": "sw-o-orphan-grace",
+    "test": "tests/unit/workforce-sweep.test.ts",
+    "file": "scripts/workforce/sweep.ts",
+    "find": "      else if (now - proc.started > GRACE_MS && isFfmpeg(proc) && STUDIO_PATHS.test(proc.command))",
+    "replace": "      else if (isFfmpeg(proc) && STUDIO_PATHS.test(proc.command))",
+    "run": "bunx vitest run --project unit tests/unit/workforce-sweep.test.ts",
+    "expect": "× .*ends orphans of the workforce and nothing else"
   },
   {
     "id": "lr-a-line-requeued",
@@ -160,5 +169,32 @@
     "replace": "    .eq(\"worker\", worker)\n    .eq(\"cause\", \"message\")",
     "run": "bunx vitest run --project unit tests/unit/matter-live-release.test.ts",
     "expect": "× .*puts a person's line back in the queue and closes a goal run"
+  },
+  {
+    "id": "lr-e-lost-session-settings",
+    "test": "tests/unit/matter-live-release.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "    /scripts[\\\\/]matter[\\\\/]settings-full\\.json/.test(command) &&",
+    "replace": "    true &&",
+    "run": "bunx vitest run --project unit tests/unit/matter-live-release.test.ts",
+    "expect": "× .*knows the session a supervisor before this one started"
+  },
+  {
+    "id": "lr-f-lost-session-reused-id",
+    "test": "tests/unit/matter-live-release.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "    startedMs <= savedMs",
+    "replace": "    startedMs >= 0",
+    "run": "bunx vitest run --project unit tests/unit/matter-live-release.test.ts",
+    "expect": "× .*knows the session a supervisor before this one started"
+  },
+  {
+    "id": "lr-g-stall-report-handed",
+    "test": "tests/unit/matter-live-release.test.ts",
+    "file": "scripts/matter/live.ts",
+    "find": "  if (step === null) return report;",
+    "replace": "  if (step === null) return null;",
+    "run": "bunx vitest run --project unit tests/unit/matter-live-release.test.ts",
+    "expect": "× .*hands the sweep's stall report first"
   }
 ]

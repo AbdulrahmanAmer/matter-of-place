@@ -46,6 +46,17 @@ describe("scripts/workforce/install.ps1", () => {
     expect(trigger).toContain("-RepetitionInterval (New-TimeSpan -Minutes 10)");
   });
 
+  it("gives no task but MOP Sweep a time limit: a limit ends only the launcher, the pass runs on (P-4660)", () => {
+    for (const entry of registrations) {
+      const settings = lineOf(entry.settings, "New-ScheduledTaskSettingsSet");
+      expect(settings, `${entry.name} settings`).toContain(
+        entry.name === "MOP Sweep"
+          ? "-ExecutionTimeLimit (New-TimeSpan -Minutes 4)"
+          : "-ExecutionTimeLimit (New-TimeSpan -Seconds 0)",
+      );
+    }
+  });
+
   it("registers MOP Sweep every five minutes under a limit shorter than its interval (2026-10-27)", () => {
     expect(lineOf("$sweepAction", "New-ScheduledTaskAction")).toContain(
       'scripts\\workforce\\sweep.ts sweep")',

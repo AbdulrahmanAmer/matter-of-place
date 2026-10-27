@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Db } from "../../src/server/lib/db";
-import { releaseHeld } from "../../scripts/matter/live";
+import { goalLine, goalTurn, isLostSession, releaseHeld } from "../../scripts/matter/live";
 
 // 2026-10-27: a goal run lost when Matter's supervisor restarted sat `running` for five hours under a six-hour lease.
 // A new supervisor lets go of what its worker still holds: a person's line back to the queue, a goal run closed.
@@ -60,4 +60,43 @@ describe("releaseHeld", () => {
     expect(rows.find((row) => row.id === "answered")?.state).toBe("done");
     // P-3450: live.ts loads the runner (daemon.ts) cold
   }, 30_000);
+});
+
+describe("isLostSession", () => {
+  const live =
+    "claude.exe -p --settings E:\\mop-build\\live\\app\\scripts\\matter\\settings-full.json --input-format stream-json --output-format stream-json --verbose";
+  it("knows the session a supervisor before this one started, and never the desktop app's or a newer process", () => {
+    expect(isLostSession(live, 1_000, 2_000)).toBe(true);
+    // the desktop app's sessions take stream input too, without Matter's settings
+    expect(
+      isLostSession(
+        "claude.exe -p --input-format stream-json --output-format stream-json --verbose",
+        1_000,
+        2_000,
+      ),
+    ).toBe(false);
+    // a builder Matter starts carries his settings but no stream input
+    expect(
+      isLostSession(
+        "claude.exe -p --settings E:\\mop-build\\live\\app\\scripts\\matter\\settings-full.json --model opus",
+        1_000,
+        2_000,
+      ),
+    ).toBe(false);
+    // the id was saved before this process started: Windows reused it
+    expect(isLostSession(live, 3_000, 2_000)).toBe(false);
+  });
+});
+
+describe("goalTurn", () => {
+  it("hands the sweep's stall report first, then the goal step, and nothing when there is neither", () => {
+    expect(goalTurn("", "W8 0k")).toBe(goalLine("W8 0k"));
+    expect(goalTurn("", null)).toBeNull();
+    expect(goalTurn("ended a studio pass", null)).toBe(
+      "MOP Sweep's stall report (said once):\nended a studio pass",
+    );
+    expect(goalTurn("ended a studio pass", "W8 0k")).toBe(
+      `MOP Sweep's stall report (said once):\nended a studio pass\n\n${goalLine("W8 0k")}`,
+    );
+  });
 });
