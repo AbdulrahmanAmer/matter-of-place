@@ -100,6 +100,7 @@ import {
 import { groundingLines, requestSequence } from "./grounding.ts";
 import { requestDesk } from "./request-desk.ts";
 import { forgetNewWork, newWorkLines } from "./new-work.ts";
+import { interestLines } from "./interest.ts";
 import { colleagueCalls, colleagueRoutes } from "./colleague-calls.ts";
 import { mergedByRun, queueMerges } from "../matter/lessons.ts";
 import { applyHires } from "./hiring.ts";
@@ -132,7 +133,7 @@ const WORKER = `${hostname()}:${String(process.pid)}`;
 // No clock on a colleague's work (operator, 2026-10-15: a 6-minute limit threw away the chief of staff's real work at
 // 00:52). A run is stopped only when it prints nothing for this long, which with stream-json means it is stuck.
 const CLI_IDLE_MS = 15 * 60_000;
-// P-4681: the retry of an unreadable answer only rewrites it (11 to 15 s measured, 2026-10-28) and prints one JSON at
+// P-4691: the retry of an unreadable answer only rewrites it (11 to 15 s measured, 2026-10-28) and prints one JSON at
 // its end, so it has a cap rather than a silence limit.
 const RETRY_TIMEOUT_MS = 10 * 60_000;
 const RUNS_PER_HOUR = 40;
@@ -637,6 +638,7 @@ export async function context(
   matterReadsHeld = false,
   owns: (source: SourceName) => boolean = () => true,
   startedInside = false,
+  agentSlug = "",
 ) {
   const parts: string[] = [];
   let event: { type: string; entity: string | null; entity_id: string | null } | null = null;
@@ -757,6 +759,8 @@ export async function context(
     parts.push(
       `The business right now: ${String(requests.count ?? 0)} new requests, ${String(inquiries.count ?? 0)} inquiries in total, ${String(properties.count ?? 0)} published properties.`,
     );
+    // W7 item 8: confirmed interest per market and page, for Campaigns and Newsletter (interest.ts), counts only.
+    parts.push(...(await interestLines(client, agentSlug)));
     // W7 item 9: the newest requests and inquiries themselves, for their owners (new-work.ts).
     parts.push(...(await newWorkLines(client, owns)));
   }
@@ -947,6 +951,7 @@ export async function runOnce(client: Db): Promise<boolean> {
       matterReadsHeld,
       (source) => ownsSource(source, agent.slug),
       startedInside,
+      agent.slug,
     );
     // W8 0a/0d: an outside message is answered by its owner only; anyone else it woke does nothing with it.
     const gate = outsideGate(triage, agent.slug);
@@ -1059,7 +1064,7 @@ export async function runOnce(client: Db): Promise<boolean> {
     // media, no colleague woken by a mention. What it drops is said in the thread. Matter's read of a held line keeps
     // nothing that acts (W8 review): it read the outside text itself.
     // The plan is decided in one tested function (W8 fourth review); the runner only carries it out.
-    // P-4681: an answer that is not a valid outcome is asked for once more, with its parse error, and a second failure
+    // P-4691: an answer that is not a valid outcome is asked for once more, with its parse error, and a second failure
     // is said plainly, never posted raw. The retry is a call of its own, not a resume: the run's folder (where an outside
     // run's session is kept) and its settings file are gone by now, and a resume would hand the retry the run's tools.
     // Round 2 (fresh review, 2026-10-28, W8 0d stays fail-closed): Matter's read of a held line and its owner's
@@ -1233,7 +1238,7 @@ export async function runOnce(client: Db): Promise<boolean> {
       finished_at: new Date().toISOString(),
       // W8 review: a run about an outside message, and Matter's read of a held line, is summed up in fixed words;
       // its own words could carry the outside text into the meeting and the live session's digest.
-      // P-4681: a run whose answer could not be read is recorded with that ending, whatever its shape's fixed words
+      // P-4691: a run whose answer could not be read is recorded with that ending, whatever its shape's fixed words
       summary: read.ending === "unreadable" ? UNREADABLE_SUMMARY : plan.summary,
       session_id: "session" in answer && typeof answer.session === "string" ? answer.session : null,
       turns: 1,

@@ -25,7 +25,7 @@ export function isolatedArgs(home: string, allowed = ""): string[] {
 }
 
 /**
- * P-4681: the command line of the one retry of an answer that is not a valid outcome (`readRunAnswer`): the run's model,
+ * P-4691: the command line of the one retry of an answer that is not a valid outcome (`readRunAnswer`): the run's model,
  * shut off like the triage (`isolatedArgs`, no tool at all), nothing saved. No `--json-schema`: measured on CLI 2.1.296
  * (2026-10-28), a schema of only `reply` made the retry put the whole object, as a string, inside `reply`, 4 runs of 4.
  */
@@ -44,7 +44,7 @@ export const usageSchema = z.object({
 });
 export type CliUsage = z.infer<typeof usageSchema>;
 
-/** Two calls of one run counted as one (P-4681: an unreadable answer's retry is the run's usage too). */
+/** Two calls of one run counted as one (P-4691: an unreadable answer's retry is the run's usage too). */
 export function addUsage(a: CliUsage | undefined, b: CliUsage | undefined): CliUsage | undefined {
   if (a === undefined || b === undefined) return a ?? b;
   return {

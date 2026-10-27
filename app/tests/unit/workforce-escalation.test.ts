@@ -93,7 +93,7 @@ const cli = vi.hoisted(() => ({
   prompts: [] as { who: string; prompt: string }[],
   launches: [] as { args: readonly string[]; cwd: string; settings: string; files: string[] }[],
   answer: (who: string, prompt: string): string | Error => `${who} ${prompt}`.slice(0, 0),
-  // the token counts every call reports, when a test sets them (P-4681: a retry's are the run's too)
+  // the token counts every call reports, when a test sets them (P-4691: a retry's are the run's too)
   usage: null as null | { input_tokens: number; output_tokens: number },
 }));
 
@@ -1478,7 +1478,7 @@ describe("W6 item 4: the pull requests Matter's one-shot run says it merged", ()
   });
 });
 
-describe("P-4681: an answer that is not a valid outcome is asked for once more", () => {
+describe("P-4691: an answer that is not a valid outcome is asked for once more", () => {
   const EDITOR_ID = "a0000000-0000-4000-8000-000000000006";
   const LINE_ID = "f0000000-0000-4000-8000-000000000003";
   const home = join(tmpdir(), "mop-w8-0d-home", ".mop-workforce");

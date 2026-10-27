@@ -71,7 +71,7 @@ export type Outcome = z.infer<typeof outcome>;
 /**
  * The answer's closing JSON object (with the object as written, `raw`), or why there is none: the parse error (or the
  * first schema problem, by its path and code only, never a value it received) of the widest object, the one that starts
- * at the first "{", which is the one a retry is asked to fix (P-4681).
+ * at the first "{", which is the one a retry is asked to fix (P-4691).
  */
 export function readOutcome(text: string): { outcome: Outcome; raw: unknown } | { error: string } {
   const end = text.lastIndexOf("}");
@@ -112,7 +112,7 @@ export function readJsonAnswer(text: string): Outcome {
   };
 }
 
-/** The thread line of a run whose answer could not be read even when asked again (P-4681). */
+/** The thread line of a run whose answer could not be read even when asked again (P-4691). */
 export const UNREADABLE_LINE =
   "This run's answer could not be read, so no proposal, hire or action from it was filed.";
 
@@ -124,7 +124,7 @@ export const UNREADABLE_SUMMARY =
 export const RETRY_OPENING = "Your answer could not be read by the runner";
 
 /**
- * P-4681: the retry's prompt. The answer and the reason it failed go back fenced as data (`fenced`: a closing mark
+ * P-4691: the retry's prompt. The answer and the reason it failed go back fenced as data (`fenced`: a closing mark
  * inside the answer closes nothing, and a value the parse error quotes stays inside a fence), and the reply is the
  * object alone: a syntax fix, never a new decision.
  */
@@ -146,7 +146,7 @@ const unwritten = (value: unknown): boolean =>
   (Array.isArray(value) && value.length === 0);
 
 /**
- * P-4681 round 2 (fresh review, 2026-10-28): a retried object counts only if it traces to the run's own answer, so a
+ * P-4691 round 2 (fresh review, 2026-10-28): a retried object counts only if it traces to the run's own answer, so a
  * retry repairs syntax and never adds. Every string in it (as written, or JSON-escaped) and every number occurs in the
  * original text, every key with a written value occurs there as `"key"`, and `allow: true` only where the original
  * wrote it.
@@ -184,7 +184,7 @@ async function askedAgain(
 }
 
 /**
- * P-4681 (W9 item 3, 2026-10-27: the Editor's fenced object had one bracket wrong, its raw text was posted as the line
+ * P-4691 (W9 item 3, 2026-10-27: the Editor's fenced object had one bracket wrong, its raw text was posted as the line
  * and the proposal it described was never filed): a run's answer, asked for once more with the parse error when it is
  * not a valid outcome. A second failure, or a retry that cannot run, is the plain `UNREADABLE_LINE` and nothing that
  * acts, never the raw text. A usage limit is not a failure of the answer: it stops the run, which is queued again.
