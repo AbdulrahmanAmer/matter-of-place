@@ -2071,6 +2071,11 @@ isOneToOne: false
               "confirmed_at": string,"email": string,"markets": string,"source": string,"status": string,"unsubscribed_at": string
             }[]
                            },
+"newsletter_interest_counts":
+{ Args: { "p_pages": (string)[],"p_since": string }; Returns: {
+              "market": string,"source": string,"this_week": number,"total": number
+            }[]
+                           },
 "newsletter_mark_sending":
 { Args: { "p_approval_count": number,"p_issue": string }; Returns: boolean
                            },

@@ -9355,13 +9355,6 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `select count(*) from agent_runs where message_id = '<the new message id>'` → 1 (re-sent ruling f6a3807c, 2026-10-26 22:03:29 UTC).
 - added: 2026-10-27
 
-## P-4680 · Matter's goal line is re-handed every ten minutes while he waits on his own background work
-- symptom: 2026-10-27 18:03-18:39 UTC, Matter posted "Nothing new ... still building" six times, 31 lines in two hours, while a builder ran in the background and the meeting rerun was due at 18:45.
-- cause: `continueGoal` (scripts/matter/live.ts) handed the first unticked step every ten minutes whatever he was waiting on; `goalSkipReason` ignored his open background tasks, and a turn that only answered cost nothing to repeat.
-- rule: no goal line while a background task of his started under an hour ago is open (its end wakes the session, and that wake turn covers the goal); after each goal turn that did no work (no Edit, Write, Agent, Task, task started or merge; a status read is not work) the gap doubles, ten minutes to an hour; a person's line or a finished task starts the pace over; an error result is not counted.
-- proof: `cd app && bunx vitest run --project unit tests/unit/matter-autonomy.test.ts` (registry ma-d-*); live: `select count(*) from agent_messages where thread='matter' and author_name='Matter' and created_at > now() - interval '2 hours'` after the merge.
-- added: 2026-10-27
-
 ## P-4670 · The live supervisor writes a build lesson only for a command it reads as `merge-gate.mjs <n>`; a wrapper hid every merge
 - symptom: 2026-10-27, W6 item 4's live proof: `agent_lessons` held no `build` row since 10-20 though about a dozen of Matter's PRs merged that day, two of them after a red CI (504, 509).
 - cause: `mergeGatePr` (`scripts/matter/lessons.ts`) reads the PR number only from `merge-gate.mjs <n>` in a shell command; Matter's merges ran through `gate-loop.sh <log> <pr>`, a wrapper that calls the gate inside it.
@@ -9374,6 +9367,27 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: calls sent in one message run independently; a refused Write leaves the old file, and the command that reads it does not know.
 - rule: a command that reads a file written in the same turn goes in the next message, after the Write's result is seen; or it checks the file's first line before acting (the launcher can print the brief's title).
 - proof: `gh pr view 509 --json body` showed the old body before `gh pr edit 509 --body-file`; `head -1 ~/.mop-workforce/builders/w8-1-render/brief.final.md` showed "round 9" under the round 10 launch.
+- added: 2026-10-27
+
+## P-4672 · A unit test that drives `context()` as the Editor reaches the request desk, which deletes folders under the real home
+- symptom: 2026-10-27, W7 item 8: a test calling `context()` for every colleague slug with `owns = ownsSource(source, slug)` stopped at "unexpected table agents" in `requestDesk`; had the fake answered it, the Editor's case would have run `rmSync` on `~/.mop-workforce/desks/editor/work/requests` of the live runner on this laptop.
+- cause: `requestDesk` (request-desk.ts) defaults its `home` to `homedir()` and clears the outside and work request folders of the owner of submissions before it reads anything; `context()` passes no home.
+- rule: a test that drives `context()` for a slug that owns submissions passes `owns = () => false` unless it is about the request desk, and a request-desk test passes its own temporary `home`; never let a unit test reach `requestDesk` with the default home.
+- proof: `grep -n 'home = join(homedir()' app/scripts/workforce/request-desk.ts` → the default; `cd app && bunx vitest run --project unit tests/unit/workforce-interest.test.ts` → `6 passed` with `() => false`.
+- added: 2026-10-27
+
+## P-4681 · A count made in TypeScript over a PostgREST read is wrong past 1000 rows, silently
+- symptom: 2026-10-27, W7 item 8 round 1 failed its fresh Opus review: `interest.ts` counted signups over `from("subscribers").select(...)` with no order and no paging; past 1000 rows the counts would come out short and differ between runs, and no test or error would show it.
+- cause: `supabase/config.toml` sets `max_rows = 1000`; PostgREST cuts every table read and every set-returning rpc at that many rows without an error. A fake db returns every row, so a unit test cannot see the cut.
+- rule: a count, total or "how many" over a table is made in SQL (a service-role function that groups and returns counts only, as `newsletter_interest_counts` does), never by fetching rows into code; a read that must return rows pages with `order` and `range`. Open: the Interest screen's `listInterest` reads every signup through `newsletter_export_subscribers` and totals them in code, so its totals and list stop at 1000 rows too (not changed in W7 item 8 round 2: the screen lists addresses, so it needs rows and paging, not a counts function).
+- proof: `grep -n "max_rows" app/supabase/config.toml` → `max_rows = 1000`; `grep -n 'rpc("newsletter_interest_counts"' app/scripts/workforce/interest.ts` → the one call.
+- added: 2026-10-27
+
+## P-4680 · Matter's goal line is re-handed every ten minutes while he waits on his own background work
+- symptom: 2026-10-27 18:03-18:39 UTC, Matter posted "Nothing new ... still building" six times, 31 lines in two hours, while a builder ran in the background and the meeting rerun was due at 18:45.
+- cause: `continueGoal` (scripts/matter/live.ts) handed the first unticked step every ten minutes whatever he was waiting on; `goalSkipReason` ignored his open background tasks, and a turn that only answered cost nothing to repeat.
+- rule: no goal line while a background task of his started under an hour ago is open (its end wakes the session, and that wake turn covers the goal); after each goal turn that did no work (no Edit, Write, Agent, Task, task started or merge; a status read is not work) the gap doubles, ten minutes to an hour; a person's line or a finished task starts the pace over; an error result is not counted.
+- proof: `cd app && bunx vitest run --project unit tests/unit/matter-autonomy.test.ts` (registry ma-d-*); live: `select count(*) from agent_messages where thread='matter' and author_name='Matter' and created_at > now() - interval '2 hours'` after the merge.
 - added: 2026-10-27
 
 ## P-4690 · A new advisory on a package three levels down fails `audit:deps` in every open pull request at once
