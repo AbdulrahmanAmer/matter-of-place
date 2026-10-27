@@ -9300,6 +9300,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the brief commits once at the end, so an interrupted run leaves no marker of what is finished. Git Bash exports `MSYS_NO_PATHCONV=1` here (P-015), so `~` expands to `/c/Users/DELL` unconverted and node on drive E reads it as `E:\c\Users\...`.
 - rule: in a multi-finding round, commit each finding with its test and registry entry as it turns green (a local commit, pushed at the end; never stash, never force-push), so a restart reads `git log` rather than a diff. Call a hook or script under the home folder by its Windows path: `node "C:/Users/DELL/.claude/hooks/edit-impact.mjs" --changed "E:/mop-build/<worktree>"`.
 - proof: `echo $MSYS_NO_PATHCONV` → `1`; `node "C:/Users/DELL/.claude/hooks/edit-impact.mjs" --changed "E:/mop-build/od-w8-1b"` prints its notes where `node ~/.claude/hooks/edit-impact.mjs ...` fails with MODULE_NOT_FOUND (measured 2026-10-27).
+- hit again: 2026-10-27, 15:00 to 16:05 UTC: github.com refused connections over and over (`Failed to connect to github.com:443 after 21 s`, `error connecting to api.github.com`); pushes and `gh pr create` were retried in bounded loops (three to thirty tries, 15 to 20 s apart) and each landed; a push is done only when `git rev-parse HEAD` equals the remote branch, checked after every try.
 - added: 2026-10-27
 
 ## P-4647 · A detached pass with `stdio: "ignore"` hung on an import() of its own entry module, once a minute, in silence
@@ -9329,4 +9330,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: a headless worker runs in don't-ask mode, where the claude.ai Supabase connector is not allowed; a lane holds no `.env` (P-051).
 - rule: a worker reads mop-dev through the repository's own path: load the dev profile through the main checkout's loader, check `$SUPABASE_URL` names `hbokkmpgpqhrnemgsqra`, run `env -u CLOUDFLARE_API_TOKEN bun run db:psql -- -Atc "<select>"` from the lane's `app/`. Put the three lines in a script file; select only.
 - proof: from a lane's `app/`, `eval "$(cd '/e/Matter Of Place/app' && node scripts/load-env.mjs --profile dev)" && env -u CLOUDFLARE_API_TOKEN bun run db:psql -- -Atc "select count(*) from agent_approvals where action = 'social_post'"` → `6` (2026-10-27).
+- added: 2026-10-27
+
+## P-4654 · knip refuses one value exported under two names (`export const A = B` where B is exported too)
+- symptom: PR 509, 2026-10-27: CI's check job passed tsc and eslint and failed knip with "Duplicate exports (1) STALE_MS|PASS_LIMIT_MS scripts/workforce/reel.ts"; round 6 had written `export const PASS_LIMIT_MS = STALE_MS;`. One CI round lost.
+- cause: knip reports an exported binding that is an alias of another export as a duplicate export, whatever the comment says.
+- rule: a second exported name for the same value is written out as its own expression (`export const PASS_LIMIT_MS = 3 * 60 * 60_000;`) and a test holds the two equal; or only one of them is exported. Run `bun run knip` in CI's place by reading for `export const X = Y` when an export is added.
+- proof: `gh api repos/AbdulrahmanAmer/matter-of-place/actions/jobs/122282355511/logs | grep -A1 "Duplicate exports"` → `STALE_MS|PASS_LIMIT_MS  scripts/workforce/reel.ts`; the fix 88041cc1 passed the check job.
 - added: 2026-10-27

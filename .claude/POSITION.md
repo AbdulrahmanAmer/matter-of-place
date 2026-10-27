@@ -2491,3 +2491,14 @@ registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3
   person approving a TEST post (operator's sign-in). BLOCKED: the screens seen in a browser (browser tools refused).
   W8 item 1 round 5 builder relaunched 16:54 after an API SSL error stopped the first run at 12:17. W8 0j waits on
   today's meeting (14:45 UTC) and tomorrow's. Next builder after item 1: overdrive/w8-10-paths (brief ready).
+
+- 2026-10-27 22:40 +0300: Matter (live). Merged: PR 509 (W8 item 1 rounds 4 to 7: no hung or doubled studio pass,
+  fonts, render errors, pass deadline; 91eae99f), PR 510 (W8 10 paths and ids, audit row naming the colleague through
+  `create_proposed_post`; write_audit unchanged), PR 511 (W8 item 2: a text-only social post is not filed, H146;
+  78982ab2). W8 item 1 live: New York interest made (pending visual f3341f2d); coming soon refused by the still gate's
+  false black and Florida by a reviewer given no palette: round 8 building (overdrive/w8-1-palette-gate). W8 0j: the
+  meeting of 10-27 posted the scorecard then a step (Chief's three lines) passed its 8 min limit; no decisions set,
+  nothing said; round 3 (overdrive/w8-0j-meeting-limit, 40ba5c94: per-step limits and log lines, a stopped step said,
+  a same-day rerun skipping finished steps, hourly retry until 21:45) under fresh review; why Chief's step hung is
+  UNPROVEN. NOT DONE: items 2 and 10 need a person's approval of a TEST structured post (operator sign-in); posting
+  needs W8 6 (Meta app). Bank: P-4654, P-4651 hit again; builders added P-4653, P-4655, P-4656.
