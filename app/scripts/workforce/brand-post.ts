@@ -7,7 +7,6 @@
 // the earlier brand posts and refuses one whose layout repeats them. Only then are the frames uploaded and recorded as a
 // pending visual of the post's subject (`record_requested_asset`). It is never posted by itself (H107). A step that
 // fails stops the post, writes nothing to the site, and says which check failed in the thread that asked.
-import { spawnSync } from "node:child_process";
 import {
   copyFileSync,
   cpSync,
@@ -25,6 +24,7 @@ import type { Json } from "../../src/db/index.ts";
 import { brandLink } from "../../src/server/assets/links.ts";
 import { lintBrandCaption } from "../../src/server/assets/voice.ts";
 import type { Db } from "../../src/server/lib/db.ts";
+import { CHILD_LIMIT_MS, spawnLimited } from "../render-reel.mjs";
 import {
   defaultFormat,
   framesFor,
@@ -658,22 +658,21 @@ export async function realPostDeps(): Promise<PostDeps> {
           frames: frames.map(({ name, width, height }) => ({ name, width, height })),
         }),
       );
-      const install = spawnSync("bun", ["install", "--frozen-lockfile"], {
-        cwd: join(REPO, "launch"),
-        encoding: "utf8",
-        windowsHide: true,
-      });
+      // each child has its limit, so a hung one fails the post and frees the pass's watchdog (W8 item 1, round 6)
+      const install = spawnLimited(
+        "bun",
+        ["install", "--frozen-lockfile"],
+        { cwd: join(REPO, "launch"), encoding: "utf8", windowsHide: true },
+        CHILD_LIMIT_MS,
+      );
       if (install.status !== 0)
         throw new Error("engine_packages_missing: bun install in launch/ failed");
-      const shot = spawnSync(
+      // a still is one page: five minutes is a hung browser, and a timeout is a failure, not a gate's refusal
+      const shot = spawnLimited(
         "node",
         [join(REPO, "launch", "engine", "still.mjs"), "--frames", join(WORK, "frames.json")],
-        {
-          cwd: REPO,
-          encoding: "utf8",
-          windowsHide: true,
-          timeout: 5 * 60_000,
-        },
+        { cwd: REPO, encoding: "utf8", windowsHide: true },
+        5 * 60_000,
       );
       if (shot.status !== 0) {
         throw new Error(`gate_failed: the page did not render: ${errorLines(shot.stderr)}`);

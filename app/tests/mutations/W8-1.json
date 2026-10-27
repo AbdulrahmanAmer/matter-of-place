@@ -694,8 +694,8 @@
     "id": "w8-1-pass-lock-alive",
     "test": "tests/unit/workforce-brand-post.test.ts",
     "file": "scripts/workforce/reel.ts",
-    "find": "    if (alive(held) && !outlived) return [",
-    "replace": "    if (held < 0) return [",
+    "find": "      (Number.isNaN(started) || Math.abs(started - held.started) <= START_SLACK_MS)",
+    "replace": "      started < 0",
     "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
     "expect": "× .*starts no second studio pass while the first one's process lives"
   },
@@ -703,28 +703,73 @@
     "id": "w8-1-pass-lock-dead",
     "test": "tests/unit/workforce-brand-post.test.ts",
     "file": "scripts/workforce/reel.ts",
-    "find": "    if (alive(held) && !outlived) return [",
-    "replace": "    if (!outlived) return [",
+    "find": "    rmSync(lock, { force: true });\n    rmSync(said, { force: true });",
+    "replace": "    rmSync(said, { force: true });",
     "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
     "expect": "× .*starts no second studio pass while the first one's process lives"
   },
   {
-    "id": "w8-1-pass-lock-outlived",
+    "id": "w8-1-pass-lock-outlived-kept",
     "test": "tests/unit/workforce-brand-post.test.ts",
     "file": "scripts/workforce/reel.ts",
-    "find": "    const outlived = now - statSync(lock).mtimeMs > LOCK_LIMIT_MS;",
-    "replace": "    const outlived = now < 0;",
+    "find": "      if (now - held.started <= LOCK_LIMIT_MS) return [running];",
+    "replace": "      if (now - held.started > LOCK_LIMIT_MS) return startStudioPass(run, log, lock, () => null, now);\n      if (now - held.started <= LOCK_LIMIT_MS) return [running];",
     "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
-    "expect": "× .*starts no second studio pass while the first one's process lives"
+    "expect": "× .*starts no second pass beside a live one past its limit"
   },
   {
-    "id": "w8-1-pass-lock-written",
+    "id": "w8-1-pass-lock-outlived-once",
     "test": "tests/unit/workforce-brand-post.test.ts",
     "file": "scripts/workforce/reel.ts",
-    "find": "      writeFileSync(lock, String(child.pid));",
-    "replace": "",
+    "find": "        if (readFileSync(said, \"utf8\") === key) return [running];",
+    "replace": "        if (readFileSync(said, \"utf8\") === \"\") return [running];",
     "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
-    "expect": "× .*starts no second studio pass while the first one's process lives"
+    "expect": "× .*starts no second pass beside a live one past its limit"
+  },
+  {
+    "id": "w8-1-pass-lock-reused",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "Math.abs(started - held.started) <= START_SLACK_MS",
+    "replace": "Math.abs(started - held.started) >= 0",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*takes over the lock when its id belongs to a process started later"
+  },
+  {
+    "id": "w8-1-pass-lock-claimed",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "{ flag: \"wx\" }",
+    "replace": "{ flag: \"w\" }",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*lets the pass claim the lock once"
+  },
+  {
+    "id": "w8-1-pass-lock-parent-none",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "  child.unref();\n  lines.push(",
+    "replace": "  child.unref();\n  writeFileSync(lock, String(child.pid));\n  lines.push(",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*is started by the runner with its output and errors appended"
+  },
+  {
+    "id": "w8-1-pass-lock-unreadable",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "    return parsed.success ? parsed.data : null;\n  } catch {\n    return null;\n  }",
+    "replace": "    return parsed.success ? parsed.data : null;\n  } catch (failure: unknown) {\n    throw failure;\n  }",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*counts a lock that cannot be read as none"
+  },
+  {
+    "id": "w8-1-pass-child-limit",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/render-reel.mjs",
+    "find": "{ ...options, timeout: limitMs, killSignal: \"SIGKILL\" }",
+    "replace": "{ ...options }",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*ends a step whose blocking child runs past its limit"
   },
   {
     "id": "w8-1-pass-log-unopened",
@@ -739,17 +784,17 @@
     "id": "w8-1-pass-watchdog",
     "test": "tests/unit/workforce-brand-post.test.ts",
     "file": "scripts/workforce/reel.ts",
-    "find": "      exit(1);",
-    "replace": "",
+    "find": "    exit(1);\n  }, limitMs);",
+    "replace": "  }, limitMs);",
     "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
     "expect": "× .*ends a studio pass that hangs past its limit"
   },
   {
-    "id": "w8-1-pass-watchdog-step",
+    "id": "w8-1-pass-watchdog-whole",
     "test": "tests/unit/workforce-brand-post.test.ts",
     "file": "scripts/workforce/reel.ts",
-    "find": "    arm();\n    if (steps.postNext())",
-    "replace": "    if (steps.postNext())",
+    "find": "  }, limitMs);\n  watchdog.unref();",
+    "replace": "  }, limitMs + 40_000);\n  watchdog.unref();",
     "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
     "expect": "× .*ends a studio pass that hangs past its limit"
   },

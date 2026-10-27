@@ -14,11 +14,12 @@ export async function extractPoster(mp4) {
       ...["-v", "error", "-ss", "2.4", "-i", mp4],
       ...["-frames:v", "1", "-f", "image2pipe", "-c:v", "png", "-"],
     ],
-    { maxBuffer: 1 << 26 },
+    // FFMPEG_LIMIT_MS of render-reel.mjs, which imports this file: one frame of a reel that ran on is never waited for
+    { maxBuffer: 1 << 26, timeout: 5 * 60_000, killSignal: "SIGKILL" },
   );
   if (frame.status !== 0) {
     throw new Error(
-      `reel-poster: ffmpeg exited ${String(frame.status)}: ${frame.stderr.toString()}`,
+      `reel-poster: ffmpeg exited ${String(frame.status)}: ${frame.error?.message ?? frame.stderr.toString()}`,
     );
   }
   return sharp(frame.stdout).jpeg({ quality: 90 }).toBuffer();

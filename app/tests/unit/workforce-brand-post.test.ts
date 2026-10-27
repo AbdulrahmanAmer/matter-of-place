@@ -12,6 +12,7 @@ import { basename, join, relative, resolve, sep } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { matterPrompt } from "../../scripts/matter/run.ts";
+import { spawnLimited } from "../../scripts/render-reel.mjs";
 import { readJsonAnswer } from "../../scripts/workforce/answer.ts";
 import {
   copyEarlier,
@@ -36,10 +37,12 @@ import {
   type PostRequest,
 } from "../../scripts/workforce/post-request.ts";
 import {
+  claimStudioLock,
   fontFaces,
   mediaFor,
   PASS_LIMIT_MS,
   queueReel,
+  readStudioLock,
   reelPass,
   scenePrompt,
   startStudioPass,
@@ -820,14 +823,15 @@ describe("the live proof's failures (W8 item 1, 2026-10-27)", () => {
       },
       log,
       join(folder, "studio.lock"),
-      () => false,
+      () => null,
     );
     expect(started).toEqual({
       args: [join(workforce, "reel.ts"), "--pass"],
       stdio: ["ignore", expect.any(Number) as unknown, expect.any(Number) as unknown],
     });
     expect(readFileSync(log, "utf8")).toBe("a line\nan error\n");
-    expect(readFileSync(join(folder, "studio.lock"), "utf8")).toBe("4242");
+    // round 6: the pass claims its own lock, so one that ends at once leaves no id of its own behind
+    expect(existsSync(join(folder, "studio.lock"))).toBe(false);
     expect(lines).toEqual([`reel pass started (its lines: ${log})`]);
   });
 
@@ -836,45 +840,158 @@ describe("the live proof's failures (W8 item 1, 2026-10-27)", () => {
     const folder = studio();
     const lock = join(folder, "studio.lock");
     const log = join(folder, "studio.log");
-    writeFileSync(lock, "4242");
+    const started = Date.now() - 60_000;
+    writeFileSync(lock, JSON.stringify({ pid: 4242, started }));
     let spawned = 0;
     const run = () => {
       spawned += 1;
       return { unref: () => undefined, pid: 5151 };
     };
-    expect(startStudioPass(run, log, lock, (pid) => pid === 4242)).toEqual([
+    // Windows records the start 18 ms before the pass reads its own (claimStudioLock)
+    expect(startStudioPass(run, log, lock, (pid) => (pid === 4242 ? started - 18 : null))).toEqual([
       "reel pass 4242 still running, none started",
     ]);
     expect(spawned).toBe(0);
-    expect(readFileSync(lock, "utf8")).toBe("4242");
-    expect(startStudioPass(run, log, lock, () => false)).toEqual([
+    expect(readFileSync(lock, "utf8")).toBe(JSON.stringify({ pid: 4242, started }));
+    expect(startStudioPass(run, log, lock, () => null)).toEqual([
       "reel pass 4242 has ended without its lock; the lock is taken over",
       `reel pass started (its lines: ${log})`,
     ]);
     expect(spawned).toBe(1);
-    expect(readFileSync(lock, "utf8")).toBe("5151");
-    // a live process holding an id past both steps' limits is not the pass: its watchdog ended that one
-    expect(startStudioPass(run, log, lock, () => true, Date.now() + 7 * 60 * 60_000)).toEqual([
-      "reel pass 5151 has held its lock past its limit; the lock is taken over",
+    // the new pass claims the lock itself, so the runner leaves none for it
+    expect(existsSync(lock)).toBe(false);
+  });
+
+  // Round 6 (2026-10-27): a lock past its limit was taken over while its pass still ran, so a hung pass gained a twin
+  // every 6 h 10 min. Only the sweep ends a pass.
+  it("starts no second pass beside a live one past its limit, says so once, and kills nothing", () => {
+    const folder = studio();
+    const lock = join(folder, "studio.lock");
+    const log = join(folder, "studio.log");
+    const started = Date.now() - 4 * 60 * 60_000;
+    writeFileSync(lock, JSON.stringify({ pid: 4242, started }));
+    let spawned = 0;
+    const run = () => {
+      spawned += 1;
+      return { unref: () => undefined, pid: 5151 };
+    };
+    const kill = vi.spyOn(process, "kill");
+    try {
+      const live = (pid: number) => (pid === 4242 ? started - 18 : null);
+      expect(startStudioPass(run, log, lock, live)).toEqual([
+        "reel pass 4242 has run 240 min, past its limit of 195 min; none started, the sweep ends it",
+      ]);
+      expect(startStudioPass(run, log, lock, live)).toEqual([
+        "reel pass 4242 still running, none started",
+      ]);
+      // a live process whose start cannot be read is taken for the pass, never twinned
+      expect(startStudioPass(run, log, lock, () => Number.NaN)).toEqual([
+        "reel pass 4242 still running, none started",
+      ]);
+      expect(spawned).toBe(0);
+      expect(kill).not.toHaveBeenCalled();
+      expect(readFileSync(lock, "utf8")).toBe(JSON.stringify({ pid: 4242, started }));
+    } finally {
+      kill.mockRestore();
+    }
+  });
+
+  it("takes over the lock when its id belongs to a process started later (an id given again)", () => {
+    const folder = studio();
+    const lock = join(folder, "studio.lock");
+    const log = join(folder, "studio.log");
+    const started = Date.now() - 4 * 60 * 60_000;
+    writeFileSync(lock, JSON.stringify({ pid: 4242, started }));
+    let spawned = 0;
+    const lines = startStudioPass(
+      () => {
+        spawned += 1;
+        return { unref: () => undefined, pid: 5151 };
+      },
+      log,
+      lock,
+      () => started + 60 * 60_000,
+    );
+    expect(lines).toEqual([
+      "reel pass 4242 has ended and its id is another process's; the lock is taken over",
       `reel pass started (its lines: ${log})`,
     ]);
-    expect(spawned).toBe(2);
+    expect(spawned).toBe(1);
+    expect(existsSync(lock)).toBe(false);
   });
+
+  it("lets the pass claim the lock once, with its id and start, and refuses a second claim", () => {
+    const folder = studio();
+    const lock = join(folder, "studio.lock");
+    expect(claimStudioLock(lock, 4242, 1_000)).toBeNull();
+    expect(readStudioLock(lock)).toEqual({ pid: 4242, started: 1_000 });
+    const refused = claimStudioLock(lock, 5151, 2_000);
+    expect(refused).not.toBeNull();
+    expect(refused).toMatch(/EEXIST/);
+    expect(readStudioLock(lock)).toEqual({ pid: 4242, started: 1_000 });
+  });
+
+  // Round 6: a lock read after its pass removed it ended the runner's tick before its calls and its mail.
+  it("counts a lock that cannot be read as none, and never throws on it", () => {
+    const folder = studio();
+    // a lock that is a folder cannot be read, as one removed between two reads cannot
+    const lock = join(folder, "studio.lock");
+    mkdirSync(lock);
+    let lines: string[] = [];
+    expect(() => {
+      lines = startStudioPass(() => ({ unref: () => undefined }), join(folder, "studio.log"), lock);
+    }).not.toThrow();
+    expect(lines.at(-1)).toBe(`reel pass started (its lines: ${join(folder, "studio.log")})`);
+    expect(readStudioLock(join(folder, "missing.lock"))).toBeNull();
+    writeFileSync(join(folder, "old.lock"), "4242");
+    expect(readStudioLock(join(folder, "old.lock"))).toBeNull();
+  });
+
+  // Round 6: the watchdog is a timer, and a spawnSync with no limit held the event loop, so it never fired.
+  // the child ends by itself after 2 s, so with no limit the step passes on an assertion, inside the 15 s given here
+  it("ends a step whose blocking child runs past its limit as a failed step, with why", async () => {
+    const lines: string[] = [];
+    await expect(
+      studioPass(
+        {
+          reel: () => {
+            spawnLimited(
+              process.execPath,
+              ["-e", "setTimeout(() => {}, 2000)"],
+              { encoding: "utf8" },
+              300,
+            );
+            return Promise.resolve("reel r: made");
+          },
+          postNext: () => false,
+          post: () => Promise.resolve(null),
+        },
+        (line) => {
+          lines.push(line);
+        },
+      ),
+    ).rejects.toThrow("timed out after 0.3 s and was ended");
+    expect(lines.at(-1)).toMatch(/ studio pass failed: \S+ timed out after 0\.3 s and was ended$/);
+  }, 15_000);
 
   it("starts the studio pass without its lines when the log cannot be opened, and says why to the runner", () => {
     const folder = studio();
     // a log whose folder is a file cannot be opened
     writeFileSync(join(folder, "taken"), "");
     let stdio: unknown = null;
-    const lines = startStudioPass(
-      (_command, _args, options) => {
-        stdio = options.stdio;
-        return { unref: () => undefined };
-      },
-      join(folder, "taken", "studio.log"),
-      join(folder, "studio.lock"),
-      () => false,
-    );
+    let lines: string[] = [];
+    // a log that cannot be opened is said, never thrown (round 6: asserted, so its mutation fails here, not by a throw)
+    expect(() => {
+      lines = startStudioPass(
+        (_command, _args, options) => {
+          stdio = options.stdio;
+          return { unref: () => undefined };
+        },
+        join(folder, "taken", "studio.log"),
+        join(folder, "studio.lock"),
+        () => null,
+      );
+    }).not.toThrow();
     expect(stdio).toBe("ignore");
     expect(lines).toHaveLength(2);
     expect(lines[0]).toMatch(/^studio log not opened, the pass runs without its lines: \S/);
@@ -887,7 +1004,7 @@ describe("the live proof's failures (W8 item 1, 2026-10-27)", () => {
     try {
       const lines: string[] = [];
       const codes: number[] = [];
-      // the reel step takes 40 s, the post step hangs: each step has the limit of its own
+      // the reel step takes 40 s, the post step hangs: the pass has one limit, so it ends by the sweep's cap (round 6)
       void studioPass(
         {
           reel: () =>
@@ -907,7 +1024,7 @@ describe("the live proof's failures (W8 item 1, 2026-10-27)", () => {
           codes.push(code);
         },
       );
-      await vi.advanceTimersByTimeAsync(99_999);
+      await vi.advanceTimersByTimeAsync(59_999);
       expect(codes).toEqual([]);
       await vi.advanceTimersByTimeAsync(1);
       expect(codes).toEqual([1]);
