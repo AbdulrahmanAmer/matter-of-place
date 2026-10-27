@@ -66,6 +66,7 @@ const requestRow = (id: string, daysAgo: number): RequestRow => {
     due_at: new Date(received + 45 * DAY).toISOString(),
     verified_at: null,
     fulfilled_at: null,
+    handle_proof_id: null,
     handled_by: null,
     ip_hash: null,
     turnstile_ok: true,

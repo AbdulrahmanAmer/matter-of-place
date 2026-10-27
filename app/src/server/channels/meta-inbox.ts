@@ -270,7 +270,10 @@ async function readAll(
       session.ctx.log("info", "social_inbox_list_gone", { edge: pass.edge });
     } else if (ended.end !== "done") {
       unread = true;
-      session.ctx.log("warn", "social_inbox_list_failed", { edge: pass.edge, code: ended.code });
+      session.ctx.log("warn", "social_inbox_list_failed", {
+        edge: pass.edge,
+        code: ended.end === "failed" ? ended.code : null,
+      });
     }
   }
   const newest = newestOf(reading.times, since);

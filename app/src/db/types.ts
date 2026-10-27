@@ -1277,7 +1277,7 @@ isOneToOne: false
                     "key"?: string,"pending"?: NonNullable<Json>,"read_at"?: string,"read_until"?: string
                   }
                   Relationships: [
-
+                    
                   ]
                 },"social_posts": {
                   Row: {
