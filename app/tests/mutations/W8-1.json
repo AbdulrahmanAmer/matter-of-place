@@ -928,8 +928,8 @@
     "id": "w8-1-still-svg-reused",
     "test": "tests/unit/reel/post-guard.test.ts",
     "file": "../launch/engine/still.mjs",
-    "find": "      if (at.id && reused.has(at.id)) drawn = true;",
-    "replace": "      void 0;",
+    "find": "        if (marked.has(at)) drawn = true;",
+    "replace": "        void 0;",
     "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
     "expect": "× .*counts a shape of defs a <use> draws and a marker's shape a path draws"
   },
@@ -937,17 +937,17 @@
     "id": "w8-1-still-svg-use",
     "test": "tests/unit/reel/post-guard.test.ts",
     "file": "../launch/engine/still.mjs",
-    "find": "reused.add(el.href.baseVal.split(\"#\")[1]);",
-    "replace": "void el;",
+    "find": "    for (const [use, group] of made) use.before(group);",
+    "replace": "    void made;",
     "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
-    "expect": "× .*counts a shape of defs a <use> draws and a marker's shape a path draws"
+    "expect": "× .*counts the red a <use> gives a shape kept in palette"
   },
   {
     "id": "w8-1-still-svg-marker",
     "test": "tests/unit/reel/post-guard.test.ts",
     "file": "../launch/engine/still.mjs",
-    "find": "      if (id) reused.add(id[1]);",
-    "replace": "      void id;",
+    "find": "if (marker.id && (value || \"\").includes(`#${marker.id}\"`)) marked.add(marker);",
+    "replace": "void marker;",
     "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
     "expect": "× .*counts a shape of defs a <use> draws and a marker's shape a path draws"
   },
@@ -986,5 +986,86 @@
     "replace": "if (false && cs.fill !== \"none\"",
     "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
     "expect": "× .*refuses the black a shape with no fill paints"
+  },
+  {
+    "id": "w8-1-still-use-paint",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": "        group.style.setProperty(prop, cs.getPropertyValue(prop));",
+    "replace": "        void prop;",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*counts a symbol with no fill as the palette fill of the <use> that draws it"
+  },
+  {
+    "id": "w8-1-still-use-color",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": "        \"color\",\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*counts a currentColor fill as the color of the <use> that draws it"
+  },
+  {
+    "id": "w8-1-still-use-symbol",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": "      if (kept instanceof SVGSymbolElement) {",
+    "replace": "      if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*counts a <use> inside a symbol another <use> draws"
+  },
+  {
+    "id": "w8-1-still-use-nested",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": "    uses = made.flatMap(([, group]) => [...group.querySelectorAll(\"use\")]);",
+    "replace": "    uses = [];",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*counts a <use> inside a symbol another <use> draws"
+  },
+  {
+    "id": "w8-1-still-use-strip",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": "      for (const old of copy.querySelectorAll(\"[data-still-copy]\")) old.remove();\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*counts a <use> inside a symbol another <use> draws"
+  },
+  {
+    "id": "w8-1-still-use-file",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": "      findings.push(`${name(use)} draws ${href}, which the gate cannot see: draw it on the page`);",
+    "replace": "      void href;",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*refuses a <use> that draws from another file"
+  },
+  {
+    "id": "w8-1-still-hairline",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": " && !flat(el.getBBox())",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*counts no fill for a path drawn only as a line"
+  },
+  {
+    "id": "w8-1-still-marker-id",
+    "test": "tests/unit/reel/post-guard.test.ts",
+    "file": "../launch/engine/still.mjs",
+    "find": "(value || \"\").includes(`#${marker.id}\"`)",
+    "replace": "/#([^\")]+)/.exec(value || \"\")?.[1] === marker.id",
+    "run": "bunx vitest run --project unit tests/unit/reel/post-guard.test.ts",
+    "expect": "× .*counts a marker whose id holds a parenthesis"
+  },
+  {
+    "id": "w8-1-prompt-hairline",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/brand-post.ts",
+    "find": "; a path drawn only as a line sets fill=\"none\"",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*tells the designer and the reviser to set fill none on a path drawn only as a line"
   }
 ]

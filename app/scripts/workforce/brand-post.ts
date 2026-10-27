@@ -303,7 +303,7 @@ export function copyEarlier(studio: string, folder: string): number {
 const paletteNames = Object.entries(PALETTE).map(([name, hex]) => `${name} ${hex}`);
 const PALETTE_WORDS = `the house palette, and only it: ${paletteNames.join(", ")}. The Product Launch film's own colours (in DIRECTION.md, its sands and stones) are the film's, not the house palette: never use them, never judge by them`;
 
-const HOUSE = `House rules that govern (rulings H108, H110): Cormorant Garamond for display, Jost for labels (Urbanist and Epilogue are the only other typefaces), by the @font-face rules given; ${PALETTE_WORDS}. Sandstone for accents only, flat colour only. Ink follows the paper; one italic word per title at most. No gradients, no glow, no shadows, no blur, no gold or metallic, no stock pictures, no drawn house. A legibility scrim over a photograph is a flat tint of Obsidian, never a gradient. Calm, brief, specific; a $15M owner is comfortable here.`;
+const HOUSE = `House rules that govern (rulings H108, H110): Cormorant Garamond for display, Jost for labels (Urbanist and Epilogue are the only other typefaces), by the @font-face rules given; ${PALETTE_WORDS}. Sandstone for accents only, flat colour only; a path drawn only as a line sets fill="none". Ink follows the paper; one italic word per title at most. No gradients, no glow, no shadows, no blur, no gold or metallic, no stock pictures, no drawn house. A legibility scrim over a photograph is a flat tint of Obsidian, never a gradient. Calm, brief, specific; a $15M owner is comfortable here.`;
 
 /** The designer's brief: the request, the house rules, the frames and what the page must hold. */
 export function postPrompt(

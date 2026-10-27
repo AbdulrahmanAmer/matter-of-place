@@ -83,10 +83,11 @@ function shoot(dir: string, page: string) {
   });
 }
 
-/** Shoots an svg on Obsidian paper and returns the colours of its report outside the palette, as the gate reads them. */
-async function offPalette(name: string, svg: string) {
+/** Shoots an svg on Obsidian paper, beside the files given, and returns its report's colours and findings. */
+async function shootSvg(name: string, svg: string, files: Record<string, string> = {}) {
   const dir = join(PAGE, name);
   mkdirSync(dir, { recursive: true });
+  for (const [file, text] of Object.entries(files)) writeFileSync(join(dir, file), text);
   writeFileSync(
     join(dir, "post.html"),
     `<!doctype html><html style="background:#11110f"><body style="margin:0;color:#eeeae1">
@@ -95,9 +96,15 @@ async function offPalette(name: string, svg: string) {
   const { status, stderr } = await shoot(dir, join(dir, "post.html"));
   if (status !== 0) throw new Error(stderr);
   const [frame] = z
-    .array(z.object({ colors: z.array(z.string()) }))
+    .array(z.object({ colors: z.array(z.string()), findings: z.array(z.string()) }))
     .parse(JSON.parse(readFileSync(join(dir, "report.json"), "utf8")));
-  return [...new Set((frame?.colors ?? []).filter((color) => !inPalette(color)))].sort();
+  return { colors: frame?.colors ?? [], findings: frame?.findings ?? [] };
+}
+
+/** Shoots an svg on Obsidian paper and returns the colours of its report outside the palette, as the gate reads them. */
+async function offPalette(name: string, svg: string) {
+  const { colors } = await shootSvg(name, svg);
+  return [...new Set(colors.filter((color) => !inPalette(color)))].sort();
 }
 
 // The page asks for each and keeps the answer: a status, or "refused" when the request never got one.
@@ -382,6 +389,75 @@ window.__post = {
 <path d="M20 20 L120 20" fill="none" stroke="#C9C0B2" stroke-width="2" marker-end="url(#m)"/>`,
       ),
     ).toEqual(["rgb(0, 0, 0)", "rgb(255, 0, 0)"]);
+  }, 120_000);
+
+  // Round 9, 2026-10-27: the copy a <use> draws inherits from the use, not from where its element is kept. Round 8 read
+  // the kept element, so a red use of a shape kept in palette passed and a palette use of the emblem's symbol was black.
+  it("counts a symbol with no fill as the palette fill of the <use> that draws it", async () => {
+    expect(
+      await offPalette(
+        "use-palette",
+        `<symbol id="e"><path d="M0 0 H40 V40 H0 Z"/></symbol><use href="#e" x="20" y="20" fill="#EEEAE1"/>`,
+      ),
+    ).toEqual([]);
+  }, 120_000);
+
+  it("counts the red a <use> gives a shape kept in palette, and a shape kept in hidden defs that a <use> shows", async () => {
+    expect(
+      await offPalette(
+        "use-red",
+        `<g fill="#EEEAE1"><defs><rect id="r" width="40" height="40"/></defs></g><use href="#r" x="20" y="20" fill="#f00"/>
+<defs style="visibility:hidden"><rect id="h" width="40" height="40" fill="#00f"/></defs><use href="#h" x="80" y="20"/>`,
+      ),
+    ).toEqual(["rgb(0, 0, 255)", "rgb(255, 0, 0)"]);
+  }, 120_000);
+
+  it("counts a currentColor fill as the color of the <use> that draws it", async () => {
+    expect(
+      await offPalette(
+        "use-current",
+        `<defs><rect id="c" width="40" height="40" fill="currentColor"/></defs><use href="#c" x="20" y="20" color="#f00"/>`,
+      ),
+    ).toEqual(["rgb(255, 0, 0)"]);
+  }, 120_000);
+
+  it("counts a <use> inside a symbol another <use> draws, as the outer use colours it", async () => {
+    expect(
+      await offPalette(
+        "use-nested",
+        `<defs><rect id="n" width="40" height="40"/></defs><symbol id="b"><use href="#n"/></symbol>
+<symbol id="a"><use href="#b"/></symbol><use href="#a" x="20" y="20" fill="#0f0"/>`,
+      ),
+    ).toEqual(["rgb(0, 255, 0)"]);
+  }, 120_000);
+
+  it("refuses a <use> that draws from another file, which the gate cannot see", async () => {
+    const { findings } = await shootSvg("use-file", `<use href="other.svg#x" x="20" y="20"/>`, {
+      "other.svg": `<svg xmlns="http://www.w3.org/2000/svg"><rect id="x" width="40" height="40" fill="#f00"/></svg>`,
+    });
+    expect(findings).toEqual([
+      "<use> draws other.svg#x, which the gate cannot see: draw it on the page",
+    ]);
+  }, 120_000);
+
+  it("counts no fill for a path drawn only as a line, across or down", async () => {
+    expect(
+      await offPalette(
+        "hairline",
+        `<path d="M20 20 L120 20" stroke="#C9C0B2" stroke-width="2"/>
+<path d="M20 40 L20 140" stroke="#C9C0B2" stroke-width="2"/>`,
+      ),
+    ).toEqual([]);
+  }, 120_000);
+
+  it("counts a marker whose id holds a parenthesis", async () => {
+    expect(
+      await offPalette(
+        "marker-id",
+        `<marker id="m)1" markerWidth="4" markerHeight="4" refX="2" refY="2"><circle cx="2" cy="2" r="2" fill="#f00"/></marker>
+<path d="M20 20 L120 20" fill="none" stroke="#C9C0B2" stroke-width="2" style='marker-end:url("#m)1")'/>`,
+      ),
+    ).toEqual(["rgb(255, 0, 0)"]);
   }, 120_000);
 
   it("refuses to open a page outside app/.tmp/post/", async () => {

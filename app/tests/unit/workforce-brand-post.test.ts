@@ -489,6 +489,24 @@ describe("no two posts share a layout", () => {
     }
     expect(prompts.review).toContain("Sandstone #C9C0B2");
   });
+
+  // Round 9, 2026-10-27: a stroke-only path with no fill="none" paints its fill's black wherever its box is not flat.
+  it("tells the designer and the reviser to set fill none on a path drawn only as a line", () => {
+    const asked = postRequestSchema.parse(comingSoon);
+    const post = {
+      id: "00000000-0000-4000-8000-000000000002",
+      at: "",
+      request: asked,
+      from,
+      state: "working" as const,
+    };
+    const frames = framesFor("carousel", asked.titles);
+    for (const prompt of [
+      postPrompt(post, frames, [], 0),
+      postRevisePrompt("review_refused: Slide 1: a colour", true),
+    ])
+      expect(prompt).toContain('a path drawn only as a line sets fill="none"');
+  });
 });
 
 describe("the post pass", () => {

@@ -9316,3 +9316,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a prompt that judges or designs against a rule names the rule's values from the code constant the gate uses (one source), and labels any study material that carries other values as its own, never the rule.
 - proof: `cd app && bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts -t "names the house palette"` → `1 passed`; registry `w8-1-review-palette` and `w8-1-prompt-palette` turn it red.
 - added: 2026-10-27
+
+## P-4664 · The still gate read a `<use>`'s shape where it is kept, but the drawn copy inherits from the use
+- symptom: 2026-10-27, fresh review of W8 item 1 round 8: `<g fill="#EEEAE1"><defs><rect id="r"/></defs></g><use href="#r" fill="#f00"/>` passed the palette gate though it paints red, and `<symbol id="e"><path/></symbol><use href="#e" fill="#EEEAE1"/>` (the usual inline emblem) was refused black. Round 8's own test set no fill on its `<use>`, so it could not tell the two readings apart.
+- cause: `getComputedStyle` of an element in `defs` or a `symbol` answers for that position; the copy a `<use>` draws lives in a closed shadow tree that inherits from the use. Probe on Chrome (screenshot pixel): a copy matches its own selectors (`rect`, `#r`, `.c`, `.s path` inside the symbol) but no selector across the use (`.warm rect` with the use's class, `defs rect`, `use > rect`, `g > rect` all miss it).
+- rule: to read what a `<use>` draws, put a clone of the kept element in the use's place under a group holding the use's computed paint (not its class), keep the clone's ids, expand nested uses from the untouched originals, read, and remove the clones; a test of inheritance sets a different value on each side (the kept context and the use), or it measures nothing.
+- proof: `cd app && bunx vitest run --project unit tests/unit/reel/post-guard.test.ts` → all pass; with round 8's `still.mjs` (`git show 9eb504e1:launch/engine/still.mjs`) the four `<use>` cases fail; registry `w8-1-still-use-*` turn them red.
+- added: 2026-10-27

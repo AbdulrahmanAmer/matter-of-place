@@ -46,94 +46,152 @@ function audit() {
   let smallest = Infinity;
   const name = (el) =>
     `<${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ""}${el.classList.length ? `.${[...el.classList].join(".")}` : ""}>`;
-  // the ids a <use> or a marker draws again
-  const reused = new Set();
-  for (const el of document.querySelectorAll("use")) reused.add(el.href.baseVal.split("#")[1]);
-  for (const el of document.querySelectorAll("svg *")) {
-    const cs = getComputedStyle(el);
-    for (const marker of [cs.markerStart, cs.markerMid, cs.markerEnd]) {
-      const id = /#([^")]+)/.exec(marker || "");
-      if (id) reused.add(id[1]);
-    }
+  const text = document.body.innerText;
+  // A <use> draws a copy of its element that inherits from the use, not from where the element is kept (round 9). The
+  // copy is put in the use's place for the reads below, under a <g> holding the use's computed paint: Chrome matches the
+  // copy's own selectors (type, id, class) but no selector across the use, so its ids stay and the use's class does not.
+  const byId = new Map();
+  for (const el of document.querySelectorAll("[id]")) if (!byId.has(el.id)) byId.set(el.id, el);
+  const copies = [];
+  let uses = [...document.querySelectorAll("use")];
+  for (const use of uses) {
+    const href = use.href.baseVal;
+    if (href !== "" && !href.startsWith("#"))
+      findings.push(`${name(use)} draws ${href}, which the gate cannot see: draw it on the page`);
   }
-  // Only a shape or a text paints its fill and stroke (a group, an image or a clip path keeps the default black and
-  // paints none), and not inside a clip path, a mask or a pattern, nor inside defs, a symbol or a marker nothing draws.
-  const paints = (el) => {
-    if (!(el instanceof SVGGeometryElement || el instanceof SVGTextContentElement)) return false;
-    let drawn = false;
-    for (let at = el; at !== null; at = at.parentElement) {
-      if (at.id && reused.has(at.id)) drawn = true;
-      const shapes =
-        at instanceof SVGClipPathElement ||
-        at instanceof SVGMaskElement ||
-        at instanceof SVGPatternElement;
-      if (shapes) return false;
-      const stored =
-        at instanceof SVGDefsElement ||
-        at instanceof SVGSymbolElement ||
-        at instanceof SVGMarkerElement;
-      if (stored && !drawn) return false;
+  for (let depth = 0; uses.length > 0 && depth < 8; depth += 1) {
+    const made = [];
+    for (const use of uses) {
+      const href = use.href.baseVal;
+      const kept = href.startsWith("#") ? byId.get(href.slice(1)) : undefined;
+      if (kept === undefined) continue;
+      const copy = kept.cloneNode(true);
+      for (const old of copy.querySelectorAll("[data-still-copy]")) old.remove();
+      let drawn = copy;
+      if (kept instanceof SVGSymbolElement) {
+        drawn = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        for (const attr of kept.attributes) drawn.setAttribute(attr.name, attr.value);
+        drawn.append(...copy.childNodes);
+      }
+      const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      group.setAttribute("data-still-copy", "");
+      const cs = getComputedStyle(use);
+      for (const prop of [
+        "fill",
+        "stroke",
+        "stroke-width",
+        "color",
+        "visibility",
+        "font-family",
+        "font-size",
+      ])
+        group.style.setProperty(prop, cs.getPropertyValue(prop));
+      group.append(drawn);
+      made.push([use, group]);
     }
-    return true;
-  };
-  for (const el of document.querySelectorAll("body, body *")) {
-    const cs = getComputedStyle(el);
-    if (cs.display === "none" || cs.visibility === "hidden" || Number(cs.opacity) === 0) continue;
-    for (const [prop, value] of [
-      ["background-image", cs.backgroundImage],
-      ["mask-image", cs.maskImage || cs.webkitMaskImage || "none"],
-      ["border-image", cs.borderImageSource],
-    ]) {
-      if (/gradient\(/i.test(value || "")) findings.push(`${prop} gradient on ${name(el)}`);
+    for (const [use, group] of made) use.before(group);
+    copies.push(...made.map(([, group]) => group));
+    uses = made.flatMap(([, group]) => [...group.querySelectorAll("use")]);
+  }
+  try {
+    return { ...read(), text };
+  } finally {
+    for (const group of copies) group.remove();
+  }
+
+  function read() {
+    // a marker is drawn where a shape's marker property names it
+    const markers = [...document.querySelectorAll("marker")];
+    const marked = new Set();
+    for (const el of document.querySelectorAll("svg *")) {
+      const cs = getComputedStyle(el);
+      for (const value of [cs.markerStart, cs.markerMid, cs.markerEnd]) {
+        for (const marker of markers)
+          if (marker.id && (value || "").includes(`#${marker.id}"`)) marked.add(marker);
+      }
     }
-    if (cs.textShadow && cs.textShadow !== "none") findings.push(`text-shadow on ${name(el)}`);
-    if (cs.boxShadow && cs.boxShadow !== "none") findings.push(`box-shadow on ${name(el)}`);
-    if (cs.filter && /blur|drop-shadow/i.test(cs.filter))
-      findings.push(`filter ${cs.filter} on ${name(el)}`);
-    if (cs.backdropFilter && cs.backdropFilter !== "none")
-      findings.push(`backdrop-filter on ${name(el)}`);
-    const ownText = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim() !== "");
-    if (ownText) {
-      families.add(
-        cs.fontFamily
-          .split(",")[0]
-          .trim()
-          .replace(/^["']|["']$/g, ""),
+    // Only a shape or a text paints its fill and stroke (a group, an image or a clip path keeps the default black and
+    // paints none), and not inside a clip path, a mask or a pattern, nor inside defs, a symbol or a marker nothing draws.
+    const paints = (el) => {
+      if (!(el instanceof SVGGeometryElement || el instanceof SVGTextContentElement)) return false;
+      let drawn = false;
+      for (let at = el; at !== null; at = at.parentElement) {
+        if (marked.has(at)) drawn = true;
+        const shapes =
+          at instanceof SVGClipPathElement ||
+          at instanceof SVGMaskElement ||
+          at instanceof SVGPatternElement;
+        if (shapes) return false;
+        const stored =
+          at instanceof SVGDefsElement ||
+          at instanceof SVGSymbolElement ||
+          at instanceof SVGMarkerElement;
+        if (stored && !drawn) return false;
+      }
+      return true;
+    };
+    for (const el of document.querySelectorAll("body, body *")) {
+      const cs = getComputedStyle(el);
+      if (cs.display === "none" || cs.visibility === "hidden" || Number(cs.opacity) === 0) continue;
+      for (const [prop, value] of [
+        ["background-image", cs.backgroundImage],
+        ["mask-image", cs.maskImage || cs.webkitMaskImage || "none"],
+        ["border-image", cs.borderImageSource],
+      ]) {
+        if (/gradient\(/i.test(value || "")) findings.push(`${prop} gradient on ${name(el)}`);
+      }
+      if (cs.textShadow && cs.textShadow !== "none") findings.push(`text-shadow on ${name(el)}`);
+      if (cs.boxShadow && cs.boxShadow !== "none") findings.push(`box-shadow on ${name(el)}`);
+      if (cs.filter && /blur|drop-shadow/i.test(cs.filter))
+        findings.push(`filter ${cs.filter} on ${name(el)}`);
+      if (cs.backdropFilter && cs.backdropFilter !== "none")
+        findings.push(`backdrop-filter on ${name(el)}`);
+      const ownText = [...el.childNodes].some(
+        (n) => n.nodeType === 3 && n.textContent.trim() !== "",
       );
-      smallest = Math.min(smallest, parseFloat(cs.fontSize));
-      // an svg text paints its fill, never its color
-      if (!(el instanceof SVGElement)) colors.add(cs.color);
+      if (ownText) {
+        families.add(
+          cs.fontFamily
+            .split(",")[0]
+            .trim()
+            .replace(/^["']|["']$/g, ""),
+        );
+        smallest = Math.min(smallest, parseFloat(cs.fontSize));
+        // an svg text paints its fill, never its color
+        if (!(el instanceof SVGElement)) colors.add(cs.color);
+      }
+      colors.add(cs.backgroundColor);
+      for (const side of ["Top", "Right", "Bottom", "Left"]) {
+        if (parseFloat(cs[`border${side}Width`]) > 0 && cs[`border${side}Style`] !== "none")
+          colors.add(cs[`border${side}Color`]);
+      }
+      if (el instanceof SVGElement && !(el instanceof SVGSVGElement)) {
+        // a line has no inside to fill, nor has a path drawn as a hairline (its box is flat); a stroke shows only with a
+        // width
+        const flat = (box) => box.width === 0 || box.height === 0;
+        const fills = paints(el) && !(el instanceof SVGLineElement) && !flat(el.getBBox());
+        if (fills && cs.fill !== "none" && !cs.fill.startsWith("url(")) colors.add(cs.fill);
+        const stroked = paints(el) && parseFloat(cs.strokeWidth) > 0;
+        if (stroked && cs.stroke !== "none" && !cs.stroke.startsWith("url(")) colors.add(cs.stroke);
+        if (/^url\(/.test(cs.fill || "") || /^url\(/.test(cs.stroke || ""))
+          findings.push(`paint server (a gradient or pattern) on ${name(el)}`);
+      }
     }
-    colors.add(cs.backgroundColor);
-    for (const side of ["Top", "Right", "Bottom", "Left"]) {
-      if (parseFloat(cs[`border${side}Width`]) > 0 && cs[`border${side}Style`] !== "none")
-        colors.add(cs[`border${side}Color`]);
-    }
-    if (el instanceof SVGElement && !(el instanceof SVGSVGElement)) {
-      // a line has no inside to fill; a stroke shows only with a width
-      const fills = paints(el) && !(el instanceof SVGLineElement);
-      if (fills && cs.fill !== "none" && !cs.fill.startsWith("url(")) colors.add(cs.fill);
-      const stroked = paints(el) && parseFloat(cs.strokeWidth) > 0;
-      if (stroked && cs.stroke !== "none" && !cs.stroke.startsWith("url(")) colors.add(cs.stroke);
-      if (/^url\(/.test(cs.fill || "") || /^url\(/.test(cs.stroke || ""))
-        findings.push(`paint server (a gradient or pattern) on ${name(el)}`);
-    }
+    // a page that paints no background shows the browser's white
+    const clear = (c) => /^rgba\(.*,\s*0\)$/.test(c) || c === "transparent";
+    const paper = getComputedStyle(document.documentElement).backgroundColor;
+    colors.add(
+      clear(paper) && clear(getComputedStyle(document.body).backgroundColor)
+        ? "rgb(255, 255, 255)"
+        : paper,
+    );
+    return {
+      findings,
+      families: [...families],
+      colors: [...colors],
+      smallest_px: Number.isFinite(smallest) ? smallest : null,
+    };
   }
-  // a page that paints no background shows the browser's white
-  const clear = (c) => /^rgba\(.*,\s*0\)$/.test(c) || c === "transparent";
-  const paper = getComputedStyle(document.documentElement).backgroundColor;
-  colors.add(
-    clear(paper) && clear(getComputedStyle(document.body).backgroundColor)
-      ? "rgb(255, 255, 255)"
-      : paper,
-  );
-  return {
-    findings,
-    families: [...families],
-    colors: [...colors],
-    smallest_px: Number.isFinite(smallest) ? smallest : null,
-    text: document.body.innerText,
-  };
 }
 
 async function frames(specFile) {
