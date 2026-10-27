@@ -17,6 +17,7 @@ set search_path = ''
 as $$
 declare
   v_id uuid;
+  v_agent uuid;
 begin
   -- W8 item 10 (H116, H135): a post proposed by a colleague (through the laptop runner, no actor) or through the admin
   -- route by a person or Matter's key (the actor, audited against action_roles by write_audit).
@@ -24,7 +25,8 @@ begin
     raise exception 'validation' using errcode = '22023', detail = 'A proposed post needs a title of up to 200 characters.';
   end if;
   if p_proposer_kind = 'agent' then
-    if not exists (select 1 from public.agents a where a.slug = p_proposer_agent) then
+    select a.id into v_agent from public.agents a where a.slug = p_proposer_agent;
+    if v_agent is null then
       raise exception 'validation' using errcode = '22023', detail = 'The proposer is not on the team.';
     end if;
   elsif p_actor is null or p_proposer_agent is not null then
@@ -40,9 +42,10 @@ begin
   returning id into v_id;
   perform public.proposed_post_put_channels(v_id, 1, p_channels);
 
-  -- A colleague's proposal has no account: the audit row is the system's and names the colleague in its note.
+  -- A colleague's proposal has no account: the runner files it, and the audit row's actor is the colleague's own row,
+  -- as an agent, with its slug in the note.
   perform public.write_audit(
-    p_actor, case when p_actor is null then null else p_proposer_kind end, 'channels.proposed_create', 'proposed_posts',
+    coalesce(p_actor, v_agent), p_proposer_kind, 'channels.proposed_create', 'proposed_posts',
     v_id, null, jsonb_build_object('status', 'proposed', 'revision', 1, 'test', coalesce(p_test, false)), p_request_id,
     case when p_proposer_kind = 'agent' then 'agent:' || p_proposer_agent end
   );

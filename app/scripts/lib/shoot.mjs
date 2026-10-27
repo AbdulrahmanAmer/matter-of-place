@@ -331,6 +331,16 @@ export async function localSpec(kind, file) {
 }
 
 /**
+ * The line the command line prints for one file, named as written (`slide-0.c82f91d4.jpg 1080x1350 ok`): the runner's
+ * render line passes the names on, so a colleague proposes this run's files, never an older batch's (P-4650).
+ * @param {Pick<RenderedFile, "media_key" | "w" | "h">} file
+ * @returns {string}
+ */
+export function okLine(file) {
+  return `${basename(file.media_key)} ${String(file.w)}x${String(file.h)} ok`;
+}
+
+/**
  * The command line of a render script: `--fixture --out <dir>` renders the fixture property, and `--spec <file> --out
  * <dir>` a colleague's own spec (ruling H115), into a folder, with no network and no upload, one line per file.
  * @param {"cover" | "carousel" | "story"} kind
@@ -373,11 +383,7 @@ export async function runCli(kind, run) {
             out: { key_prefix: `assets/${fixture.property.id}/${kind}/r1/` },
           };
     const { files } = await run({ payload: { data: { spec } } }, { out: values.out });
-    for (const file of files) {
-      console.log(
-        `${basename(file.media_key).split(".")[0] ?? ""} ${String(file.w)}x${String(file.h)} ok`,
-      );
-    }
+    for (const file of files) console.log(okLine(file));
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 1;

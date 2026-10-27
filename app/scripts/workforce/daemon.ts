@@ -54,7 +54,7 @@ import { breakerUntil, type CliUsage, runClaude, UsageLimitError } from "./cli.t
 import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } from "./growth.ts";
 import { followMain, mapDue, runnerBusy } from "./follow.ts";
 import { readJsonAnswer, type Outcome } from "./answer.ts";
-import { fileProposedPost, isStructuredPost, POST_TOOL_LINE, postDeps } from "./proposed-post.ts";
+import { fileProposedPost, isStructuredPost, postDeps, postToolLine } from "./proposed-post.ts";
 import type { SourceName } from "./criteria.ts";
 import { explainsHeld, handToMatter, handUnavailableOwners, ownerExplanation } from "./explain.ts";
 import { HOW_REFUSED, postureOf, type Posture } from "./posture.ts";
@@ -842,7 +842,10 @@ function promptFor(
         ]
       : []),
     ...(agent.tools.includes("request_reel") ? [REEL_TOOL_LINE] : []),
-    ...(agent.tools.includes("draft_post") ? [POST_TOOL_LINE] : []),
+    // P-4650: the Drive folder the line names is the one `postDeps` checks paths against, from the runner's config
+    ...(agent.tools.includes("draft_post")
+      ? [postToolLine(driveSocialFolder(join(HOME, "config.json")))]
+      : []),
     ...(toolkit === "" ? [] : [toolkit]),
     situation,
     'Answer with one JSON object and nothing else: {"reply": "what you say in the conversation, short", "task": "a few words for the office board on what you did", "proposals": [{"action": "reply_inquiry|social_post|newsletter_issue|campaign_plan", "summary": "one line", "content": {"body": "the full text", "to": "who it is for if any"}}], "hire": [{"slug": "handle", "name": "Name", "role": "what they do", "instructions": "their brief", "model": "sonnet", "wake_on": [], "tools": ["read_business", "chat"]}]}. Leave proposals and hire empty unless they are needed and you may do them.',

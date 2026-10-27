@@ -6,6 +6,7 @@ import * as cover from "../../../scripts/render-cover.mjs";
 import * as ogStatic from "../../../scripts/render-og-static.mjs";
 import * as story from "../../../scripts/render-story.mjs";
 import * as variants from "../../../scripts/render-variants.mjs";
+import { okLine } from "../../../scripts/lib/shoot.mjs";
 
 function jobWith(keyPrefix: string) {
   const property = {
@@ -41,6 +42,13 @@ describe("render scripts", () => {
   it("refuses a key_prefix that is not assets/<property>/<kind>/r<revision>/", async () => {
     await expect(cover.run(jobWith("assets/p1/cover/"))).rejects.toThrow("key_prefix");
     await expect(story.run(jobWith("p1/story/r1/"))).rejects.toThrow("key_prefix");
+  });
+
+  it("prints each file of a command-line render by the name it was written under", () => {
+    // P-4650: the runner's render line passes these names on, so a colleague proposes this run's batch
+    expect(
+      okLine({ media_key: "assets/p1/carousel/r1/slide-0.c82f91d4.jpg", w: 1080, h: 1350 }),
+    ).toBe("slide-0.c82f91d4.jpg 1080x1350 ok");
   });
 
   it("render-og-static refuses a page that has no card before a browser starts", async () => {

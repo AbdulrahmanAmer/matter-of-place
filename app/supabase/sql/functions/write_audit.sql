@@ -26,7 +26,19 @@ declare
 begin
   -- Invariant 18, DB-04: the actor as stored, never as the caller names it. A null actor is the system.
   -- Raised inside the writing function's transaction, so its whole change rolls back.
-  if p_actor is not null then
+  -- W8 item 10: a colleague of the workforce has no account. The laptop runner names it by its `agents` row, as an
+  -- agent, for an action an agent may take; its permission is its tools, which the runner checks.
+  if p_actor is not null and p_actor_kind = 'agent'
+    and exists (select 1 from public.agents a where a.id = p_actor)
+    and not exists (select 1 from public.user_roles r where r.user_id = p_actor) then
+    select * into v_rule from public.action_roles a where a.action = p_action;
+    if not found then
+      raise exception 'forbidden' using errcode = '42501';
+    end if;
+    if v_rule.human_only then
+      raise exception 'human_only' using errcode = '42501';
+    end if;
+  elsif p_actor is not null then
     select array_agg(r.role), array_agg(distinct r.actor_kind)
     into v_roles, v_kinds
     from public.user_roles r
