@@ -5,6 +5,9 @@
 //   bun scripts/workforce/meeting.ts --prompts  build each step's prompt and log its size; no Claude, nothing written
 // W8 0j round 3: each step logs its prompt's size, its duration and how it ended; a step that stops is said in the team
 // thread, and the next start the same day runs only the steps that did not finish (meeting-<date>.steps.json).
+// W8 0j round 4: the decisions are kept the moment they are written, so a later start never asks Matter again; the
+// owners are woken in a step of their own, and what follows is best effort, each failure said once in the team thread.
+// A start before 17:45 Cairo time (a missed start the laptop runs after midnight) does nothing.
 // 1. The Analyst posts the scorecard (eight numbers against last week, read by code) with at most three observations,
 //    and the day's competitor changes; what it learned goes to the knowledge base.
 // 2. Each colleague posts three lines: done (with one number), next, blocked on. No replies between agents.
@@ -28,12 +31,19 @@ import {
 import type { Db } from "../../src/server/lib/db.ts";
 import { askMatter, fenced, matterInputs, runTimeoutMs } from "../matter/run.ts";
 import { staffCharterFrom } from "./charter.ts";
-import { breakerUntil, isolatedArgs, runClaude, UsageLimitError, type CliUsage } from "./cli.ts";
+import {
+  breakerUntil,
+  isolatedArgs,
+  runClaude,
+  usageSchema,
+  UsageLimitError,
+  type CliUsage,
+} from "./cli.ts";
 import { staffPolicy } from "./config.ts";
 import { childEnv, serviceDb as client } from "./env.ts";
 import { costMicroUsd, inputTokens } from "./growth.ts";
 import { applyHires } from "./hiring.ts";
-import { knowledgeBlock, remember } from "./knowledge.ts";
+import { knowledgeBlock, remember, type Entry } from "./knowledge.ts";
 import { scorecard, scorecardText } from "./scorecard.ts";
 import { underCeiling } from "./usage-policy.ts";
 
@@ -45,6 +55,7 @@ const models: Record<string, string> = {
   haiku: "claude-haiku-5-5",
 };
 const SYSTEM = "Matter of Place";
+const SYSTEM_AUTHOR = { slug: "system", name: SYSTEM, kind: "system" };
 
 const analystAnswer = z.object({
   observations: z.array(z.string()).default([]),
@@ -468,50 +479,78 @@ function stepLine(at: Date, step: string, chars: number, ms: number, ending: str
 
 /**
  * Runs one step's call and logs its line, answered or stopped. A step that stops is said in the team thread
- * (`stoppedPost`), and its failure goes on to the caller, which ends the meeting there.
+ * (`stoppedPost`), and its failure goes on to the caller, which ends the meeting there. `startedAt` is the meeting's
+ * start: whether another start is left is worked out at the stop (round 4).
  */
 export async function meetingStep<T>(
-  input: { db: Db; dry: boolean; step: string; prompt: string; again: boolean },
+  input: { db: Db; dry: boolean; step: string; prompt: string; startedAt: Date },
   call: () => Promise<T>,
   log: (line: string) => void = console.log,
   clock: () => number = Date.now,
 ): Promise<T> {
   const start = clock();
-  const line = (ending: string) =>
-    stepLine(new Date(start), input.step, input.prompt.length, clock() - start, ending);
+  const line = (ending: string, end = clock()) =>
+    stepLine(new Date(start), input.step, input.prompt.length, end - start, ending);
   try {
     const answer = await call();
     log(line("answered"));
     return answer;
   } catch (failure) {
     const reason = failure instanceof Error ? failure.message : String(failure);
-    log(line(`stopped: ${reason}`));
+    const end = clock();
+    log(line(`stopped: ${reason}`, end));
     await post(
       input.db,
       input.dry,
       "team",
-      { slug: "system", name: SYSTEM, kind: "system" },
-      stoppedPost(input.step, reason, input.again),
+      SYSTEM_AUTHOR,
+      stoppedPost(input.step, reason, startsLeftToday(input.startedAt, new Date(end))),
     );
     throw failure;
   }
 }
 
 /**
- * The last hour of the day the "MOP Meeting" task starts (install.ps1: daily at 17:45, again every hour until 21:45),
- * so a meeting that started before it has another start today.
+ * The first and the last start of the "MOP Meeting" task in minutes of the day, Cairo time (install.ps1: daily at
+ * 17:45, again every hour until 21:45).
  */
-const LAST_START_HOUR = 21;
+const FIRST_START = 17 * 60 + 45;
+const LAST_START = 21 * 60 + 45;
+const START_INTERVAL = 60;
 const OPERATOR_ZONE = "Africa/Cairo";
 
-/** Whether a meeting that started at `startedAt` has another start today, Cairo time. */
-export function startsLeftToday(startedAt: Date): boolean {
-  const hour = new Intl.DateTimeFormat("en-GB", {
+/** Minutes since midnight, Cairo time. */
+function cairoMinutes(at: Date): number {
+  const [hour = 0, minute = 0] = new Intl.DateTimeFormat("en-GB", {
     timeZone: OPERATOR_ZONE,
     hour: "2-digit",
+    minute: "2-digit",
     hourCycle: "h23",
-  }).format(startedAt);
-  return Number(hour) < LAST_START_HOUR;
+  })
+    .format(at)
+    .split(":")
+    .map(Number);
+  return hour * 60 + minute;
+}
+
+/**
+ * Whether a meeting that started at `startedAt` and stopped at `stoppedAt` has another start today, Cairo time.
+ * W8 0j round 4: worked out from the stop, since the task skips a start that comes while the meeting still runs
+ * (IgnoreNew), so a 20:45 start that runs past 21:45 has none left. A meeting that started less than one interval
+ * before the last start counts as the last, so the line never promises a start it may have overlapped.
+ */
+export function startsLeftToday(startedAt: Date, stoppedAt: Date): boolean {
+  return (
+    cairoMinutes(stoppedAt) < LAST_START && cairoMinutes(startedAt) <= LAST_START - START_INTERVAL
+  );
+}
+
+/**
+ * W8 0j round 4: a start before 17:45 Cairo time is one the laptop missed and ran late (StartWhenAvailable), after
+ * midnight: its day is already the next one, so it would hold that day's meeting on night data. It does nothing.
+ */
+export function beforeFirstStart(now: Date): boolean {
+  return cairoMinutes(now) < FIRST_START;
 }
 
 /** W8 0j round 3: the team thread's line when a step stops: which step, that nothing was set, and what comes next. */
@@ -562,6 +601,312 @@ export function meetingDay(home: string, today: string, dry: boolean) {
       if (!dry) writeFileSync(marker, at.toISOString());
     },
   };
+}
+
+type MeetingDay = ReturnType<typeof meetingDay>;
+
+/** What the meeting's steps call beside the database: the knowledge base, the wake, the hires, the log. A test swaps them. */
+export interface MeetingSides {
+  learn: (entries: readonly Entry[]) => unknown;
+  wake: typeof queueDecisionRuns;
+  hire: typeof applyHires;
+  log: (line: string) => void;
+}
+
+const realSides: MeetingSides = {
+  learn: (entries) => remember(entries),
+  wake: queueDecisionRuns,
+  hire: applyHires,
+  log: (line) => {
+    console.log(line);
+  },
+};
+
+/**
+ * W8 0j round 4: a part of the meeting nothing else waits on (the knowledge base, the hires, a post, a run's record). A
+ * failure is logged and said in the team thread, and the meeting goes on; it is never a reason to run a step again.
+ */
+async function bestEffort(
+  input: { db: Db; dry: boolean; part: string },
+  work: () => unknown,
+  log: (line: string) => void = realSides.log,
+): Promise<string> {
+  try {
+    await work();
+    return "done";
+  } catch (failure) {
+    const reason = failure instanceof Error ? failure.message : String(failure);
+    log(`${new Date().toISOString()} meeting ${input.part}: failed: ${reason}`);
+    await post(
+      input.db,
+      input.dry,
+      "team",
+      SYSTEM_AUTHOR,
+      `The meeting went on without ${input.part}: ${reason}.`,
+    ).catch((said: unknown) => {
+      log(
+        `${new Date().toISOString()} meeting ${input.part}: not said: ${said instanceof Error ? said.message : "no reason"}`,
+      );
+    });
+    return `failed: ${reason}`;
+  }
+}
+
+/**
+ * The Analyst's scorecard as posted, from its answer. W8 0j round 4: what it taught goes to the knowledge base only
+ * after the post, as best effort, so a failed write never has the next start post the scorecard again.
+ */
+export async function postScorecard(
+  input: {
+    db: Db;
+    dry: boolean;
+    today: string;
+    numbers: string;
+    analyst: { id: string; slug: string; name: string; model: string };
+    answer: { text: string; usage?: CliUsage };
+    started: string;
+  },
+  sides: Pick<MeetingSides, "learn" | "log"> = realSides,
+): Promise<string> {
+  const { db, dry, analyst } = input;
+  const result = lastJson(input.answer.text, analystAnswer);
+  const posted = [
+    `Scorecard for ${input.today}:`,
+    input.numbers,
+    result.observations.length === 0
+      ? ""
+      : `\nWhat matters:\n${result.observations
+          .slice(0, 3)
+          .map((line, index) => `${String(index + 1)}. ${line}`)
+          .join("\n")}`,
+    result.competitors === "" ? "" : `\nCompetitors today: ${result.competitors}`,
+  ]
+    .filter((part) => part !== "")
+    .join("\n");
+  await post(db, dry, "team", { slug: analyst.slug, name: analyst.name, kind: "agent" }, posted);
+  await bestEffort(
+    { db, dry, part: "the scorecard's notes for the knowledge base" },
+    () =>
+      dry
+        ? undefined
+        : sides.learn([
+            ...result.knowledge,
+            ...(result.competitors === ""
+              ? []
+              : [{ subject: "competitors", text: result.competitors }]),
+          ]),
+    sides.log,
+  );
+  await record(db, dry, analyst, "The meeting's scorecard", input.answer.usage, input.started);
+  return posted;
+}
+
+const decisionShape = z.object({
+  owner: z.string(),
+  decision: z.string(),
+  due_on: z.string(),
+  metric: z.string(),
+});
+
+/** W8 0j round 4: what "the decisions" keeps, so a later start wakes, posts and records without asking Matter again. */
+const settledDecisions = z.object({
+  closings: z.array(z.object({ status: z.string() })),
+  kept: z.array(decisionShape),
+  refused: z.array(decisionShape),
+  retired: z.array(z.object({ owner: z.string(), metric: z.string(), reason: z.string() })),
+  recorded: z.boolean(),
+  stillOpen: z.array(
+    z.object({
+      owner_id: z.string(),
+      decision: z.string(),
+      due_on: z.string(),
+      metric: z.string(),
+    }),
+  ),
+  digest: z.string(),
+  knowledge: z.array(z.object({ subject: z.string(), text: z.string() })),
+  hire: z.array(hireInputSchema),
+  usage: usageSchema.optional(),
+  started: z.string(),
+});
+
+const wokenRuns = z.object({ queued: z.array(z.string()), failed: z.array(z.string()) });
+
+/** W8 0j round 4: the team thread's line when waking the owners stops: the decisions stand, and when they are woken. */
+function wakeStoppedPost(reason: string, again: boolean): string {
+  return [
+    `The meeting stopped while waking the owners of today's decisions: ${reason}.`,
+    "Today's decisions are set and stay as they are.",
+    again
+      ? "The next start today wakes the owners and finishes the meeting."
+      : "No start is left today; tomorrow's meeting wakes the owners on the open decisions.",
+  ].join(" ");
+}
+
+/**
+ * 3. Matter decides. W8 0j round 4: "the decisions" is kept the moment the closings and the new decisions are written,
+ * so a later start the same day never asks Matter again (nothing closed twice, no second set); waking the owners is a
+ * step of its own, so each is woken once; the rest is best effort, each part once, its failure said in the team thread.
+ */
+export async function decide(
+  input: {
+    db: Db;
+    dry: boolean;
+    day: MeetingDay;
+    today: string;
+    startedAt: Date;
+    agents: readonly { id: string; slug: string }[];
+    active: readonly { id: string; slug: string }[];
+    matter: { id: string; slug: string; model: string };
+    open: readonly {
+      id: string;
+      owner_id: string;
+      decision: string;
+      due_on: string;
+      metric: string;
+    }[];
+    closed: readonly { owner_id: string; decision: string; metric: string; status: string }[];
+    ask: () => Promise<{ text: string; usage?: CliUsage }>;
+  },
+  sides: MeetingSides = realSides,
+): Promise<void> {
+  const { db, dry, day, today, matter } = input;
+  const idOf = new Map(input.agents.map((agent) => [agent.slug, agent.id]));
+  const settled = settledDecisions.parse(
+    JSON.parse(
+      await day.once("the decisions", async () => {
+        const started = new Date().toISOString();
+        const answer = await input.ask();
+        const decided = lastJson(answer.text, matterAnswer);
+        const { closings, kept, refused } = settleDecisions(
+          decided,
+          input.open,
+          input.closed,
+          idOf,
+          input.active.map((agent) => agent.slug),
+          today,
+        );
+        let recorded = true;
+        if (!dry) {
+          for (const item of closings) {
+            await db
+              .from("agent_decisions")
+              .update({ status: item.status, checked_at: new Date().toISOString() })
+              .eq("id", item.id);
+          }
+          if (kept.length > 0) {
+            const { error: insertError } = await db.from("agent_decisions").insert(
+              kept.map((item) => ({
+                meeting_on: today,
+                owner_id: idOf.get(item.owner) ?? matter.id,
+                decision: item.decision,
+                due_on: item.due_on,
+                metric: item.metric,
+              })),
+            );
+            recorded = insertError === null;
+          }
+        }
+        // H143 (1): every decision still open after the meeting, each colleague's woken in its own thread
+        const stillOpen = stillOpenDecisions(
+          input.open,
+          closings,
+          kept,
+          recorded,
+          (owner) => idOf.get(owner) ?? matter.id,
+        );
+        return JSON.stringify({
+          closings: closings.map((item) => ({ status: item.status })),
+          kept,
+          refused,
+          retired: decided.retired,
+          recorded,
+          stillOpen: stillOpen.map(({ owner_id, decision, due_on, metric }) => ({
+            owner_id,
+            decision,
+            due_on,
+            metric,
+          })),
+          digest: decided.digest,
+          knowledge: decided.knowledge,
+          hire: decided.hire,
+          usage: answer.usage,
+          started,
+        });
+      }),
+    ),
+  );
+  const woken = wokenRuns.parse(
+    JSON.parse(
+      await day.once("the wake", async () => {
+        try {
+          return JSON.stringify(
+            dry
+              ? {
+                  queued: input.active
+                    .filter((agent) => agent.slug !== "matter")
+                    .filter((agent) => settled.stillOpen.some((item) => item.owner_id === agent.id))
+                    .map((agent) => agent.slug),
+                  failed: [],
+                }
+              : await sides.wake(db, input.active, settled.stillOpen, today),
+          );
+        } catch (failure) {
+          const reason = failure instanceof Error ? failure.message : String(failure);
+          sides.log(`${new Date().toISOString()} meeting step the wake: stopped: ${reason}`);
+          await post(
+            db,
+            dry,
+            "team",
+            SYSTEM_AUTHOR,
+            wakeStoppedPost(reason, startsLeftToday(input.startedAt, new Date())),
+          );
+          throw failure;
+        }
+      }),
+    ),
+  );
+  const part = (name: string, work: () => unknown) =>
+    day.once(name, () => bestEffort({ db, dry, part: name }, work, sides.log));
+  await part("Matter's notes for the knowledge base", () =>
+    dry ? undefined : sides.learn(settled.knowledge),
+  );
+  // H101: the meeting reads the colleagues' reports, which may carry outside text, so its hires wait in Approvals.
+  await part("the hires", () =>
+    dry
+      ? undefined
+      : sides.hire(db, { slug: matter.slug, id: matter.id }, settled.hire, null, false),
+  );
+  await part("the decisions' line", () =>
+    post(
+      db,
+      dry,
+      "team",
+      { slug: "matter", name: "Matter", kind: "agent" },
+      decisionsPost({
+        today,
+        closings: settled.closings,
+        kept: settled.kept,
+        refused: settled.refused,
+        retired: settled.retired,
+        recorded: settled.recorded,
+        woken,
+      }),
+    ),
+  );
+  if (settled.digest.trim() !== "")
+    await part("the digest", () =>
+      post(
+        db,
+        dry,
+        "matter",
+        { slug: "matter", name: "Matter", kind: "agent" },
+        settled.digest.split("\n").slice(0, 10).join("\n"),
+      ),
+    );
+  await part("the meeting's record", () =>
+    record(db, dry, matter, "Chaired the daily meeting", settled.usage, settled.started),
+  );
 }
 
 async function ask(
@@ -644,6 +989,12 @@ async function main(): Promise<void> {
     console.log(`${now.toISOString()} meeting: already held today`);
     return;
   }
+  if (!dry && beforeFirstStart(now)) {
+    console.log(
+      `${now.toISOString()} meeting: not before 17:45 Cairo time; a start the laptop missed waits for today's own`,
+    );
+    return;
+  }
   const until = breakerUntil(join(HOME, "breaker.json"));
   if (until !== null) {
     console.log(
@@ -668,7 +1019,7 @@ async function main(): Promise<void> {
     prompt: string,
     run: () => Promise<{ text: string; usage?: CliUsage }>,
   ): Promise<{ text: string; usage?: CliUsage }> => {
-    if (!measure) return meetingStep({ db, dry, step, prompt, again: startsLeftToday(now) }, run);
+    if (!measure) return meetingStep({ db, dry, step, prompt, startedAt: now }, run);
     console.log(stepLine(new Date(), step, prompt.length, 0, "not sent (--prompts)"));
     return { text: "" };
   };
@@ -695,30 +1046,7 @@ async function main(): Promise<void> {
     const answer = await call("the scorecard", prompt, () =>
       ask(prompt, analyst.model, analyst.tools.includes("research"), STEP_LIMIT_MS.scorecard),
     );
-    const result = lastJson(answer.text, analystAnswer);
-    const posted = [
-      `Scorecard for ${today}:`,
-      numbers,
-      result.observations.length === 0
-        ? ""
-        : `\nWhat matters:\n${result.observations
-            .slice(0, 3)
-            .map((line, index) => `${String(index + 1)}. ${line}`)
-            .join("\n")}`,
-      result.competitors === "" ? "" : `\nCompetitors today: ${result.competitors}`,
-    ]
-      .filter((part) => part !== "")
-      .join("\n");
-    await post(db, dry, "team", { slug: analyst.slug, name: analyst.name, kind: "agent" }, posted);
-    if (!dry)
-      remember([
-        ...result.knowledge,
-        ...(result.competitors === ""
-          ? []
-          : [{ subject: "competitors", text: result.competitors }]),
-      ]);
-    await record(db, dry, analyst, "The meeting's scorecard", answer.usage, started);
-    return posted;
+    return postScorecard({ db, dry, today, numbers, analyst, answer, started });
   });
 
   // Yesterday's decisions, for every colleague and for Matter.
@@ -796,7 +1124,6 @@ async function main(): Promise<void> {
         `- @${slugOf.get(streak.owner_id) ?? "?"}, proven by ${streak.metric}: missed ${String(streak.count)} time(s) in a row, last as "${streak.decision}"`,
     )
     .join("\n");
-  const started = new Date().toISOString();
   const inputs = matterInputs(PLAN);
   const rules = decisionRules(active);
   const missedPart =
@@ -836,82 +1163,19 @@ async function main(): Promise<void> {
       `${now.toISOString()} meeting step the decisions: before PR 502 ${String(before)} characters; its toolkits ${String(rules[0]?.length ?? 0)}, rulings and rule ${String((rules[1]?.length ?? 0) + (rules[2]?.length ?? 0))}, missed streaks ${String(missedPart.length)} (${String(shown.length)} of ${String(streaks.size)} streaks)`,
     );
   }
-  const answer = await call("the decisions", prompt, () => askMatter(prompt, childEnv()));
-  const decided = lastJson(answer.text, matterAnswer);
-  const idOf = new Map(agents.map((agent) => [agent.slug, agent.id]));
-  const { closings, kept, refused } = settleDecisions(
-    decided,
-    open ?? [],
-    closedRows,
-    idOf,
-    active.map((agent) => agent.slug),
-    today,
-  );
-  let recorded = true;
-  if (!dry) {
-    for (const item of closings) {
-      await db
-        .from("agent_decisions")
-        .update({ status: item.status, checked_at: new Date().toISOString() })
-        .eq("id", item.id);
-    }
-    if (kept.length > 0) {
-      const { error: insertError } = await db.from("agent_decisions").insert(
-        kept.map((item) => ({
-          meeting_on: today,
-          owner_id: idOf.get(item.owner) ?? matter.id,
-          decision: item.decision,
-          due_on: item.due_on,
-          metric: item.metric,
-        })),
-      );
-      recorded = insertError === null;
-    }
-    remember(decided.knowledge);
-    // H101: the meeting reads the colleagues' reports, which may carry outside text, so its hires wait in Approvals.
-    await applyHires(db, { slug: matter.slug, id: matter.id }, decided.hire, null, false);
-  }
-  // H143 (1): every decision still open after the meeting, each colleague's woken in its own thread
-  const stillOpen = stillOpenDecisions(
-    open ?? [],
-    closings,
-    kept,
-    recorded,
-    (owner) => idOf.get(owner) ?? matter.id,
-  );
-  const woken: { queued: string[]; failed: string[] } = dry
-    ? {
-        queued: active
-          .filter((agent) => agent.slug !== "matter")
-          .filter((agent) => stillOpen.some((item) => item.owner_id === agent.id))
-          .map((agent) => agent.slug),
-        failed: [],
-      }
-    : await queueDecisionRuns(db, active, stillOpen, today);
-  await post(
+  await decide({
     db,
     dry,
-    "team",
-    { slug: "matter", name: "Matter", kind: "agent" },
-    decisionsPost({
-      today,
-      closings,
-      kept,
-      refused,
-      retired: decided.retired,
-      recorded,
-      woken,
-    }),
-  );
-  if (decided.digest.trim() !== "")
-    await post(
-      db,
-      dry,
-      "matter",
-      { slug: "matter", name: "Matter", kind: "agent" },
-      decided.digest.split("\n").slice(0, 10).join("\n"),
-    );
-  await record(db, dry, matter, "Chaired the daily meeting", answer.usage, started);
+    day,
+    today,
+    startedAt: now,
+    agents,
+    active,
+    matter,
+    open: open ?? [],
+    closed: closedRows,
+    ask: () => call("the decisions", prompt, () => askMatter(prompt, childEnv())),
+  });
   // every step finished: only now is the day held
   day.finish(now);
 }

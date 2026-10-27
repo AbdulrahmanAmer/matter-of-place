@@ -308,8 +308,8 @@
   {
     "id": "meeting-fix-r3-log-size",
     "file": "scripts/workforce/meeting.ts",
-    "find": "input.prompt.length, clock() - start",
-    "replace": "0, clock() - start",
+    "find": "input.prompt.length, end - start",
+    "replace": "0, end - start",
     "test": "tests/unit/meeting-decisions.test.ts",
     "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
     "expect": "× .*logs each step's prompt size, its duration and how it ended"
@@ -317,7 +317,7 @@
   {
     "id": "meeting-fix-r3-log-stopped",
     "file": "scripts/workforce/meeting.ts",
-    "find": "    log(line(`stopped: ${reason}`));\n",
+    "find": "    log(line(`stopped: ${reason}`, end));\n",
     "replace": "",
     "test": "tests/unit/meeting-decisions.test.ts",
     "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
@@ -326,7 +326,7 @@
   {
     "id": "meeting-fix-r3-thread-line",
     "file": "scripts/workforce/meeting.ts",
-    "find": "      stoppedPost(input.step, reason, input.again),",
+    "find": "      stoppedPost(input.step, reason, startsLeftToday(input.startedAt, new Date(end))),",
     "replace": "      \"\",",
     "test": "tests/unit/meeting-decisions.test.ts",
     "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
@@ -344,8 +344,8 @@
   {
     "id": "meeting-fix-r3-last-start",
     "file": "scripts/workforce/meeting.ts",
-    "find": "const LAST_START_HOUR = 21;",
-    "replace": "const LAST_START_HOUR = 22;",
+    "find": "const LAST_START = 21 * 60 + 45;",
+    "replace": "const LAST_START = 22 * 60 + 45;",
     "test": "tests/unit/meeting-decisions.test.ts",
     "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
     "expect": "× .*says no start is left after the day's last one, at 21:45 Cairo time"
@@ -430,5 +430,104 @@
     "test": "tests/unit/meeting-decisions.test.ts",
     "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
     "expect": "× .*reads when each closed decision was checked, so an old single miss can be left out"
+  },
+  {
+    "id": "meeting-fix-r4-decisions-kept",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "      await day.once(\"the decisions\", async () => {",
+    "replace": "      await ((_step: string, run: () => Promise<string>) => run())(\"the decisions\", async () => {",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*keeps the decisions the moment they are written: a start after the wake stopped asks Matter nothing and wakes the owners once"
+  },
+  {
+    "id": "meeting-fix-r4-wake-own-step",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "      await day.once(\"the wake\", async () => {",
+    "replace": "      await ((_step: string, run: () => Promise<string>) => run())(\"the wake\", async () => {",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*runs no part of the decisions twice when the day was not held: a later start asks, wakes and posts nothing again"
+  },
+  {
+    "id": "meeting-fix-r4-wake-stop-said",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "            wakeStoppedPost(reason, startsLeftToday(input.startedAt, new Date())),",
+    "replace": "            \"\",",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*keeps the decisions the moment they are written: a start after the wake stopped asks Matter nothing and wakes the owners once"
+  },
+  {
+    "id": "meeting-fix-r4-parts-once",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "    day.once(name, () => bestEffort({ db, dry, part: name }, work, sides.log));",
+    "replace": "    bestEffort({ db, dry, part: name }, work, sides.log);",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*runs no part of the decisions twice when the day was not held: a later start asks, wakes and posts nothing again"
+  },
+  {
+    "id": "meeting-fix-r4-best-effort",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "    return `failed: ${reason}`;",
+    "replace": "    throw failure;",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*goes on when the knowledge base or the hires fail, and says each failure once in the team thread"
+  },
+  {
+    "id": "meeting-fix-r4-failure-said",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "      `The meeting went on without ${input.part}: ${reason}.`,",
+    "replace": "      \"\",",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*goes on when the knowledge base or the hires fail, and says each failure once in the team thread"
+  },
+  {
+    "id": "meeting-fix-r4-scorecard-kept",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "  await bestEffort(\n    { db, dry, part: \"the scorecard's notes for the knowledge base\" },",
+    "replace": "  await ((_input: unknown, work: () => unknown) => Promise.resolve(work()))(\n    { db, dry, part: \"the scorecard's notes for the knowledge base\" },",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*keeps the scorecard as posted when the knowledge base cannot be written, so the next start posts it no second time"
+  },
+  {
+    "id": "meeting-fix-r4-stop-time",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "startsLeftToday(input.startedAt, new Date(end))",
+    "replace": "startsLeftToday(input.startedAt, input.startedAt)",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*works out a start left from the time of the stop: a 20:45 start that runs past 21:45 has none"
+  },
+  {
+    "id": "meeting-fix-r4-stop-before-last",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "cairoMinutes(stoppedAt) < LAST_START",
+    "replace": "cairoMinutes(startedAt) < LAST_START",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*works out a start left from the time of the stop: a 20:45 start that runs past 21:45 has none"
+  },
+  {
+    "id": "meeting-fix-r4-last-interval",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "cairoMinutes(startedAt) <= LAST_START - START_INTERVAL",
+    "replace": "true",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*works out a start left from the time of the stop: a 20:45 start that runs past 21:45 has none"
+  },
+  {
+    "id": "meeting-fix-r4-first-start",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "return cairoMinutes(now) < FIRST_START;",
+    "replace": "return cairoMinutes(now) < 0;",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*refuses a start before 17:45 Cairo time, the missed start the laptop runs after midnight"
   }
 ]
