@@ -74,12 +74,36 @@ export function postToolLine(drive: string | null): string {
   return `A social post you propose carries its pictures: add "post" to its content: {"title": "a short name", "property_id": "a published property's id, when it is about one", "submission_id": "the request's id, when it is about a request", "test": true for a rehearsal, "channels": [{"channel": "instagram|x|linkedin", "format": "carousel|single|reel", "caption": "the caption for that channel", "images": [{"path": "the file", "alt": "what the picture shows"}], "reel": {"video": {"path": "...", "alt": "..."}, "poster": {"path": "...", "alt": "..."}}}]}. A path is ${where}; name the files the runner's render line in the thread names, never a file chosen by listing order. Captions: X up to 280 characters, Instagram 2,200, LinkedIn 3,000; a reel on LinkedIn needs its poster; Facebook and YouTube are off. It waits in Proposed posts and nothing posts until a person approves it.`;
 }
 
-/** A proposal filed as a proposed post: a social post that carries its `post`. Any other stays a generic approval. */
+/** A proposal filed as a proposed post: a social post that carries its `post`. Any other social post is filed only with a reel of its run (H146); other
+ * actions stay generic approvals. */
 export function isStructuredPost(proposal: {
   action: string;
   content: { post?: unknown };
 }): boolean {
   return proposal.action === "social_post" && proposal.content.post !== undefined;
+}
+
+/**
+ * W8 item 2 (ruling H146): a social post with neither its pictures nor a reel of its run is not filed, because approving
+ * it would record a decision and make nothing. Said once in the brief of a colleague that drafts posts.
+ */
+export const UNFILED_POST_RULE =
+  'A social post that carries neither its pictures ("post") nor a reel asked for in the same answer is not filed: approving it would make nothing.';
+
+/**
+ * The thread line for such a post: what it lacked in plain words, then the shapes this colleague can give it (`postLine`
+ * is `postToolLine` for the runner's Drive folder).
+ */
+export function unfiledPostLine(
+  summary: string,
+  postLine: string,
+  reelLine: string | null,
+): string {
+  return [
+    `The post "${summary}" was not filed: a social post carries its pictures ("post")${reelLine === null ? "" : " or asks for a reel"}.`,
+    postLine,
+    ...(reelLine === null ? [] : [reelLine]),
+  ].join(" ");
 }
 
 const TYPES: Readonly<Record<string, { type: string; video: boolean }>> = {
