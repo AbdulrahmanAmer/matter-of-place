@@ -137,35 +137,69 @@ export function retryPrompt(text: string, error: string): string {
   ].join("\n");
 }
 
-/** A value nobody wrote: what the schema fills in for a field left out, so it needs no trace. */
-const unwritten = (value: unknown): boolean =>
-  value === undefined ||
-  value === null ||
-  value === "" ||
-  value === false ||
-  (Array.isArray(value) && value.length === 0);
+/** The index of the first character that is not white space, from `at` going `step` (-1 or `text.length` past an end). */
+function nonSpace(text: string, at: number, step: 1 | -1): number {
+  let index = at;
+  while (index >= 0 && index < text.length && /\s/.test(text.charAt(index))) index += step;
+  return index;
+}
 
 /**
- * P-4691 round 2 (fresh review, 2026-10-28): a retried object counts only if it traces to the run's own answer, so a
- * retry repairs syntax and never adds. Every string in it (as written, or JSON-escaped) and every number occurs in the
- * original text, every key with a written value occurs there as `"key"`, and `allow: true` only where the original
- * wrote it.
+ * P-4691 round 3 (fresh review, 2026-10-28; Matter's rule: a retry may change only punctuation). Round 2 asked only
+ * that each piece occur somewhere in the original, so a retry could rebuild the object from fragments: a value moved
+ * between keys (a studio decision `revise` handed back as `approve`), a slice of a string, an element twice, a number
+ * from the digits of a date. Now the retried object's tokens, in their written order, each stand in `original` at an
+ * increasing position from its first "{", between JSON punctuation: each key as `"key"` (after a "{" or ",", before a
+ * ":"), each string whole and quoted (JSON-escaped or as written), each number, `true`, `false` and `null` whole, and a
+ * key's own value right after its ":" (so `allow: true` only where the original wrote `"allow": true`).
+ */
+function tracesIn(original: string, retried: unknown): boolean {
+  let pos = original.indexOf("{");
+  const take = (
+    forms: readonly string[],
+    before: string,
+    after: string,
+    pinned: boolean,
+  ): boolean => {
+    const fits = (form: string, at: number): boolean => {
+      const prev = original.charAt(nonSpace(original, at - 1, -1));
+      const next = original.charAt(nonSpace(original, at + form.length, 1));
+      return prev !== "" && before.includes(prev) && (next === "" || after.includes(next));
+    };
+    // a key's own value starts at the first character after its ":"
+    const own = nonSpace(original, nonSpace(original, pos, 1) + 1, 1);
+    let found = -1;
+    let end = -1;
+    for (const form of forms) {
+      let at = pinned ? own : original.indexOf(form, pos);
+      while (at >= 0 && !(original.startsWith(form, at) && fits(form, at)))
+        at = pinned ? -1 : original.indexOf(form, at + 1);
+      if (at >= 0 && (found < 0 || at < found)) [found, end] = [at, at + form.length];
+    }
+    if (found >= 0) pos = end;
+    return found >= 0;
+  };
+  const walk = (value: unknown, keyed: boolean): boolean => {
+    if (Array.isArray(value)) return value.every((item) => walk(item, false));
+    if (typeof value === "object" && value !== null)
+      return Object.entries(value).every(
+        ([key, field]) => take([JSON.stringify(key)], "{,", ":", false) && walk(field, true),
+      );
+    const forms =
+      typeof value === "string" ? [JSON.stringify(value), `"${value}"`] : [JSON.stringify(value)];
+    return take(forms, keyed ? ":" : ":[,", ",]}", keyed);
+  };
+  return pos >= 0 && walk(retried, false);
+}
+
+/**
+ * A retried object counts only if it traces to the run's own answer (`tracesIn`), as written or as the retry saw it
+ * through the fence, whose replacement turns a ">>>" the run wrote into "> > >".
  */
 export function tracesTo(original: string, retried: unknown): boolean {
-  const traced = (value: unknown): boolean => {
-    if (typeof value === "string")
-      return original.includes(value) || original.includes(JSON.stringify(value).slice(1, -1));
-    if (typeof value === "number") return original.includes(String(value));
-    if (Array.isArray(value)) return value.every(traced);
-    if (typeof value !== "object" || value === null) return true;
-    return Object.entries(value).every(
-      ([key, field]) =>
-        (unwritten(field) || original.includes(JSON.stringify(key))) && traced(field),
-    );
-  };
-  const allows =
-    typeof retried === "object" && retried !== null && "allow" in retried && retried.allow === true;
-  return traced(retried) && (!allows || /"allow"\s*:\s*true/.test(original));
+  const fence = fenced("", original);
+  const asSeen = fence.slice(fence.indexOf("\n") + 1, fence.lastIndexOf("\n"));
+  return tracesIn(original, retried) || tracesIn(asSeen, retried);
 }
 
 /** The one retry, read: its outcome and the object as written, or null when it cannot be read or cannot run. */

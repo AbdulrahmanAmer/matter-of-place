@@ -81,51 +81,6 @@
     "expect": "× .*files nothing and says the plain line when the retry adds a hire and a proposal"
   },
   {
-    "id": "ar-r2-trace-strings",
-    "test": "tests/unit/workforce-escalation.test.ts",
-    "file": "scripts/workforce/answer.ts",
-    "find": "      return original.includes(value) || original.includes(JSON.stringify(value).slice(1, -1));",
-    "replace": "      return true;",
-    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*traces a retried object to the original"
-  },
-  {
-    "id": "ar-r2-trace-escaped",
-    "test": "tests/unit/workforce-escalation.test.ts",
-    "file": "scripts/workforce/answer.ts",
-    "find": "      return original.includes(value) || original.includes(JSON.stringify(value).slice(1, -1));",
-    "replace": "      return original.includes(value);",
-    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*asks Julian's unreadable answer again with its parse error"
-  },
-  {
-    "id": "ar-r2-trace-numbers",
-    "test": "tests/unit/workforce-escalation.test.ts",
-    "file": "scripts/workforce/answer.ts",
-    "find": "    if (typeof value === \"number\") return original.includes(String(value));",
-    "replace": "    if (typeof value === \"number\") return true;",
-    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*traces a retried object to the original"
-  },
-  {
-    "id": "ar-r2-trace-keys",
-    "test": "tests/unit/workforce-escalation.test.ts",
-    "file": "scripts/workforce/answer.ts",
-    "find": "(unwritten(field) || original.includes(JSON.stringify(key)))",
-    "replace": "true",
-    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*traces a retried object to the original"
-  },
-  {
-    "id": "ar-r2-trace-allow",
-    "test": "tests/unit/workforce-escalation.test.ts",
-    "file": "scripts/workforce/answer.ts",
-    "find": "(!allows || /\"allow\"\\s*:\\s*true/.test(original))",
-    "replace": "true",
-    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*traces a retried object to the original"
-  },
-  {
     "id": "ar-r2-object-only",
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/answer.ts",
@@ -178,5 +133,86 @@
     "replace": "    const usage = answer.usage;",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
     "expect": "× .*counts the retry's tokens in the run's usage"
+  },
+  {
+    "id": "ar-r3-trace-order",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "    if (found >= 0) pos = end;",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
+    "expect": "× .*refuses a retry that duplicates a proposal"
+  },
+  {
+    "id": "ar-r3-trace-own-value",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "    return take(forms, keyed ? \":\" : \":[,\", \",]}\", keyed);",
+    "replace": "    return take(forms, keyed ? \":\" : \":[,\", \",]}\", false);",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
+    "expect": "× .*refuses a retry that moves a value between keys"
+  },
+  {
+    "id": "ar-r3-trace-punctuation",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "      return prev !== \"\" && before.includes(prev) && (next === \"\" || after.includes(next));",
+    "replace": "      return true;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
+    "expect": "× .*refuses a merged number taken from the digits of a date"
+  },
+  {
+    "id": "ar-r3-trace-escaped",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "      typeof value === \"string\" ? [JSON.stringify(value), `\"${value}\"`] : [JSON.stringify(value)];",
+    "replace": "      typeof value === \"string\" ? [`\"${value}\"`] : [JSON.stringify(value)];",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
+    "expect": "× .*traces Julian's real answer, its one bracket put right"
+  },
+  {
+    "id": "ar-r3-trace-as-written",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "      typeof value === \"string\" ? [JSON.stringify(value), `\"${value}\"`] : [JSON.stringify(value)];",
+    "replace": "      [JSON.stringify(value)];",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
+    "expect": "× .*traces a retried object to the original"
+  },
+  {
+    "id": "ar-r3-trace-fence",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "  return tracesIn(original, retried) || tracesIn(asSeen, retried);",
+    "replace": "  return tracesIn(original, retried);",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
+    "expect": "× .*traces an answer that truly holds a closing mark"
+  },
+  {
+    "id": "ar-r3-trace-whole-string",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "      typeof value === \"string\" ? [JSON.stringify(value), `\"${value}\"`] : [JSON.stringify(value)];",
+    "replace": "      typeof value === \"string\" ? [JSON.stringify(value), `\"${value}\"`, `\"${value}`] : [JSON.stringify(value)];",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
+    "expect": "× .*refuses a retry that slices a string"
+  },
+  {
+    "id": "ar-r3-trace-own-value-body",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "    return take(forms, keyed ? \":\" : \":[,\", \",]}\", keyed);",
+    "replace": "    return take(forms, keyed ? \":\" : \":[,\", \",]}\", false);",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
+    "expect": "× .*refuses an action or a to taken from the body"
+  },
+  {
+    "id": "ar-r3-trace-key-punctuation",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "      return prev !== \"\" && before.includes(prev) && (next === \"\" || after.includes(next));",
+    "replace": "      return true;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
+    "expect": "× .*allows only where the original wrote allow"
   }
 ]
