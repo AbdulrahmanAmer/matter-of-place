@@ -1,0 +1,65 @@
+[
+  {
+    "id": "w8-2-text-post-not-filed",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "      if (proposal.action === \"social_post\" && reel === null) {",
+    "replace": "      if (proposal.action === \"social_post\" && reel === null && proposal.summary === \"\") {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t \"W8 item 2\"",
+    "expect": "× .*files no text-only post, says in the thread the shapes a post takes, and still files a plan"
+  },
+  {
+    "id": "w8-2-only-social-posts",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "      if (proposal.action === \"social_post\" && reel === null) {",
+    "replace": "      if (reel === null) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t \"W8 item 2\"",
+    "expect": "× .*files no text-only post, says in the thread the shapes a post takes, and still files a plan"
+  },
+  {
+    "id": "w8-2-reel-post-filed",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "      if (proposal.action === \"social_post\" && reel === null) {",
+    "replace": "      if (proposal.action === \"social_post\") {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t \"W8 item 2\"",
+    "expect": "× .*files a post whose run asked for a reel, with its reel, as before"
+  },
+  {
+    "id": "w8-2-reel-line-by-tool",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "        const reelLine = agent.tools.includes(\"request_reel\") ? REEL_TOOL_LINE : null;",
+    "replace": "        const reelLine = agent.tools.includes(\"request_reel\") ? null : REEL_TOOL_LINE;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t \"W8 item 2\"",
+    "expect": "× .*files no text-only post, says in the thread the shapes a post takes, and still files a plan"
+  },
+  {
+    "id": "w8-2-line-names-shape",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/proposed-post.ts",
+    "find": "    postLine,",
+    "replace": "    \"\",",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t \"W8 item 2\"",
+    "expect": "× .*files no text-only post, says in the thread the shapes a post takes, and still files a plan"
+  },
+  {
+    "id": "w8-2-brief-says-it-once",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "[runnerPostLine(), UNFILED_POST_RULE]",
+    "replace": "[runnerPostLine()]",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t \"W8 item 2\"",
+    "expect": "× .*files no text-only post, says in the thread the shapes a post takes, and still files a plan"
+  },
+  {
+    "id": "w8-2-structured-post-as-today",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "      if (isStructuredPost(proposal)) {",
+    "replace": "      if (proposal.summary === \"\" && isStructuredPost(proposal)) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t \"W8 item 2\"",
+    "expect": "× .*sends a post with its pictures to Proposed posts, as before"
+  }
+]

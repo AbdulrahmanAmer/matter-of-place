@@ -787,15 +787,16 @@ describe("H115, review of 2026-10-19: the runner renders what a colleague's answ
 
   it("runs a named renderer through the wrapper's plan: bun from the app folder, a clean environment, no key", () => {
     const { work, drive, bin, env } = scope();
-    const spawn = ok("slide-0 1080x1350 ok\nslide-1 1080x1350 ok\n");
+    const spawn = ok("slide-0.c82f91d4.jpg 1080x1350 ok\nslide-1.0a1b2c3d.jpg 1080x1350 ok\n");
     const lines = runRenders(
       [{ renderer: "carousel", spec: "./spec/spec.json", out: join(drive, "Carousels", "x") }],
       { allowed: ["carousel", "post", "story"], work, roots: [drive] },
       env,
       spawn,
     );
+    // P-4650: the line names this run's files, so a colleague never takes an older batch by listing order
     expect(lines).toEqual([
-      `Rendered a carousel from ./spec/spec.json into ${join(drive, "Carousels", "x")}: 2 files.`,
+      `Rendered a carousel from ./spec/spec.json into ${join(drive, "Carousels", "x")}: 2 files (slide-0.c82f91d4.jpg, slide-1.0a1b2c3d.jpg).`,
     ]);
     expect(spawn.calls).toHaveLength(1);
     const [first] = spawn.calls;

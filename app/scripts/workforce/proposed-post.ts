@@ -26,10 +26,8 @@ import {
   type PostFile,
 } from "../../src/domain/proposed-posts.ts";
 import type { Db } from "../../src/server/lib/db.ts";
+import { CONFIG_FILE, driveSocialFolder } from "./config.ts";
 import { STUDIO } from "./studio.ts";
-
-/** The social media folder of the company's Google Drive on this laptop: no other Drive file can be proposed. */
-export const DRIVE = "G:/My Drive/Matter of Place/Social Media";
 
 const fileRefSchema = z
   .object({
@@ -63,16 +61,49 @@ export const postPlanSchema = z.object({
   channels: z.array(channelPlanSchema).min(1).max(3),
 });
 
-/** The line a colleague with `draft_post` reads in its brief: how a post carries its pictures, and what happens next. */
-export const POST_TOOL_LINE =
-  'A social post you propose carries its pictures: add "post" to its content: {"title": "a short name", "property_id": "the id when it is about a property", "test": true for a rehearsal, "channels": [{"channel": "instagram|x|linkedin", "format": "carousel|single|reel", "caption": "the caption for that channel", "images": [{"path": "the file in the studio or the Google Drive folder", "alt": "what the picture shows"}], "reel": {"video": {"path": "...", "alt": "..."}, "poster": {"path": "...", "alt": "..."}}}]}. Captions: X up to 280 characters, Instagram 2,200, LinkedIn 3,000; a reel on LinkedIn needs its poster; Facebook and YouTube are off. It waits in Proposed posts and nothing posts until a person approves it.';
+/**
+ * The line a colleague with `draft_post` reads in its brief: how a post carries its pictures, and what happens next.
+ * It names the Drive folder the runner checks paths against (`driveSocial` in the runner's config, P-4650), and both
+ * ids the runner checks before it uploads anything.
+ */
+export function postToolLine(drive: string | null): string {
+  const where =
+    drive === null
+      ? "an absolute path in the studio (no Google Drive folder is set on this laptop)"
+      : `an absolute path in the studio or the Google Drive folder, or a path relative to the Drive folder ${drive}`;
+  return `A social post you propose carries its pictures: add "post" to its content: {"title": "a short name", "property_id": "a published property's id, when it is about one", "submission_id": "the request's id, when it is about a request", "test": true for a rehearsal, "channels": [{"channel": "instagram|x|linkedin", "format": "carousel|single|reel", "caption": "the caption for that channel", "images": [{"path": "the file", "alt": "what the picture shows"}], "reel": {"video": {"path": "...", "alt": "..."}, "poster": {"path": "...", "alt": "..."}}}]}. A path is ${where}; name the files the runner's render line in the thread names, never a file chosen by listing order. Captions: X up to 280 characters, Instagram 2,200, LinkedIn 3,000; a reel on LinkedIn needs its poster; Facebook and YouTube are off. It waits in Proposed posts and nothing posts until a person approves it.`;
+}
 
-/** A proposal filed as a proposed post: a social post that carries its `post`. Any other stays a generic approval. */
+/** A proposal filed as a proposed post: a social post that carries its `post`. Any other social post is filed only with a reel of its run (H146); other
+ * actions stay generic approvals. */
 export function isStructuredPost(proposal: {
   action: string;
   content: { post?: unknown };
 }): boolean {
   return proposal.action === "social_post" && proposal.content.post !== undefined;
+}
+
+/**
+ * W8 item 2 (ruling H146): a social post with neither its pictures nor a reel of its run is not filed, because approving
+ * it would record a decision and make nothing. Said once in the brief of a colleague that drafts posts.
+ */
+export const UNFILED_POST_RULE =
+  'A social post that carries neither its pictures ("post") nor a reel asked for in the same answer is not filed: approving it would make nothing.';
+
+/**
+ * The thread line for such a post: what it lacked in plain words, then the shapes this colleague can give it (`postLine`
+ * is `postToolLine` for the runner's Drive folder).
+ */
+export function unfiledPostLine(
+  summary: string,
+  postLine: string,
+  reelLine: string | null,
+): string {
+  return [
+    `The post "${summary}" was not filed: a social post carries its pictures ("post")${reelLine === null ? "" : " or asks for a reel"}.`,
+    postLine,
+    ...(reelLine === null ? [] : [reelLine]),
+  ].join(" ");
 }
 
 const TYPES: Readonly<Record<string, { type: string; video: boolean }>> = {
@@ -85,10 +116,15 @@ const TYPES: Readonly<Record<string, { type: string; video: boolean }>> = {
 
 /** What filing reads and writes outside itself; a test passes its own. */
 export interface PostDeps {
-  /** The studio and the Drive folder: a path outside them is refused. */
-  roots: { studio: string; drive: string };
+  /** The studio and the Drive folder (null when the runner's config names none): a path outside them is refused. */
+  roots: { studio: string; drive: string | null };
   /** The disk probe: a path that is not in a root by its letters never reaches it. */
   realPath: (path: string) => string | null;
+  /**
+   * Whether the request a post names is in its table, or the property it names is published (production never shows
+   * one that is not); asked before anything is uploaded.
+   */
+  exists: (table: "properties" | "submissions", id: string) => Promise<boolean>;
   download: (key: string) => Promise<Uint8Array | null>;
   upload: (key: string, body: Uint8Array, contentType: string) => Promise<void>;
   remove: (keys: string[]) => Promise<void>;
@@ -129,6 +165,16 @@ function inside(path: string, root: string, deps: PostDeps): string | null {
   return real !== null && realRoot !== null && within(real, realRoot) ? real : null;
 }
 
+/**
+ * The path a colleague named, as the runner checks it: an absolute one as it is; a relative one under the Drive folder
+ * only, never the studio or the run's folder (P-4650). A path that starts with a slash or a drive letter (`\\host`,
+ * `//host`, `C:x`) is never read as relative, so it is still refused by `inside` before the disk is touched.
+ */
+function named(path: string, drive: string | null): string | null {
+  if (isAbsolute(path) || /^[\\/]|^[a-z]:/i.test(path)) return path;
+  return drive === null ? null : join(drive, path);
+}
+
 /** The real path of a file or folder on this disk, or null when there is none. */
 function realPath(path: string): string | null {
   return existsSync(path) ? realpathSync(path) : null;
@@ -154,9 +200,15 @@ async function resolveFile(
       bytes: body.length,
     };
   }
-  const path = ref.path ?? "";
+  const given = ref.path ?? "";
+  const drive = deps.roots.drive;
+  const path = named(given, drive);
+  if (path === null)
+    throw new Refused(
+      `${given} is a relative path and no Google Drive folder is set on this laptop (driveSocial in ~/.mop-workforce/config.json)`,
+    );
   const studio = inside(path, deps.roots.studio, deps);
-  const real = studio ?? inside(path, deps.roots.drive, deps);
+  const real = studio ?? (drive === null ? null : inside(path, drive, deps));
   if (real === null) throw new Refused(`${path} is not in the studio or the Drive folder`);
   const ext = extname(real).toLowerCase();
   const known = TYPES[ext];
@@ -206,6 +258,13 @@ export async function fileProposedPost(
     ...plan.channels.flatMap((channel) => channelProblems(channel)),
   ];
   if (problems.length > 0) return { refused: problems.join(" ") };
+  // the subject first (P-4650): an id that is not in its table refuses the post before any file is uploaded
+  if (plan.property_id !== undefined && !(await deps.exists("properties", plan.property_id)))
+    return {
+      refused: `${plan.property_id} is not a published property; a request not yet published is named by submission_id`,
+    };
+  if (plan.submission_id !== undefined && !(await deps.exists("submissions", plan.submission_id)))
+    return { refused: `${plan.submission_id} is not a request` };
   const batch = { id: randomUUID(), uploaded: [] as string[] };
   const { uploaded } = batch;
   const channels: ChannelPost[] = [];
@@ -232,7 +291,12 @@ export async function fileProposedPost(
     }
   } catch (error) {
     if (error instanceof Refused) return withdraw(deps, uploaded, error.message);
-    throw error;
+    // an upload or a read failing partway leaves nothing public either; the error still reaches the runner, saying
+    // when the earlier uploads could not be removed (round 2 review)
+    const left = (await withdraw(deps, uploaded, "")).refused.trim();
+    if (left === "") throw error;
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`${message} ${left}`, { cause: error });
   }
   // The built channels are what every reader parses later: one the admin list could not parse is never stored.
   const built = z.array(channelPostSchema).safeParse(channels);
@@ -306,12 +370,39 @@ function videoSize(body: Uint8Array): { w: number; h: number } | null {
   }
 }
 
-/** The runner's real dependencies: the public `media` bucket and `create_proposed_post` under the service role. */
-export function postDeps(db: Db): PostDeps {
+/**
+ * What a refusal of `create_proposed_post` says in a colleague's thread: the function's own words (each raise names
+ * them in `detail`), never a constraint's text with the database's names in it (P-4650).
+ */
+export function refusalWords(error: { code: string; details: string; message: string }): string {
+  if (error.code === "22023" && error.details !== "") return error.details;
+  if (error.code === "23503") return "the property or request it names is not in the database";
+  return `the database refused it (${error.code === "" ? error.message : error.code})`;
+}
+
+/**
+ * The runner's real dependencies: the public `media` bucket and `create_proposed_post` under the service role. The
+ * Drive folder is the one the runner's config names (`driveSocial`), the same the toolkits read (W8 0i).
+ */
+export function postDeps(db: Db, config: string = CONFIG_FILE): PostDeps {
   const media = db.storage.from("media");
   return {
-    roots: { studio: STUDIO, drive: DRIVE },
+    roots: { studio: STUDIO, drive: driveSocialFolder(config) },
     realPath,
+    exists: async (table, id) => {
+      if (table === "properties") {
+        const { data, error } = await db
+          .from("properties")
+          .select("id, editorial_state")
+          .eq("id", id)
+          .maybeSingle();
+        if (error !== null) throw new Error("read_failed: properties");
+        return data?.editorial_state === "published";
+      }
+      const { data, error } = await db.from("submissions").select("id").eq("id", id).maybeSingle();
+      if (error !== null) throw new Error(`read_failed: ${table}`);
+      return data !== null;
+    },
     download: async (key) => {
       const { data, error } = await media.download(key);
       return error === null ? new Uint8Array(await data.arrayBuffer()) : null;
@@ -340,7 +431,7 @@ export function postDeps(db: Db): PostDeps {
     create: async (args) => {
       const { data, error } = await db.rpc("create_proposed_post", args);
       if (error === null) return { id: data };
-      return { refused: error.details || error.message };
+      return { refused: refusalWords(error) };
     },
   };
 }
