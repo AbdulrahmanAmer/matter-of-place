@@ -3,6 +3,7 @@ import { AdminApiError } from "../ui/admin-fetch";
 import { useUrlFilters } from "../ui/use-url-filters";
 import { channelFilterNames, usePosts } from "./channels-queries";
 import { ChannelCards } from "./ChannelCards";
+import { InboxTable } from "./InboxTable";
 import { PostsTable } from "./PostsTable";
 import { WithdrawList } from "./WithdrawList";
 
@@ -62,6 +63,7 @@ export function ChannelsPage() {
           },
         }}
       />
+      <InboxTable post={filters.values.post} />
     </>
   );
 }

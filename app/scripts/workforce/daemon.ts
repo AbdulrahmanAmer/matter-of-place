@@ -63,6 +63,7 @@ import {
   UNFILED_POST_RULE,
   unfiledPostLine,
 } from "./proposed-post.ts";
+import { fileSocialReply, REPLY_SOCIAL } from "./social-inbox.ts";
 import type { SourceName } from "./criteria.ts";
 import { explainsHeld, handToMatter, handUnavailableOwners, ownerExplanation } from "./explain.ts";
 import { HOW_REFUSED, postureOf, type Posture } from "./posture.ts";
@@ -382,7 +383,10 @@ export async function wakeOnEvents(client: Db, file = CURSOR_FILE): Promise<numb
     writeFileSync(file, JSON.stringify({ at: cursor }));
     return 0;
   }
-  const { data: agents, error: unread } = await client.from("agents").select("id, wake_on, state");
+  // W8 item 4: the slug too, as an Instagram comment wakes its owner by the criteria, not by `wake_on`.
+  const { data: agents, error: unread } = await client
+    .from("agents")
+    .select("id, slug, wake_on, state");
   if (unread !== null) throw new Error("workforce: the colleagues could not be read");
   const rows = events.flatMap((event) =>
     agents
@@ -408,6 +412,8 @@ export async function wakeOnEvents(client: Db, file = CURSOR_FILE): Promise<numb
 const allowedProposal: Record<string, string> = {
   reply_inquiry: "draft_reply",
   social_post: "draft_post",
+  // W8 item 4: a reply to an Instagram comment or message is drafted with the Social colleague's own tool.
+  reply_social: "draft_post",
   newsletter_issue: "draft_newsletter",
   campaign_plan: "draft_campaign",
 };
@@ -856,7 +862,7 @@ function promptFor(
     ...(agent.tools.includes("draft_post") ? [runnerPostLine(), UNFILED_POST_RULE] : []),
     ...(toolkit === "" ? [] : [toolkit]),
     situation,
-    'Answer with one JSON object and nothing else: {"reply": "what you say in the conversation, short", "task": "a few words for the office board on what you did", "proposals": [{"action": "reply_inquiry|social_post|newsletter_issue|campaign_plan", "summary": "one line", "content": {"body": "the full text", "to": "who it is for if any"}}], "hire": [{"slug": "handle", "name": "Name", "role": "what they do", "instructions": "their brief", "model": "sonnet", "wake_on": [], "tools": ["read_business", "chat"]}]}. Leave proposals and hire empty unless they are needed and you may do them.',
+    'Answer with one JSON object and nothing else: {"reply": "what you say in the conversation, short", "task": "a few words for the office board on what you did", "proposals": [{"action": "reply_inquiry|social_post|newsletter_issue|campaign_plan|reply_social", "summary": "one line", "content": {"body": "the full text", "to": "who it is for if any"}}], "hire": [{"slug": "handle", "name": "Name", "role": "what they do", "instructions": "their brief", "model": "sonnet", "wake_on": [], "tools": ["read_business", "chat"]}]}. Leave proposals and hire empty unless they are needed and you may do them.',
   ].join("\n\n");
 }
 
@@ -1158,6 +1164,21 @@ export async function runOnce(client: Db): Promise<boolean> {
           "id" in filed
             ? `The post "${proposal.summary}" waits in Proposed posts for a person's approval.`
             : `The post "${proposal.summary}" was not proposed: ${filed.refused}.`,
+        );
+        continue;
+      }
+      // W8 item 4: a reply to an Instagram comment answers the comment of this run's triage record, through Approvals.
+      if (proposal.action === REPLY_SOCIAL) {
+        await say(
+          client,
+          thread,
+          await fileSocialReply(client, {
+            agentId: agent.id,
+            runId: run.id,
+            triage,
+            summary: proposal.summary,
+            content: proposal.content,
+          }),
         );
         continue;
       }

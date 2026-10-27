@@ -90,7 +90,7 @@ describe("samplePayloadFor", () => {
       const payload = await sample(type);
       if (!eventPayloadSchemas[type].safeParse(payload).success) refused.push(type);
     }
-    expect(eventTypes).toHaveLength(21);
+    expect(eventTypes).toHaveLength(22);
     expect(refused).toEqual([]);
   });
 

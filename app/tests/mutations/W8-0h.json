@@ -147,8 +147,8 @@
     "id": "w8-0h-record-line",
     "test": "tests/unit/workforce-inbound-mail.test.ts",
     "file": "scripts/workforce/triage.ts",
-    "find": "(inquiry|email_reply|email_inbound|submission|privacy_request)",
-    "replace": "(inquiry|email_reply|submission|privacy_request)",
+    "find": "(inquiry|email_reply|email_inbound|submission|privacy_request|social_comment)",
+    "replace": "(inquiry|email_reply|submission|privacy_request|social_comment)",
     "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"lists email_inbound and service_notice, maps email.received to a person's email, and gives Matter none\"",
     "expect": "× .*lists email_inbound and service_notice, maps email\\.received to a pers"
   },

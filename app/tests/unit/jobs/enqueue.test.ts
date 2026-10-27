@@ -97,7 +97,7 @@ describe("emitEvent", () => {
     ]);
   });
 
-  it("holds the 21 types of the events check constraint (G29)", () => {
+  it("holds the 22 types of the events check constraint (G29)", () => {
     // The newest migration that states the check: B8's table, or a later one that widens it (W9 item 3).
     const states =
       /(?:type text not null check|add constraint events_type_check check) \(type in \(([^)]*)\)\)/;
@@ -109,7 +109,7 @@ describe("emitEvent", () => {
     const sql = readFileSync(`supabase/migrations/${file ?? "missing"}`, "utf8");
     const list = states.exec(sql)?.[1] ?? "";
     const inMigration = [...list.matchAll(/'([^']+)'/g)].map((match) => match[1]);
-    expect(catalogEventTypes).toHaveLength(21);
+    expect(catalogEventTypes).toHaveLength(22);
     expect([...catalogEventTypes].sort()).toEqual(inMigration.sort());
   });
 });

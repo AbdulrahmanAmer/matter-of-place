@@ -4,6 +4,7 @@ import { adminKeys, invalidateAfterWrite } from "../query";
 import {
   cancelPost,
   fetchHealth,
+  fetchInbox,
   fetchPosts,
   markWithdrawn,
   refreshMetrics,
@@ -35,6 +36,16 @@ export function useWithdrawList() {
   return useQuery({
     queryKey: adminKeys.channels.list({ withdraw: true }),
     queryFn: () => fetchPosts({ withdraw: "true" }),
+  });
+}
+
+/** W8 item 4: the comments and messages beside the posts; `post` narrows them to that one post's comments. */
+export function useInbox(post: string | undefined) {
+  const query: Record<string, string> = {};
+  if (post !== undefined) query["post_id"] = post;
+  return useQuery({
+    queryKey: adminKeys.channels.list({ inbox: query }),
+    queryFn: () => fetchInbox(query),
   });
 }
 

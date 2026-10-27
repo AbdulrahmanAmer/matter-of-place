@@ -3,8 +3,8 @@
     "id": "w6-5-catalog",
     "test": "tests/unit/workforce-reply-event.test.ts",
     "file": "src/domain/events.ts",
-    "find": "  \"email.received\",\n  \"email.reply_received\",\n] as const;",
-    "replace": "  \"email.received\",\n] as const;",
+    "find": "  \"email.received\",\n  \"email.reply_received\",\n  \"social.inbox_received\",\n] as const;",
+    "replace": "  \"email.received\",\n  \"social.inbox_received\",\n] as const;",
     "run": "bunx vitest run --project unit tests/unit/workforce-reply-event.test.ts",
     "expect": "× .*is in the catalog with an id-only payload"
   },

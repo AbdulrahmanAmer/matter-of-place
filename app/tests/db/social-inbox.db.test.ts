@@ -1,0 +1,301 @@
+// W8 item 4: the functions of Instagram comments and messages. A read records each item once by its Graph id, ties a
+// comment to our post, emits one social.inbox_received per new row and moves its cursor forward only; a Social reply
+// is filed in Approvals against one row; an approved reply enqueues one send, which begins once and records what
+// became of it in Matter's thread; a declined one leaves the comment unanswered.
+import { describe, expect, it } from "vitest";
+import { withRollback, type Db } from "../fixtures/db";
+
+const MEDIA = "w84-media-1";
+const SLIDES = JSON.stringify([
+  {
+    role: "slide",
+    index: 0,
+    media_key: "requested/w84/slide-0.aaaaaaaa.jpg",
+    w: 1080,
+    h: 1350,
+    bytes: 1,
+  },
+]);
+
+async function scalar<T>(db: Db, sql: string, params: unknown[] = []): Promise<T> {
+  const row = (await db.query<{ v: T }>(sql, params)).rows[0];
+  if (row === undefined) throw new Error(`no row from: ${sql}`);
+  return row.v;
+}
+
+/** One of our Instagram posts whose media id is `MEDIA`. */
+async function ourPost(db: Db): Promise<string> {
+  const asset = await scalar<string>(
+    db,
+    `select public.record_requested_asset('brand', 'carousel', $1::jsonb, 'Opening soon.', 'A line.', '{}'::jsonb) as v`,
+    [SLIDES],
+  );
+  return scalar<string>(
+    db,
+    `insert into public.social_posts (asset_id, property_id, channel, status, scheduled_at, posted_at, remote_id)
+     values ($1, null, 'instagram', 'posted', now(), now(), $2) returning id as v`,
+    [asset, MEDIA],
+  );
+}
+
+const items = JSON.stringify([
+  {
+    kind: "comment",
+    graph_id: "w84-c1",
+    thread_graph_id: MEDIA,
+    parent_graph_id: null,
+    author_handle: "reader",
+    body: "Which architect?",
+    received_at: "2026-10-27T10:00:00Z",
+  },
+  {
+    kind: "message",
+    graph_id: "w84-m1",
+    thread_graph_id: "w84-t1",
+    parent_graph_id: null,
+    author_handle: "buyer",
+    body: "Is it still for sale?",
+    received_at: "2026-10-27T10:05:00Z",
+  },
+]);
+
+const record = (db: Db, list: string, key: string, until: string | null) =>
+  scalar<number>(db, "select public.social_inbox_record($1::jsonb, $2, $3::timestamptz) as v", [
+    list,
+    key,
+    until,
+  ]);
+
+/** A recorded comment with a Social reply waiting in Approvals: the row's id, the approval's id and its hash. */
+async function proposed(db: Db): Promise<{ inbox: string; approval: string; hash: string }> {
+  await record(db, items, "instagram_comments", null);
+  const inbox = await scalar<string>(
+    db,
+    "select id as v from public.social_inbox where graph_id = 'w84-c1'",
+  );
+  const agent = await scalar<string>(db, "select id as v from public.agents where slug = 'social'");
+  const hash = "a".repeat(64);
+  const approval = await scalar<string>(
+    db,
+    "select public.social_inbox_propose($1, $2, null, 'A reply', $3::jsonb, $4) as v",
+    [inbox, agent, JSON.stringify({ inbox_id: inbox, body: "Thank you for asking." }), hash],
+  );
+  return { inbox, approval, hash };
+}
+
+async function refusal(db: Db, sql: string, params: unknown[]): Promise<string> {
+  await db.query("savepoint w84");
+  try {
+    await db.query(sql, params);
+    await db.query("release savepoint w84");
+    return "ok";
+  } catch (error) {
+    await db.query("rollback to savepoint w84");
+    return error instanceof Error ? error.message : String(error);
+  }
+}
+
+describe("social_inbox_record", () => {
+  it("records each item once, ties a comment to our post, emits one event per new row and keeps the cursor", async () => {
+    const seen = await withRollback(async (db) => {
+      const post = await ourPost(db);
+      const first = await record(db, items, "instagram_comments", "2026-10-27T10:05:00Z");
+      const again = await record(db, items, "instagram_comments", "2026-10-27T09:00:00Z");
+      const rows = await db.query<{
+        graph_id: string;
+        social_post_id: string | null;
+        state: string;
+      }>(
+        "select graph_id, social_post_id, state from public.social_inbox where graph_id like 'w84-%' order by graph_id",
+      );
+      const events = await db.query<{ kind: string }>(
+        `select e.payload ->> 'kind' as kind from public.events e
+         join public.social_inbox s on s.id = e.entity_id
+         where e.type = 'social.inbox_received' and s.graph_id like 'w84-%' order by 1`,
+      );
+      const cursor = await scalar<string>(
+        db,
+        "select read_until::text as v from public.social_inbox_cursors where key = 'instagram_comments'",
+      );
+      return { post, first, again, rows: rows.rows, events: events.rows, cursor };
+    });
+    expect(seen.first).toBe(2);
+    expect(seen.again).toBe(0);
+    expect(seen.rows).toEqual([
+      { graph_id: "w84-c1", social_post_id: seen.post, state: "new" },
+      { graph_id: "w84-m1", social_post_id: null, state: "new" },
+    ]);
+    expect(seen.events).toEqual([{ kind: "comment" }, { kind: "message" }]);
+    expect(new Date(seen.cursor).toISOString()).toBe("2026-10-27T10:05:00.000Z");
+  });
+
+  it("never records a reply we sent as a comment, and refuses an item without its ids", async () => {
+    const seen = await withRollback(async (db) => {
+      const { inbox } = await proposed(db);
+      await db.query("update public.social_inbox set reply_graph_id = 'w84-ours' where id = $1", [
+        inbox,
+      ]);
+      const ours = JSON.stringify([
+        {
+          kind: "comment",
+          graph_id: "w84-ours",
+          thread_graph_id: MEDIA,
+          author_handle: "matterofplace",
+          body: "Thank you.",
+          received_at: "2026-10-27T11:00:00Z",
+        },
+      ]);
+      const added = await record(db, ours, "instagram_comments", null);
+      const bad = await refusal(
+        db,
+        "select public.social_inbox_record($1::jsonb, 'instagram_comments')",
+        [
+          JSON.stringify([
+            { kind: "comment", thread_graph_id: MEDIA, received_at: "2026-10-27T11:00:00Z" },
+          ]),
+        ],
+      );
+      return { added, bad };
+    });
+    expect(seen).toEqual({ added: 0, bad: "bad_request" });
+  });
+});
+
+describe("a Social reply, from Approvals to the send", () => {
+  it("files one proposal per comment and refuses a second or one naming another row", async () => {
+    const seen = await withRollback(async (db) => {
+      const { inbox, approval, hash } = await proposed(db);
+      const row = await db.query<{ state: string; approval_id: string; action: string }>(
+        `select s.state, s.approval_id, a.action from public.social_inbox s
+         join public.agent_approvals a on a.id = s.approval_id where s.id = $1`,
+        [inbox],
+      );
+      const agent = await scalar<string>(
+        db,
+        "select id as v from public.agents where slug = 'social'",
+      );
+      const second = await refusal(
+        db,
+        "select public.social_inbox_propose($1, $2, null, 'Again', $3::jsonb, $4)",
+        [inbox, agent, JSON.stringify({ inbox_id: inbox, body: "Again." }), hash],
+      );
+      const other = await scalar<string>(
+        db,
+        "select id as v from public.social_inbox where graph_id = 'w84-m1'",
+      );
+      const mismatch = await refusal(
+        db,
+        "select public.social_inbox_propose($1, $2, null, 'x', $3::jsonb, $4)",
+        [other, agent, JSON.stringify({ inbox_id: inbox, body: "Hi." }), hash],
+      );
+      return { row: row.rows[0], approval, second, mismatch };
+    });
+    expect(seen.row).toEqual({
+      state: "proposed",
+      approval_id: seen.approval,
+      action: "reply_social",
+    });
+    expect(seen.second).toBe("wrong_state");
+    expect(seen.mismatch).toBe("bad_request");
+  });
+
+  it("enqueues one send on approval; the send begins once and its outcome answers the comment and is said", async () => {
+    const seen = await withRollback(async (db) => {
+      const { inbox, approval, hash } = await proposed(db);
+      await db.query(
+        "select public.workforce_decide($1, 'approved', $2, null, 'human', 'req-w84', null, $3)",
+        [approval, hash, "Thank you, the architect is named on the page."],
+      );
+      const jobs = await db.query<{ key: string }>(
+        "select idempotency_key as key from public.jobs where type = 'send_social_reply'",
+      );
+      const first = await scalar<{ state: string; body: string; kind: string }>(
+        db,
+        "select public.social_inbox_reply_begin($1) as v",
+        [approval],
+      );
+      const second = await scalar<{ state: string }>(
+        db,
+        "select public.social_inbox_reply_begin($1) as v",
+        [approval],
+      );
+      await db.query("select public.social_inbox_reply_result($1, 'sent', 'w84-reply-1')", [inbox]);
+      const after = await db.query<{ state: string; reply_state: string; reply_graph_id: string }>(
+        "select state, reply_state, reply_graph_id from public.social_inbox where id = $1",
+        [inbox],
+      );
+      const again = await refusal(
+        db,
+        "select public.social_inbox_reply_result($1, 'failed', null, 'x')",
+        [inbox],
+      );
+      const said = await scalar<string>(
+        db,
+        "select body as v from public.agent_messages where thread = 'matter' order by created_at desc limit 1",
+      );
+      return { approval, jobs: jobs.rows, first, second, after: after.rows[0], again, said };
+    });
+    expect(seen.jobs).toEqual([{ key: `send_social_reply:${seen.approval}` }]);
+    expect(seen.first).toMatchObject({
+      state: "send",
+      kind: "comment",
+      body: "Thank you, the architect is named on the page.",
+    });
+    expect(seen.second).toMatchObject({ state: "sending" });
+    expect(seen.after).toEqual({
+      state: "answered",
+      reply_state: "sent",
+      reply_graph_id: "w84-reply-1",
+    });
+    expect(seen.again).toBe("wrong_state");
+    expect(seen.said).toContain("Sent: the approved reply to an Instagram comment");
+  });
+
+  it("says a refused send and leaves the comment unanswered", async () => {
+    const seen = await withRollback(async (db) => {
+      const { inbox, approval, hash } = await proposed(db);
+      await db.query(
+        "select public.workforce_decide($1, 'approved', $2, null, 'human', 'req-w84b')",
+        [approval, hash],
+      );
+      await db.query("select public.social_inbox_reply_begin($1)", [approval]);
+      await db.query(
+        "select public.social_inbox_reply_result($1, 'refused', null, 'Posting is switched off here.')",
+        [inbox],
+      );
+      const row = await db.query<{ state: string; reply_state: string }>(
+        "select state, reply_state from public.social_inbox where id = $1",
+        [inbox],
+      );
+      const said = await scalar<string>(
+        db,
+        "select body as v from public.agent_messages where thread = 'matter' order by created_at desc limit 1",
+      );
+      return { row: row.rows[0], said };
+    });
+    expect(seen.row).toEqual({ state: "proposed", reply_state: "refused" });
+    expect(seen.said).toContain("Not sent: the approved reply to an Instagram comment");
+  });
+
+  it("leaves a declined reply's comment unanswered, with no send", async () => {
+    const seen = await withRollback(async (db) => {
+      const { inbox, approval } = await proposed(db);
+      await db.query(
+        "select public.workforce_decide($1, 'rejected', null, null, 'human', 'req-w84c', 'Too long.')",
+        [approval],
+      );
+      const state = await scalar<string>(
+        db,
+        "select state as v from public.social_inbox where id = $1",
+        [inbox],
+      );
+      const jobs = await scalar<number>(
+        db,
+        "select count(*)::int as v from public.jobs where type = 'send_social_reply' and idempotency_key = $1",
+        [`send_social_reply:${approval}`],
+      );
+      return { state, jobs };
+    });
+    expect(seen).toEqual({ state: "ignored", jobs: 0 });
+  });
+});

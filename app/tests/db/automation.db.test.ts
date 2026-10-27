@@ -708,6 +708,8 @@ describe("seed (step 4)", () => {
       "payment.marked": 1,
       "property.published": 10,
       "property.unpublished": 2,
+      // W8 item 4: an Instagram comment or message recorded; the Social colleague's run is the work, so no step.
+      "social.inbox_received": 0,
       "subject_request.received": 2,
       "submission.accepted": 1,
       "submission.activated": 0,

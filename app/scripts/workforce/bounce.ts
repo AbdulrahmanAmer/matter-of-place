@@ -4,6 +4,10 @@
 // the Concierge for inquiries), and the run is told the failed address and the person's phone, read here on the
 // runner because the event carries ids only.
 import type { Db } from "../../src/server/lib/db.ts";
+import { sources } from "./criteria.ts";
+
+/** W8 item 4: the event of an Instagram comment or message (`social_inbox_record`). */
+const SOCIAL_EVENT = "social.inbox_received";
 
 const ADMIN = "https://matterofplace.com/admin";
 
@@ -34,10 +38,18 @@ const addressOf = (email: string | null): string =>
  * with the rule would draft a second answer to a thread it does not own (W6 item 5 review).
  */
 export function wakes(
-  agent: { wake_on: readonly string[]; state: string },
+  agent: { slug?: string | undefined; wake_on: readonly string[]; state: string },
   event: { type: string; entity: string | null },
 ): boolean {
   if (event.type === "email.reply_received") return false;
+  // W8 item 4: an Instagram comment or message wakes its owner by the criteria (the Social colleague) while on duty,
+  // and no one else, whatever any colleague's `wake_on` holds.
+  if (event.type === SOCIAL_EVENT)
+    return (
+      agent.slug === sources.social_comment.owner &&
+      agent.state !== "off" &&
+      agent.state !== "paused"
+    );
   if (agent.state === "off" || agent.state === "paused" || !agent.wake_on.includes(event.type))
     return false;
   if (event.type !== "email.bounced") return true;

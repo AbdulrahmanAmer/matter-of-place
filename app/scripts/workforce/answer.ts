@@ -17,7 +17,14 @@ export const outcome = z.object({
   proposals: z
     .array(
       z.object({
-        action: z.enum(["reply_inquiry", "social_post", "newsletter_issue", "campaign_plan"]),
+        // W8 item 4: `reply_social` answers the Instagram comment or message the run was woken for.
+        action: z.enum([
+          "reply_inquiry",
+          "social_post",
+          "newsletter_issue",
+          "campaign_plan",
+          "reply_social",
+        ]),
         summary: z.string().min(1).max(500),
         content: z.object({
           body: z.string().min(1).max(20000),

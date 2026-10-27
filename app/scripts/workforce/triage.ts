@@ -118,7 +118,7 @@ export function replyIdOf(body: string): string | null {
  */
 export function recordOf(body: string): { source: SourceName; id: string } | null {
   const match =
-    /\nRecord: (inquiry|email_reply|email_inbound|submission|privacy_request) ([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.$/.exec(
+    /\nRecord: (inquiry|email_reply|email_inbound|submission|privacy_request|social_comment) ([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.$/.exec(
       body,
     );
   const source = match?.[1] ?? "";
@@ -273,6 +273,7 @@ export async function outsideText(db: Db, source: SourceName, id: string): Promi
           ["Note", row.note],
         ]);
   }
+  if (source === "social_comment") return socialText(db, id);
   // W8 0h: a person's email to one of our addresses; only a row the mailbox recorded as a person's is read.
   const { data } =
     source === "email_inbound"
@@ -291,6 +292,48 @@ export async function outsideText(db: Db, source: SourceName, id: string): Promi
         ["Subject", row.subject],
         ["Message", row.body],
       ]);
+}
+
+/** Earlier lines of a comment's or message's thread the triage reads with it (W8 item 4). */
+const THREAD_LINES = 5;
+
+/**
+ * W8 item 4: an Instagram comment or message as the triage reads it: its own words first (so the 8,000 characters
+ * always reach them), then the thread's earlier lines and the post it is on. All of it is outside text but the post's
+ * address; a colleague sees only the triage of it.
+ */
+async function socialText(db: Db, id: string): Promise<string> {
+  const { data } = await db
+    .from("social_inbox")
+    .select("kind, author_handle, body, thread_graph_id, social_post_id, received_at")
+    .eq("id", id)
+    .limit(1);
+  const row = data?.[0];
+  if (row === undefined) return "";
+  const [{ data: earlier }, { data: post }] = await Promise.all([
+    db
+      .from("social_inbox")
+      .select("author_handle, body")
+      .eq("thread_graph_id", row.thread_graph_id)
+      .lt("received_at", row.received_at)
+      .order("received_at", { ascending: false })
+      .limit(THREAD_LINES),
+    row.social_post_id === null
+      ? Promise.resolve({ data: [] })
+      : db.from("social_posts").select("permalink").eq("id", row.social_post_id).limit(1),
+  ]);
+  const thread = (earlier ?? [])
+    .map((line) => `${line.author_handle || "someone"}: ${line.body}`)
+    .reverse()
+    .join("\n");
+  const permalink = post?.[0]?.permalink ?? null;
+  return [
+    `${row.kind === "comment" ? "Comment" : "Message"} from ${row.author_handle || "someone"}: ${row.body}`,
+    thread === "" ? "" : `Earlier in the thread:\n${thread}`,
+    permalink === null ? "" : `On our post: ${permalink}`,
+  ]
+    .filter((part) => part !== "")
+    .join("\n");
 }
 
 /**

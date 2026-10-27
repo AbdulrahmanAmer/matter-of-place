@@ -45,6 +45,8 @@ begin
     when 'email_replies' then 'public.email_replies where received_at < now() - $1'
     -- W8 0h: inbound mail names a person and quotes them, so it is deleted, not anonymised.
     when 'inbound_mail' then 'public.inbound_mail where received_at < now() - $1'
+    -- W8 item 4: an Instagram comment or message names a person and quotes them, so it is deleted, not anonymised.
+    when 'social_inbox' then 'public.social_inbox where received_at < now() - $1'
   end;
   if v_rows is null then
     raise exception 'bad_request';

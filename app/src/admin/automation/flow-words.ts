@@ -38,6 +38,10 @@ const words: Record<string, EventWords> = {
   "email.bounced": { when: "an email to a request or an inquiry bounces", topic: "Care" },
   "email.received": { when: "a person emails one of our addresses", topic: "Readers" },
   "email.reply_received": { when: "a person replies to an email we sent", topic: "Readers" },
+  "social.inbox_received": {
+    when: "a person comments or writes to us on Instagram",
+    topic: "Readers",
+  },
 };
 
 /** "a property is published", or the recipe's own name in lower case when the event is new. */

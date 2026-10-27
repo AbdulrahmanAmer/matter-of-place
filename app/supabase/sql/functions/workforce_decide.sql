@@ -56,6 +56,7 @@ begin
   v_trigger := 'When you draft ' || case v_row.action
     when 'reply_inquiry' then 'a reply to an inquiry'
     when 'social_post' then 'a social post'
+    when 'reply_social' then 'a reply on Instagram'
     when 'newsletter_issue' then 'a Place Notes issue'
     else 'a proposal (' || v_row.action || ')'
   end;
@@ -114,6 +115,21 @@ begin
         where t <> 'hire'
       )
     );
+  end if;
+
+  -- W8 item 4: an approved reply to an Instagram comment or message is sent once by the `send_social_reply` job (keyed
+  -- by the approval); a declined one leaves the comment unanswered, as ignored.
+  if v_row.action = 'reply_social' then
+    if p_decision = 'approved' then
+      perform public.enqueue_job(
+        'send_social_reply',
+        jsonb_build_object('params', '{}'::jsonb, 'data', jsonb_build_object('approval_id', p_id)),
+        'send_social_reply:' || p_id::text
+      );
+    else
+      update public.social_inbox set state = 'ignored', updated_at = now()
+      where approval_id = p_id and state = 'proposed';
+    end if;
   end if;
 
   insert into public.agent_messages (thread, author_kind, author_id, author_name, body)

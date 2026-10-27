@@ -1239,6 +1239,46 @@ isOneToOne: false
       referencedColumns: ["property_id"]
     }
                   ]
+                },"social_inbox": {
+                  Row: {
+                    "approval_id": string | null,"author_handle": string,"body": string,"channel": string,"created_at": string,"graph_id": string,"id": string,"kind": string,"parent_graph_id": string | null,"received_at": string,"replied_at": string | null,"reply_error": string | null,"reply_graph_id": string | null,"reply_state": string | null,"social_post_id": string | null,"state": string,"thread_graph_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "approval_id"?: string | null,"author_handle"?: string,"body"?: string,"channel": string,"created_at"?: string,"graph_id": string,"id"?: string,"kind": string,"parent_graph_id"?: string | null,"received_at": string,"replied_at"?: string | null,"reply_error"?: string | null,"reply_graph_id"?: string | null,"reply_state"?: string | null,"social_post_id"?: string | null,"state"?: string,"thread_graph_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "approval_id"?: string | null,"author_handle"?: string,"body"?: string,"channel"?: string,"created_at"?: string,"graph_id"?: string,"id"?: string,"kind"?: string,"parent_graph_id"?: string | null,"received_at"?: string,"replied_at"?: string | null,"reply_error"?: string | null,"reply_graph_id"?: string | null,"reply_state"?: string | null,"social_post_id"?: string | null,"state"?: string,"thread_graph_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "social_inbox_approval_id_fkey"
+      columns: ["approval_id"]
+isOneToOne: false
+      referencedRelation: "agent_approvals"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "social_inbox_social_post_id_fkey"
+      columns: ["social_post_id"]
+isOneToOne: false
+      referencedRelation: "social_posts"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"social_inbox_cursors": {
+                  Row: {
+                    "key": string,"read_at": string,"read_until": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "key": string,"read_at"?: string,"read_until": string
+                  }
+                  Update: {
+                    "key"?: string,"read_at"?: string,"read_until"?: string
+                  }
+                  Relationships: [
+
+                  ]
                 },"social_posts": {
                   Row: {
                     "asset_id": string,"channel": string,"created_at": string,"error": string | null,"id": string,"metrics": NonNullable<Json>,"permalink": string | null,"posted_at": string | null,"property_id": string | null,"remote_id": string | null,"scheduled_at": string,"status": Database["public"]['Enums']["social_post_status"],"updated_at": string,"withdraw_required_at": string | null,"withdrawn_at": string | null
@@ -2484,6 +2524,18 @@ isOneToOne: false
                            },
 "settings_put_site":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_note": string,"p_request_id": string,"p_value": Json }; Returns: undefined
+                           },
+"social_inbox_propose":
+{ Args: { "p_agent_id": string,"p_content": Json,"p_content_hash": string,"p_inbox_id": string,"p_run_id": string,"p_summary": string }; Returns: string
+                           },
+"social_inbox_record":
+{ Args: { "p_cursor_key": string,"p_items": Json,"p_read_until"?: string }; Returns: number
+                           },
+"social_inbox_reply_begin":
+{ Args: { "p_approval_id": string }; Returns: Json
+                           },
+"social_inbox_reply_result":
+{ Args: { "p_error"?: string,"p_inbox_id": string,"p_outcome": string,"p_reply_graph_id"?: string }; Returns: undefined
                            },
 "spend_client_credit":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_amount": number,"p_reason": string,"p_request_id": string,"p_submission_id": string }; Returns: {

@@ -25,6 +25,7 @@ export const catalogEventTypes = [
   "email.bounced",
   "email.received",
   "email.reply_received",
+  "social.inbox_received",
 ] as const;
 
 export type CatalogEventType = (typeof catalogEventTypes)[number];

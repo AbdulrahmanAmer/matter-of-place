@@ -106,6 +106,11 @@ begin
   -- W8 0h: a message read from the mailbox (written only by inbound_mail_record in production).
   insert into public.inbound_mail (provider_id, folder, received_at, source)
   values ('test-rls-' || v_user, 'Inbox', now(), 'email_inbound');
+  -- W8 item 4: an Instagram comment and the read's cursor (written only by the social_inbox functions in production).
+  insert into public.social_inbox (channel, kind, graph_id, thread_graph_id, received_at)
+  values ('instagram', 'comment', 'test-rls-' || v_user, 'test-rls-media', now());
+  insert into public.social_inbox_cursors (key, read_until) values ('instagram_comments', now())
+  on conflict (key) do nothing;
   -- W8 0f: a piece of the studio folder (written only by studio_piece_put in production).
   insert into public.studio_pieces (id, title, owner_slug, state, folder)
   values (gen_random_uuid(), 'test-rls', 'social', 'draft', 'test-rls-' || v_user);

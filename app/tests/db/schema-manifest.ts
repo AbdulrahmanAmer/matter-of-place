@@ -750,6 +750,32 @@ export const schemaManifest: Record<string, Record<string, string>> = {
     created_at: "timestamptz",
     updated_at: "timestamptz",
   },
+  // W8 item 4: Instagram comments and messages, written only by the social_inbox functions; the read's cursors.
+  social_inbox: {
+    id: "uuid",
+    channel: "text",
+    kind: "text",
+    graph_id: "text",
+    thread_graph_id: "text",
+    parent_graph_id: "text?",
+    social_post_id: "uuid?",
+    author_handle: "text",
+    body: "text",
+    received_at: "timestamptz",
+    state: "text",
+    approval_id: "uuid?",
+    reply_state: "text?",
+    reply_graph_id: "text?",
+    reply_error: "text?",
+    replied_at: "timestamptz?",
+    created_at: "timestamptz",
+    updated_at: "timestamptz",
+  },
+  social_inbox_cursors: {
+    key: "text",
+    read_until: "timestamptz",
+    read_at: "timestamptz",
+  },
   // W8 item 10 (H116, H135): proposed posts, one row per channel of each revision, and each revision sent back.
   proposed_posts: {
     id: "uuid",

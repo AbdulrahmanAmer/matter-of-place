@@ -19,6 +19,8 @@ export const LogEvent = [
   "runner_beat_failed",
   "ops_health_failed",
   "meta_token_refresh_failed",
+  // W8 item 4: the comments and messages read did nothing (Instagram off, its ids unset, or no token).
+  "social_inbox_skipped",
   "fanout_failed",
   "fanout_payload_invalid",
   "fanout_failure_unrecorded",

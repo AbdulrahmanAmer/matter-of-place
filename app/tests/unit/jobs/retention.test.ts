@@ -33,6 +33,7 @@ const ALL_KEYS = [
   "agent_messages",
   "email_replies",
   "inbound_mail",
+  "social_inbox",
 ];
 
 const mediaRow = (n: number) => {

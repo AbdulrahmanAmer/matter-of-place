@@ -14,6 +14,8 @@ const actionLabel: Record<string, string> = {
   campaign_plan: "Paid campaign plan",
   hire: "A new colleague",
   admin_call: "A change Matter wants to make",
+  // W8 item 4: approved, it is sent once under the comment or into the conversation (Social posts shows the outcome).
+  reply_social: "Reply on Instagram",
 };
 
 type Mode = "view" | "decline" | "edit";
