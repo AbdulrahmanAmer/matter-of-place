@@ -34,6 +34,7 @@ import { marketSlugSchema } from "../../src/domain/market.ts";
 import { jsonValue } from "../../src/domain/json-value.ts";
 import type { Json } from "../../src/db/index.ts";
 import type { Db } from "../../src/server/lib/db.ts";
+import { setPassDeadline } from "../lib/pass-deadline.mjs";
 import { projectName } from "./media.ts";
 import { postRequestSchema, type PostRequest } from "./post-request.ts";
 import {
@@ -1439,13 +1440,17 @@ export function startStudioPass(
  * The longest a studio pass (the reel, then the post) may run. A reel is a designer turn (30 min), then up to
  * REVISIONS + 1 films, each a render (85 s idle, 836 s with the laptop loaded, P-2100) and a review (15 min), with a
  * designer turn (30 min) between them: about 2 h 57 min at worst, and a still post is less. Past STALE_MS its piece is
- * called abandoned anyway, so a pass still running then cannot end well; the pass is ended there.
+ * called abandoned anyway, so a pass still running then cannot end well; the pass is ended there. One limit covers
+ * the whole pass, reel and post (round 6), and no child runs past it (round 7, `pass-deadline.mjs`). Its cost: a post
+ * that starts after a reel of nearly the full limit is cut off, and its piece stays `working` until the sweep or the
+ * STALE_MS rule puts it back in the queue for the next pass.
  */
 export const PASS_LIMIT_MS = STALE_MS;
 
 /**
- * A pass this old has outlived its limit: its watchdog acts by PASS_LIMIT_MS and at most one child's limit (15 min,
- * CHILD_LIMIT_MS of render-reel.mjs), the sweep's PASS_CAP_MS (3 h 15 min, sweep.ts), which ends it past that.
+ * A pass this old has outlived its limit: no child runs past PASS_LIMIT_MS (`pass-deadline.mjs`), so it ends by then
+ * plus the moments a killed child takes to exit; the quarter hour beyond matches the sweep's PASS_CAP_MS (3 h 15 min,
+ * sweep.ts), which ends a pass still alive past that.
  */
 const LOCK_LIMIT_MS = PASS_LIMIT_MS + 15 * 60_000;
 
@@ -1473,6 +1478,8 @@ export async function studioPass(
     log(`${new Date().toISOString()} ${line}`);
   };
   say("studio pass started");
+  // round 7: no child runs past what is left of the pass, so a chain of children cannot carry it past its limit
+  setPassDeadline(Date.now() + limitMs);
   // a step that hangs ends the pass, said in the log; unref, so the timer never holds an ended pass open. One limit for
   // the whole pass (round 6): re-armed for the post, a pass could run twice it, past the sweep's PASS_CAP_MS.
   const watchdog = setTimeout(() => {
@@ -1489,6 +1496,7 @@ export async function studioPass(
     throw failure;
   } finally {
     clearTimeout(watchdog);
+    setPassDeadline(Number.POSITIVE_INFINITY);
   }
 }
 

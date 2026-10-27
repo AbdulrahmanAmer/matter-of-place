@@ -10,6 +10,7 @@ import { basename, extname, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { z } from "zod";
 import { mediaKey } from "./lib/media-key.mjs";
+import { childLimit } from "./lib/pass-deadline.mjs";
 import { getObject, putIfMissing } from "./lib/media-store.mjs";
 import { extractPoster } from "./reel-poster.mjs";
 import { checkJob } from "./render-job.mjs";
@@ -171,9 +172,9 @@ function readJob(raw) {
 
 /**
  * The longest one engine script, the motion gate or `bun install` may run: the reel's capture took 836 s with the
- * laptop loaded (P-2100) and every other one takes seconds to minutes. A studio pass's watchdog is a timer, so it acts
- * only between two children: with none longer than this it acts by its 3 h and a quarter hour, which is the sweep's
- * PASS_CAP_MS (`sweep.ts`, "room for that watchdog to act first"); past that the sweep ends the pass.
+ * laptop loaded (P-2100) and every other one takes seconds to minutes. A child never runs past what is left of the
+ * studio pass (`spawnLimited`, `pass-deadline.mjs`), so a chain of children ends by the pass's limit, inside the
+ * sweep's PASS_CAP_MS (`sweep.ts`, "room for that watchdog to act first").
  */
 export const CHILD_LIMIT_MS = 15 * 60_000;
 
@@ -191,10 +192,15 @@ export const FFMPEG_LIMIT_MS = 5 * 60_000;
  * @returns {import("node:child_process").SpawnSyncReturns<string>}
  */
 export function spawnLimited(command, args, options, limitMs) {
-  const run = spawnSync(command, args, { ...options, timeout: limitMs, killSignal: "SIGKILL" });
+  // round 7: never past what is left of the studio pass (`pass-deadline.mjs`)
+  const limit = childLimit(limitMs);
+  const run = spawnSync(command, args, { ...options, timeout: limit, killSignal: "SIGKILL" });
   if (run.error !== undefined && "code" in run.error && run.error.code === "ETIMEDOUT") {
-    const what = basename(args[0] ?? command);
-    throw new Error(`${what} timed out after ${String(limitMs / 1000)} s and was ended`);
+    // a flag is no name: ffprobe and ffmpeg calls start with "-v"
+    const first = args[0];
+    const what = basename(first === undefined || first.startsWith("-") ? command : first);
+    const cut = limit < limitMs ? " at the studio pass's limit" : "";
+    throw new Error(`${what} timed out after ${String(limit / 1000)} s and was ended${cut}`);
   }
   return run;
 }

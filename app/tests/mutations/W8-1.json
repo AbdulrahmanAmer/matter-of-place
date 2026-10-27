@@ -766,7 +766,7 @@
     "id": "w8-1-pass-child-limit",
     "test": "tests/unit/workforce-brand-post.test.ts",
     "file": "scripts/render-reel.mjs",
-    "find": "{ ...options, timeout: limitMs, killSignal: \"SIGKILL\" }",
+    "find": "{ ...options, timeout: limit, killSignal: \"SIGKILL\" }",
     "replace": "{ ...options }",
     "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
     "expect": "× .*ends a step whose blocking child runs past its limit"
@@ -824,5 +824,50 @@
     "replace": "            found.push(",
     "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
     "expect": "× .*finds an import\\(\\) back into a runnable script through a third module"
+  },
+  {
+    "id": "w8-1-pass-deadline-cut",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/lib/pass-deadline.mjs",
+    "find": "return Math.min(limitMs, left);",
+    "replace": "return limitMs;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*cuts a child's limit to what is left of the studio pass"
+  },
+  {
+    "id": "w8-1-pass-deadline-none",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/lib/pass-deadline.mjs",
+    "find": "if (left <= 0) throw new Error(",
+    "replace": "if (left < -Infinity) throw new Error(",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*cuts a child's limit to what is left of the studio pass"
+  },
+  {
+    "id": "w8-1-pass-deadline-spawn",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/render-reel.mjs",
+    "find": "const limit = childLimit(limitMs);",
+    "replace": "const limit = limitMs;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*cuts a child's limit to what is left of the studio pass"
+  },
+  {
+    "id": "w8-1-pass-deadline-set",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/workforce/reel.ts",
+    "find": "setPassDeadline(Date.now() + limitMs);",
+    "replace": "void limitMs;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*holds the pass's own limit as the deadline of every child"
+  },
+  {
+    "id": "w8-1-pass-child-name",
+    "test": "tests/unit/workforce-brand-post.test.ts",
+    "file": "scripts/render-reel.mjs",
+    "find": "first === undefined || first.startsWith(\"-\") ? command : first",
+    "replace": "first ?? command",
+    "run": "bunx vitest run --project unit tests/unit/workforce-brand-post.test.ts",
+    "expect": "× .*names the program, not its first flag, when a child times out"
   }
 ]

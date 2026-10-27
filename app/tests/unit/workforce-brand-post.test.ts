@@ -12,6 +12,7 @@ import { basename, join, relative, resolve, sep } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { matterPrompt } from "../../scripts/matter/run.ts";
+import { childLimit, setPassDeadline } from "../../scripts/lib/pass-deadline.mjs";
 import { spawnLimited } from "../../scripts/render-reel.mjs";
 import { readJsonAnswer } from "../../scripts/workforce/answer.ts";
 import {
@@ -972,6 +973,68 @@ describe("the live proof's failures (W8 item 1, 2026-10-27)", () => {
       ),
     ).rejects.toThrow("timed out after 0.3 s and was ended");
     expect(lines.at(-1)).toMatch(/ studio pass failed: \S+ timed out after 0\.3 s and was ended$/);
+  }, 15_000);
+
+  // Round 7: a render runs its children back to back with no turn of the event loop, so the watchdog alone could act
+  // up to two hours late; each child's limit is cut to what is left of the pass, and none starts once it is out of time.
+  it("cuts a child's limit to what is left of the studio pass, and starts no child once it is out of time", () => {
+    const folder = mkdtempSync(join(tmpdir(), "pass-deadline-"));
+    const marker = join(folder, "started.txt");
+    setPassDeadline(1_000);
+    try {
+      expect(childLimit(900_000, 400)).toBe(600);
+      expect(childLimit(300, 400)).toBe(300);
+      expect(() => childLimit(300, 1_000)).toThrow(
+        "the studio pass reached its limit; no further step was started",
+      );
+      // the deadline (1 s after the epoch) is long past, so spawnLimited refuses before it starts the child
+      expect(() =>
+        spawnLimited(
+          process.execPath,
+          ["-e", "require('node:fs').writeFileSync(process.argv[1], 'x')", marker],
+          { encoding: "utf8" },
+          60_000,
+        ),
+      ).toThrow("the studio pass reached its limit");
+      expect(existsSync(marker)).toBe(false);
+    } finally {
+      setPassDeadline(Number.POSITIVE_INFINITY);
+    }
+  });
+
+  it("holds the pass's own limit as the deadline of every child while the pass runs, and lets go after", async () => {
+    const lines: string[] = [];
+    let during = 0;
+    await studioPass(
+      {
+        reel: () => {
+          during = childLimit(10 * 3_600_000);
+          return Promise.resolve(null);
+        },
+        postNext: () => false,
+        post: () => Promise.resolve(null),
+      },
+      (line) => {
+        lines.push(line);
+      },
+      60_000,
+    );
+    expect(during).toBeGreaterThan(0);
+    expect(during).toBeLessThanOrEqual(60_000);
+    expect(childLimit(10 * 3_600_000)).toBe(10 * 3_600_000);
+    expect(lines.at(-1)).toMatch(/ studio pass ended$/);
+  });
+
+  it("names the program, not its first flag, when a child times out", () => {
+    // ffprobe and ffmpeg are called with "-v" first; the reason named "-v" before round 7
+    expect(() =>
+      spawnLimited(
+        process.execPath,
+        ["-e", "setTimeout(() => {}, 2000)"],
+        { encoding: "utf8" },
+        300,
+      ),
+    ).toThrow(new RegExp(`^${basename(process.execPath).split(".").join("\\.")} timed out after 0\\.3 s`));
   }, 15_000);
 
   it("starts the studio pass without its lines when the log cannot be opened, and says why to the runner", () => {
