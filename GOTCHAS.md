@@ -9375,3 +9375,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a command that reads a file written in the same turn goes in the next message, after the Write's result is seen; or it checks the file's first line before acting (the launcher can print the brief's title).
 - proof: `gh pr view 509 --json body` showed the old body before `gh pr edit 509 --body-file`; `head -1 ~/.mop-workforce/builders/w8-1-render/brief.final.md` showed "round 9" under the round 10 launch.
 - added: 2026-10-27
+
+## P-4690 · A new advisory on a package three levels down fails `audit:deps` in every open pull request at once
+- symptom: 2026-10-28 ~00:50 +0300, PR 519 (W7 item 8): all 5,803 tests, typecheck, lint and knip passed, and the check job still failed at its last step, `bun run audit:deps`: undici `>=7.0.0 <7.30.1` (through jsdom, wrangler > miniflare and nitro > env-runner > miniflare) with three high advisories published that week (GHSA-4w7w-5xrc-9h26, GHSA-2m5v-pch6-74hx, GHSA-qrxm-fqhp-jwvm).
+- cause: the audit reads advisories at run time, so a release that was clean yesterday fails today; the package is transitive, so no branch's own change can fix it.
+- rule: fix it once, in its own small pull request from main, with an `overrides` pin to the fixed version (supply-chain rules: at least 7 days old unless it is the security fix, install with `--ignore-scripts`, `bun audit` and `osv-scanner scan source --lockfile bun.lock` before pushing); then merge main into every open branch. Never ignore a high advisory to get one PR through.
+- proof: `cd app && bun audit --audit-level=high --ignore=GHSA-jmr9-qjv8-65gv --ignore=GHSA-7pqw-9j4j-h8q3 --ignore=GHSA-xjj6-f33q-929c --ignore=GHSA-27r3-jxmh-p828 --ignore=GHSA-mrhx-c7xc-m3w5` → `No vulnerabilities found (checked 881 packages ...)` with `"undici": "7.30.1"` in `overrides` (7.30.1 published 2026-10-15).
+- added: 2026-10-28
