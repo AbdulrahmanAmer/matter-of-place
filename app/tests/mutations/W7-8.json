@@ -1,0 +1,110 @@
+[
+  {
+    "id": "w7-8-readers",
+    "test": "tests/unit/workforce-interest.test.ts",
+    "file": "scripts/workforce/interest.ts",
+    "find": "const READERS: readonly string[] = [\"campaigns\", \"newsletter\"];",
+    "replace": "const READERS: readonly string[] = [\"campaigns\", \"newsletter\", \"editor\"];",
+    "run": "bunx vitest run --project unit tests/unit/workforce-interest.test.ts",
+    "expect": "× .*reaches Campaigns and Newsletter and no other colleague"
+  },
+  {
+    "id": "w7-8-in-the-situation",
+    "test": "tests/unit/workforce-interest.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    parts.push(...(await interestLines(client, agentSlug)));",
+    "replace": "    parts.push(...(await interestLines(client, \"\")));",
+    "run": "bunx vitest run --project unit tests/unit/workforce-interest.test.ts",
+    "expect": "× .*reaches Campaigns and Newsletter and no other colleague"
+  },
+  {
+    "id": "w7-8-confirmed-only",
+    "test": "tests/unit/workforce-interest.test.ts",
+    "file": "scripts/workforce/interest.ts",
+    "find": "    if (row.confirmed_at === null || row.unsubscribed_at !== null) continue;",
+    "replace": "    if (row.confirmed_at === null) continue;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-interest.test.ts",
+    "expect": "× .*counts confirmed signups per market and per page, this week and in total"
+  },
+  {
+    "id": "w7-8-this-week",
+    "test": "tests/unit/workforce-interest.test.ts",
+    "file": "scripts/workforce/interest.ts",
+    "find": "    const thisWeek = Date.parse(row.confirmed_at) >= since ? 1 : 0;",
+    "replace": "    const thisWeek = Date.parse(row.confirmed_at) >= since - 60_000 ? 1 : 0;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-interest.test.ts",
+    "expect": "× .*counts confirmed signups per market and per page, this week and in total"
+  },
+  {
+    "id": "w7-8-every-market",
+    "test": "tests/unit/workforce-interest.test.ts",
+    "file": "scripts/workforce/interest.ts",
+    "find": "    for (const slug of new Set(row.markets)) {",
+    "replace": "    for (const slug of row.markets.slice(0, 1)) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-interest.test.ts",
+    "expect": "× .*counts confirmed signups per market and per page, this week and in total"
+  },
+  {
+    "id": "w7-8-our-pages-only",
+    "test": "tests/unit/workforce-interest.test.ts",
+    "file": "scripts/workforce/interest.ts",
+    "find": "    const page = OUR_PAGE.test(row.source) ? sourceName(row.source) : \"Other pages\";",
+    "replace": "    const page = sourceName(row.source);",
+    "run": "bunx vitest run --project unit tests/unit/workforce-interest.test.ts",
+    "expect": "× .*says no address, name, id or word a visitor typed"
+  },
+  {
+    "id": "w7-8-no-email-column",
+    "test": "tests/unit/workforce-interest.test.ts",
+    "file": "scripts/workforce/interest.ts",
+    "find": "      .select(\"markets, source, confirmed_at, unsubscribed_at\")",
+    "replace": "      .select(\"email, markets, source, confirmed_at, unsubscribed_at\")",
+    "run": "bunx vitest run --project unit tests/unit/workforce-interest.test.ts",
+    "expect": "× .*reads the Interest screen's rows: not archived, not anonymised, and never the email column"
+  },
+  {
+    "id": "w7-8-not-archived",
+    "test": "tests/unit/workforce-interest.test.ts",
+    "file": "scripts/workforce/interest.ts",
+    "find": "      .is(\"archived_at\", null)",
+    "replace": "      .is(\"unsubscribed_at\", null)",
+    "run": "bunx vitest run --project unit tests/unit/workforce-interest.test.ts",
+    "expect": "× .*reads the Interest screen's rows: not archived, not anonymised, and never the email column"
+  },
+  {
+    "id": "w7-8-not-anonymised",
+    "test": "tests/unit/workforce-interest.test.ts",
+    "file": "scripts/workforce/interest.ts",
+    "find": "      .not(\"email\", \"like\", \"%.invalid\");",
+    "replace": "      .not(\"email\", \"is\", null);",
+    "run": "bunx vitest run --project unit tests/unit/workforce-interest.test.ts",
+    "expect": "× .*reads the Interest screen's rows: not archived, not anonymised, and never the email column"
+  },
+  {
+    "id": "w7-8-refused-read",
+    "test": "tests/unit/workforce-interest.test.ts",
+    "file": "scripts/workforce/interest.ts",
+    "find": "    if (error !== null) throw new Error(\"not read\");",
+    "replace": "    if (error !== null) return [interestBlock([], now)];",
+    "run": "bunx vitest run --project unit tests/unit/workforce-interest.test.ts",
+    "expect": "× .*gives one plain line when the read fails, and the run goes on"
+  },
+  {
+    "id": "w7-8-failed-line",
+    "test": "tests/unit/workforce-interest.test.ts",
+    "file": "scripts/workforce/interest.ts",
+    "find": "    return [\"The interest counts could not be read for this run; say so if a plan needs them.\"];",
+    "replace": "    return [interestBlock([], now)];",
+    "run": "bunx vitest run --project unit tests/unit/workforce-interest.test.ts",
+    "expect": "× .*gives one plain line when the read fails, and the run goes on"
+  },
+  {
+    "id": "w7-8-none-yet",
+    "test": "tests/unit/workforce-interest.test.ts",
+    "file": "scripts/workforce/interest.ts",
+    "find": "      ? [\"- none yet\"]",
+    "replace": "      ? []",
+    "run": "bunx vitest run --project unit tests/unit/workforce-interest.test.ts",
+    "expect": "× .*shows no page yet when nobody has confirmed"
+  }
+]

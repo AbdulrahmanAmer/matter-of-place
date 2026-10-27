@@ -9369,3 +9369,10 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `gh pr view 509 --json body` showed the old body before `gh pr edit 509 --body-file`; `head -1 ~/.mop-workforce/builders/w8-1-render/brief.final.md` showed "round 9" under the round 10 launch.
 - added: 2026-10-27
 
+## P-4672 · A unit test that drives `context()` as the Editor reaches the request desk, which deletes folders under the real home
+- symptom: 2026-10-27, W7 item 8: a test calling `context()` for every colleague slug with `owns = ownsSource(source, slug)` stopped at "unexpected table agents" in `requestDesk`; had the fake answered it, the Editor's case would have run `rmSync` on `~/.mop-workforce/desks/editor/work/requests` of the live runner on this laptop.
+- cause: `requestDesk` (request-desk.ts) defaults its `home` to `homedir()` and clears the outside and work request folders of the owner of submissions before it reads anything; `context()` passes no home.
+- rule: a test that drives `context()` for a slug that owns submissions passes `owns = () => false` unless it is about the request desk, and a request-desk test passes its own temporary `home`; never let a unit test reach `requestDesk` with the default home.
+- proof: `grep -n 'home = join(homedir()' app/scripts/workforce/request-desk.ts` → the default; `cd app && bunx vitest run --project unit tests/unit/workforce-interest.test.ts` → `6 passed` with `() => false`.
+- added: 2026-10-27
+
