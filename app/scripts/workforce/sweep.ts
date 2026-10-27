@@ -140,9 +140,10 @@ export function planSweep(procs: Proc[], now: number, self: number): Kill[] {
 /** Every process, from one PowerShell call (times in UTC, so no locale reads them). */
 function listProcesses(): Proc[] {
   const script =
-    "Get-CimInstance Win32_Process | ForEach-Object { [pscustomobject]@{ pid = [int]$_.ProcessId; parent = [int]$_.ParentProcessId; " +
+    // -InputObject @(...): a list of one stays a list (piped, ConvertTo-Json would write the lone object)
+    "ConvertTo-Json -Compress -InputObject @(Get-CimInstance Win32_Process | ForEach-Object { [pscustomobject]@{ pid = [int]$_.ProcessId; parent = [int]$_.ParentProcessId; " +
     "name = [string]$_.Name; started = $(if ($_.CreationDate) { $_.CreationDate.ToUniversalTime().ToString('o') } else { '' }); " +
-    "command = [string]$_.CommandLine } } | ConvertTo-Json -Compress";
+    "command = [string]$_.CommandLine } })";
   const listed = spawnSync("powershell", ["-NoProfile", "-Command", script], {
     encoding: "utf8",
     windowsHide: true,
@@ -150,7 +151,10 @@ function listProcesses(): Proc[] {
     maxBuffer: 64 * 1024 * 1024,
   });
   if (listed.status !== 0) throw new Error("sweep: the process list could not be read");
-  const rows = JSON.parse(listed.stdout) as
+  // PowerShell 5.1 leaves control characters in a command line unescaped (a prompt passed as an argument held \x1a on
+  // 2026-10-27), which JSON refuses; the listing is one line, so a space in their place changes nothing else.
+  // eslint-disable-next-line no-control-regex -- matching the control characters is the point
+  const rows = JSON.parse(listed.stdout.replace(/[\u0000-\u001f]/g, " ")) as
     | { pid: number; parent: number; name: string; started: string; command: string | null }[]
     | null;
   return (rows ?? []).map((row) => ({
