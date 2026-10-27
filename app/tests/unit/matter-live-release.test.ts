@@ -42,6 +42,9 @@ describe("releaseHeld", () => {
       { id: "goal", worker: "matter-live@x", state: "running", cause: "schedule" },
       { id: "done", worker: "matter-live@x", state: "done", cause: "schedule" },
       { id: "other", worker: "x:123", state: "running", cause: "schedule" },
+      // a line another worker is answering, and one this worker already answered: neither is answered again
+      { id: "other-line", worker: "x:123", state: "running", cause: "message" },
+      { id: "answered", worker: "matter-live@x", state: "done", cause: "message" },
     ];
     expect(await releaseHeld(fakeRuns(rows), "matter-live@x")).toEqual({ requeued: 1, closed: 1 });
     expect(rows.find((row) => row.id === "line")).toMatchObject({ state: "queued", worker: null });
@@ -51,6 +54,8 @@ describe("releaseHeld", () => {
     });
     expect(rows.find((row) => row.id === "done")?.state).toBe("done");
     expect(rows.find((row) => row.id === "other")?.state).toBe("running");
+    expect(rows.find((row) => row.id === "other-line")).toMatchObject({ state: "running", worker: "x:123" });
+    expect(rows.find((row) => row.id === "answered")?.state).toBe("done");
     // P-3450: live.ts loads the runner (daemon.ts) cold
   }, 30_000);
 });

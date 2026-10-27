@@ -9272,14 +9272,14 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - symptom: 2026-10-27, the laptop's CPU burned: `reel.ts --pass` was started 20 to 51 times an hour from 2026-10-26 23:00 (daemon.log "reel pass started"), 262 alive at once, and the laptop died when its internet dropped.
 - cause: every MOP task runs `wscript.exe hidden-run.vbs` → `cmd.exe /c bun <script>`. "MOP Workforce" has a 50-minute ExecutionTimeLimit; at the limit Windows ends wscript.exe only, so bun (and the Claude run or render under it) keeps running while IgnoreNew now lets the next minute's pass start. The studio pass is spawned detached with no lock, so each new pass that saw work started another.
 - rule: anything a scheduled task starts must be ended by something other than the task's limit. `scripts/workforce/sweep.ts` ("MOP Sweep", every 5 minutes, install.ps1) ends a scheduled pass whose launcher is gone, a second studio pass, a pass past 3 h 15 min, orphaned Claude runs, ffmpeg, headless browsers and renders, each with `taskkill /T`; and fails the runs a killed runner held.
-- proof: `cd app && bunx vitest run --project unit tests/unit/workforce-sweep.test.ts` (registry tests/mutations/SWEEP.json, sw-a to sw-g); live: `bun scripts/workforce/sweep.ts --dry` lists what it would end.
+- proof: `cd app && bunx vitest run --project unit tests/unit/workforce-sweep.test.ts` (registry tests/mutations/SWEEP.json, sw-a to sw-n); live: `bun scripts/workforce/sweep.ts --dry` lists what it would end.
 - added: 2026-10-27
 
 ## P-4661 · A restarted live supervisor leaves the runs it held `running` under a six-hour lease
 - symptom: 2026-10-27, Matter's goal run 0951ea21 (09:07 UTC) sat `running` for five hours after live.ts restarted at 13:43; at its lease end the one-shot runner's `claim_agent_run` would have claimed it.
 - cause: live.ts keeps the runs it works on only in memory (`this.active`); a new process never looked at what the old one held.
 - rule: at start, after `lockOrExit`, `releaseHeld` puts the worker's held person lines back in the queue and closes its other runs.
-- proof: `cd app && bunx vitest run --project unit tests/unit/matter-live-release.test.ts` (lr-a, lr-b in SWEEP.json).
+- proof: `cd app && bunx vitest run --project unit tests/unit/matter-live-release.test.ts` (lr-a to lr-d in SWEEP.json).
 - added: 2026-10-27
 
 ## P-4662 · A line written straight into `agent_messages` reaches no one: no run is queued for it

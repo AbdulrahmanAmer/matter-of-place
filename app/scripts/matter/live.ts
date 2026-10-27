@@ -35,6 +35,8 @@ const here = dirname(fileURLToPath(import.meta.url));
 const HOME = join(homedir(), ".mop-workforce");
 const MATTER_HOME = join(HOME, "matter");
 const LOCK_FILE = join(MATTER_HOME, "live.lock");
+// The process id of the CLI session this supervisor started, so the next supervisor can end one left running.
+const CHILD_FILE = join(MATTER_HOME, "live-child.pid");
 const SESSION_FILE = join(MATTER_HOME, "live-session.json");
 // Matter's goal (operator, 2026-10-15): a task-gate step list; between turns he is handed its next open step.
 const GOAL_FILE = join(MATTER_HOME, "goal.json");
@@ -385,6 +387,29 @@ function runnerHead(): string {
 }
 
 /**
+ * Ends the CLI session a supervisor before this one left running (its crash path exits without ending it), so the line
+ * releaseHeld puts back in the queue is never answered by two sessions at once. The id is checked to still be that
+ * session (its stream input) before anything is ended, since Windows reuses process ids.
+ */
+function endLostSession(): void {
+  if (!existsSync(CHILD_FILE)) return;
+  const pid = Number(readFileSync(CHILD_FILE, "utf8").trim());
+  if (!Number.isInteger(pid) || pid <= 0 || !processAlive(pid)) return;
+  const found = spawnSync(
+    "powershell",
+    [
+      "-NoProfile",
+      "-Command",
+      `(Get-CimInstance Win32_Process -Filter 'ProcessId=${String(pid)}').CommandLine`,
+    ],
+    { encoding: "utf8", windowsHide: true, timeout: 30_000 },
+  );
+  if (!/--input-format\s+stream-json/.test(found.stdout)) return;
+  console.log(`${new Date().toISOString()} live: ended the session ${String(pid)} the last supervisor left`);
+  killTree(pid);
+}
+
+/**
  * Lets go of the runs a supervisor before this one held. lockOrExit makes this process the only supervisor, so a run
  * still `running` under its worker was lost with the process that claimed it (2026-10-27: a goal run lost at a restart
  * sat `running` five hours under a six-hour lease, for the one-shot runner to claim when it ran out). A person's line
@@ -517,6 +542,7 @@ export class Supervisor {
       void this.onExit(code);
     });
     this.child = child;
+    if (child.pid !== undefined) writeFileSync(CHILD_FILE, String(child.pid));
     console.log(
       `${new Date().toISOString()} live: started${session === null ? "" : ` (resuming ${session})`}`,
     );
@@ -974,6 +1000,7 @@ export class Supervisor {
 
 if (import.meta.main) {
   lockOrExit();
+  endLostSession();
   const supervisor = new Supervisor(serviceDb());
   setInterval(() => {
     supervisor.exitIfStalled();
