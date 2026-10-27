@@ -16,7 +16,7 @@
 //    and sends the operator a ten-line digest in his side chat.
 // 4. (H143) Matter is shown what each owner can do and the rulings that limit it; a decision missed twice in a row is
 //    retired or reshaped, never set a third time; each colleague with an open decision is woken on it at once.
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -595,7 +595,11 @@ export function meetingDay(home: string, today: string, dry: boolean) {
       }
       const said = await run();
       steps[step] = said;
-      if (!dry) writeFileSync(file, JSON.stringify(steps));
+      // written beside and renamed over (round 4 review): a kill mid-write never leaves a cut file read as no step done
+      if (!dry) {
+        writeFileSync(`${file}.next`, JSON.stringify(steps));
+        renameSync(`${file}.next`, file);
+      }
       return said;
     },
     finish(at: Date): void {

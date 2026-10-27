@@ -389,8 +389,8 @@
   {
     "id": "meeting-fix-r3-dry-keeps-nothing",
     "file": "scripts/workforce/meeting.ts",
-    "find": "      if (!dry) writeFileSync(file, JSON.stringify(steps));",
-    "replace": "      writeFileSync(file, JSON.stringify(steps));",
+    "find": "      if (!dry) {\n        writeFileSync(`${file}.next`, JSON.stringify(steps));",
+    "replace": "      if (true) {\n        writeFileSync(`${file}.next`, JSON.stringify(steps));",
     "test": "tests/unit/meeting-decisions.test.ts",
     "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
     "expect": "× .*keeps nothing on a dry run"
