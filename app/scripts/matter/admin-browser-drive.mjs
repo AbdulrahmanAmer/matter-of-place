@@ -40,11 +40,11 @@ function answer(result) {
 
 /** @returns {Promise<string>} the whole of stdin */
 async function readStdin() {
-  /** @type {Buffer[]} */
-  const chunks = [];
-  for await (const chunk of process.stdin)
-    chunks.push(Buffer.from(/** @type {Uint8Array} */ (chunk)));
-  return Buffer.concat(chunks).toString("utf8");
+  process.stdin.setEncoding("utf8");
+  let text = "";
+  // With an encoding set, each chunk is a string; stdin's iterator is typed `any`, so it is read through String().
+  for await (const chunk of process.stdin) text += String(chunk);
+  return text;
 }
 
 /** @returns {Promise<string>} Chrome from `CHROME_PATH`, else the cached one the launch engine finds (as shoot.mjs) */
