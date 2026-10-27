@@ -1,4 +1,4 @@
--- down: re-run bun run db:fn newsletter_interest_counts from the previous commit of supabase/sql/functions/newsletter_interest_counts.sql
+-- down: drop function public.newsletter_interest_counts(timestamptz, text[]);
 set lock_timeout = '5s';
 
 create or replace function public.newsletter_interest_counts(p_since timestamptz, p_pages text[])
