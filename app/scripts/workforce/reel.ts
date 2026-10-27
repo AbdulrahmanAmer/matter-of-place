@@ -22,6 +22,7 @@ import {
   readdirSync,
   readFileSync,
   realpathSync,
+  rmSync,
   statSync,
   writeFileSync,
 } from "node:fs";
@@ -1279,27 +1280,93 @@ export async function realDeps(): Promise<ReelDeps> {
 /** The studio pass's own lines and errors, appended: the runner starts the pass with no console of its own. */
 export const STUDIO_LOG = join(homedir(), ".mop-workforce", "studio.log");
 
-/**
- * Starts `--pass` as a process of its own, as the runner does between runs, its output and errors appended to `log`.
- * W8 item 1: with its output ignored, three queued posts sat for 30 minutes while every pass hung and said nothing.
- */
-export function startStudioPass(
-  run: (command: string, args: string[], options: SpawnOptions) => { unref: () => void } = spawn,
-  log: string = STUDIO_LOG,
-): void {
-  mkdirSync(dirname(log), { recursive: true });
-  const out = openSync(log, "a");
+/** The process id of the studio pass the runner started last. */
+export const STUDIO_LOCK = join(homedir(), ".mop-workforce", "studio.lock");
+
+/** Whether a process id is running: signal 0 tests it without touching it. */
+function processAlive(pid: number): boolean {
   try {
-    run("bun", [fileURLToPath(import.meta.url), "--pass"], {
-      cwd: join(REPO, "app"),
-      detached: true,
-      stdio: ["ignore", out, out],
-      windowsHide: true,
-    }).unref();
-  } finally {
-    closeSync(out);
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
   }
 }
+
+const failureText = (failure: unknown) =>
+  failure instanceof Error ? failure.message : String(failure);
+
+/**
+ * Starts `--pass` as a process of its own, as the runner does between runs, its output and errors appended to `log`,
+ * and answers the lines the runner logs. W8 item 1: with its output ignored, three queued posts sat for 30 minutes while
+ * every pass hung and said nothing; a pass hung before its piece was `working` was started again every minute (262
+ * were alive), so none starts while the pass in `lock` lives. A log that cannot be opened never stops the runner's pass.
+ */
+export function startStudioPass(
+  run: (
+    command: string,
+    args: string[],
+    options: SpawnOptions,
+  ) => { unref: () => void; pid?: number | undefined } = spawn,
+  log: string = STUDIO_LOG,
+  lock: string = STUDIO_LOCK,
+  alive: (pid: number) => boolean = processAlive,
+  now: number = Date.now(),
+): string[] {
+  const lines: string[] = [];
+  const held = existsSync(lock) ? Number(readFileSync(lock, "utf8").trim()) : 0;
+  if (Number.isInteger(held) && held > 0) {
+    // past the longest a pass may run its watchdog has ended it, so a live process with its id is another one (Windows
+    // gives ids again); a pass killed before its exit handler leaves its lock behind
+    const outlived = now - statSync(lock).mtimeMs > LOCK_LIMIT_MS;
+    if (alive(held) && !outlived) return [`reel pass ${String(held)} still running, none started`];
+    lines.push(
+      outlived
+        ? `reel pass ${String(held)} has held its lock past its limit; the lock is taken over`
+        : `reel pass ${String(held)} has ended without its lock; the lock is taken over`,
+    );
+  }
+  let out: number | null = null;
+  try {
+    mkdirSync(dirname(log), { recursive: true });
+    out = openSync(log, "a");
+  } catch (failure: unknown) {
+    lines.push(`studio log not opened, the pass runs without its lines: ${failureText(failure)}`);
+  }
+  let child: { unref: () => void; pid?: number | undefined };
+  try {
+    child = run("bun", [fileURLToPath(import.meta.url), "--pass"], {
+      cwd: join(REPO, "app"),
+      detached: true,
+      stdio: out === null ? "ignore" : ["ignore", out, out],
+      windowsHide: true,
+    });
+  } finally {
+    if (out !== null) closeSync(out);
+  }
+  child.unref();
+  if (child.pid !== undefined) {
+    try {
+      mkdirSync(dirname(lock), { recursive: true });
+      writeFileSync(lock, String(child.pid));
+    } catch (failure: unknown) {
+      lines.push(`studio lock not written: ${failureText(failure)}`);
+    }
+  }
+  lines.push(`reel pass started (its lines: ${out === null ? "none" : log})`);
+  return lines;
+}
+
+/**
+ * The longest one step of a studio pass (the reel, then the post) may run. A reel is a designer turn (30 min), then up
+ * to REVISIONS + 1 films, each a render (85 s idle, 836 s with the laptop loaded, P-2100) and a review (15 min), with a
+ * designer turn (30 min) between them: about 2 h 57 min at worst, and a still post is less. Past STALE_MS its piece is
+ * called abandoned anyway, so a step still running then cannot end well; the pass is ended there.
+ */
+export const PASS_LIMIT_MS = STALE_MS;
+
+/** A lock older than both steps' limits and a margin outlived its pass: the watchdog ended that pass. */
+const LOCK_LIMIT_MS = 2 * PASS_LIMIT_MS + 10 * 60_000;
 
 /** What `--pass` does, given so it is tested without the studio's real steps. */
 export type PassSteps = {
@@ -1313,18 +1380,39 @@ export type PassSteps = {
  * One `--pass`: the reel pass, then the post pass when a still post is next. Every line carries its time, so in
  * STUDIO_LOG a pass that never ends shows as a start with no end, and one that throws says why.
  */
-export async function studioPass(steps: PassSteps, log: (line: string) => void): Promise<void> {
+export async function studioPass(
+  steps: PassSteps,
+  log: (line: string) => void,
+  limitMs: number = PASS_LIMIT_MS,
+  exit: (code: number) => void = (code) => {
+    process.exit(code);
+  },
+): Promise<void> {
   const say = (line: string) => {
     log(`${new Date().toISOString()} ${line}`);
   };
   say("studio pass started");
+  // a step that hangs ends the pass, said in the log; unref, so the timer never holds an ended pass open
+  let watchdog: ReturnType<typeof setTimeout> | undefined;
+  const arm = () => {
+    clearTimeout(watchdog);
+    watchdog = setTimeout(() => {
+      say(`studio pass timed out after ${String(Math.round(limitMs / 60_000))} min`);
+      exit(1);
+    }, limitMs);
+    watchdog.unref();
+  };
   try {
+    arm();
     say((await steps.reel()) ?? "reel: nothing to do");
+    arm();
     if (steps.postNext()) say((await steps.post()) ?? "post: none queued");
     say("studio pass ended");
   } catch (failure: unknown) {
     say(`studio pass failed: ${failure instanceof Error ? failure.message : String(failure)}`);
     throw failure;
+  } finally {
+    clearTimeout(watchdog);
   }
 }
 
@@ -1345,6 +1433,14 @@ if (import.meta.main) {
     const decision = studioDecisionSchema.parse(JSON.parse(process.argv[decide + 1] ?? "{}"));
     console.log(decidePiece(decision).line);
   } else if (process.argv.includes("--pass")) {
+    // the lock is given up at the end, so a later process given this id is never taken for the pass
+    process.on("exit", () => {
+      if (
+        existsSync(STUDIO_LOCK) &&
+        readFileSync(STUDIO_LOCK, "utf8").trim() === String(process.pid)
+      )
+        rmSync(STUDIO_LOCK, { force: true });
+    });
     await studioPass(
       {
         reel: async () => reelPass(await realDeps()),

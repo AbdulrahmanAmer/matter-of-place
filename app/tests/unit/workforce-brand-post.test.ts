@@ -8,8 +8,8 @@ import {
   writeSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { basename, join, relative, resolve, sep } from "node:path";
+import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { matterPrompt } from "../../scripts/matter/run.ts";
 import { readJsonAnswer } from "../../scripts/workforce/answer.ts";
@@ -38,6 +38,7 @@ import {
 import {
   fontFaces,
   mediaFor,
+  PASS_LIMIT_MS,
   queueReel,
   reelPass,
   scenePrompt,
@@ -730,6 +731,7 @@ describe("the live proof's failures (W8 item 1, 2026-10-27)", () => {
     expect(rules).toHaveLength(files.length);
     for (const file of files) {
       const rule = rules.find((line) => line.includes(`url("/app/public/fonts/${file}")`));
+      expect(rule).toBeDefined();
       expect(rule).toMatch(
         /^@font-face \{ font-family: "[A-Za-z ]+"; font-style: (normal|italic); font-weight: \d+ \d+;/,
       );
@@ -804,38 +806,226 @@ describe("the live proof's failures (W8 item 1, 2026-10-27)", () => {
   });
 
   it("is started by the runner with its output and errors appended to the studio log", () => {
-    const log = join(studio(), "logs", "studio.log");
+    const folder = studio();
+    const log = join(folder, "logs", "studio.log");
     let started: { args: string[]; stdio: unknown } | null = null;
-    startStudioPass((_command, args, options) => {
-      const { stdio } = options;
-      started = { args, stdio };
-      const [, out, errors] = Array.isArray(stdio) ? stdio : [];
-      if (typeof out === "number") writeSync(out, "a line\n");
-      if (typeof errors === "number") writeSync(errors, "an error\n");
-      return { unref: () => undefined };
-    }, log);
+    const lines = startStudioPass(
+      (_command, args, options) => {
+        const { stdio } = options;
+        started = { args, stdio };
+        const [, out, errors] = Array.isArray(stdio) ? stdio : [];
+        if (typeof out === "number") writeSync(out, "a line\n");
+        if (typeof errors === "number") writeSync(errors, "an error\n");
+        return { unref: () => undefined, pid: 4242 };
+      },
+      log,
+      join(folder, "studio.lock"),
+      () => false,
+    );
     expect(started).toEqual({
       args: [join(workforce, "reel.ts"), "--pass"],
       stdio: ["ignore", expect.any(Number) as unknown, expect.any(Number) as unknown],
     });
     expect(readFileSync(log, "utf8")).toBe("a line\nan error\n");
+    expect(readFileSync(join(folder, "studio.lock"), "utf8")).toBe("4242");
+    expect(lines).toEqual([`reel pass started (its lines: ${log})`]);
+  });
+
+  // Round 5 (2026-10-27): a pass that hung before its piece was `working` was started again every minute, 262 of them.
+  it("starts no second studio pass while the first one's process lives, and takes over the lock of one that ended", () => {
+    const folder = studio();
+    const lock = join(folder, "studio.lock");
+    const log = join(folder, "studio.log");
+    writeFileSync(lock, "4242");
+    let spawned = 0;
+    const run = () => {
+      spawned += 1;
+      return { unref: () => undefined, pid: 5151 };
+    };
+    expect(startStudioPass(run, log, lock, (pid) => pid === 4242)).toEqual([
+      "reel pass 4242 still running, none started",
+    ]);
+    expect(spawned).toBe(0);
+    expect(readFileSync(lock, "utf8")).toBe("4242");
+    expect(startStudioPass(run, log, lock, () => false)).toEqual([
+      "reel pass 4242 has ended without its lock; the lock is taken over",
+      `reel pass started (its lines: ${log})`,
+    ]);
+    expect(spawned).toBe(1);
+    expect(readFileSync(lock, "utf8")).toBe("5151");
+    // a live process holding an id past both steps' limits is not the pass: its watchdog ended that one
+    expect(startStudioPass(run, log, lock, () => true, Date.now() + 7 * 60 * 60_000)).toEqual([
+      "reel pass 5151 has held its lock past its limit; the lock is taken over",
+      `reel pass started (its lines: ${log})`,
+    ]);
+    expect(spawned).toBe(2);
+  });
+
+  it("starts the studio pass without its lines when the log cannot be opened, and says why to the runner", () => {
+    const folder = studio();
+    // a log whose folder is a file cannot be opened
+    writeFileSync(join(folder, "taken"), "");
+    let stdio: unknown = null;
+    const lines = startStudioPass(
+      (_command, _args, options) => {
+        stdio = options.stdio;
+        return { unref: () => undefined };
+      },
+      join(folder, "taken", "studio.log"),
+      join(folder, "studio.lock"),
+      () => false,
+    );
+    expect(stdio).toBe("ignore");
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toMatch(/^studio log not opened, the pass runs without its lines: \S/);
+    expect(lines[1]).toBe("reel pass started (its lines: none)");
+  });
+
+  it("ends a studio pass that hangs past its limit, saying so in its log, and gives a reel its three hours", async () => {
+    expect(PASS_LIMIT_MS).toBe(3 * 60 * 60_000);
+    vi.useFakeTimers();
+    try {
+      const lines: string[] = [];
+      const codes: number[] = [];
+      // the reel step takes 40 s, the post step hangs: each step has the limit of its own
+      void studioPass(
+        {
+          reel: () =>
+            new Promise<string | null>((done) => {
+              setTimeout(() => {
+                done("reel r: made");
+              }, 40_000);
+            }),
+          postNext: () => true,
+          post: () => new Promise<string | null>(() => undefined),
+        },
+        (line) => {
+          lines.push(line);
+        },
+        60_000,
+        (code) => {
+          codes.push(code);
+        },
+      );
+      await vi.advanceTimersByTimeAsync(99_999);
+      expect(codes).toEqual([]);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(codes).toEqual([1]);
+      expect(lines.map((line) => line.replace(/^\S+ /, ""))).toEqual([
+        "studio pass started",
+        "reel r: made",
+        "studio pass timed out after 1 min",
+      ]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("never hangs on an import() of a runnable script while that script's top-level await is pending", () => {
     // `reel.ts --pass` awaits brand-post.ts; an import() of reel.ts from there never settled, and the pass hung
-    const scripts = readdirSync(workforce)
-      .filter((name) => /\.(ts|mjs)$/.test(name))
-      .map((name) => ({ name, text: readFileSync(join(workforce, name), "utf8") }));
-    const runnable = new Set(
-      scripts.filter(({ text }) => text.includes("import.meta.main")).map(({ name }) => name),
-    );
-    expect(runnable.has("reel.ts")).toBe(true);
-    const cycles = scripts.flatMap(({ name, text }) =>
-      [...text.matchAll(/import\(\s*"\.\/([\w.-]+)"\s*\)/g)]
-        .map((found) => found[1] ?? "")
-        .filter((target) => runnable.has(target))
-        .map((target) => `${name} -> ${target}`),
-    );
-    expect(cycles).toEqual([]);
+    expect(importBackCycles(join(process.cwd(), "scripts"))).toEqual([]);
+  });
+
+  it("finds an import() back into a runnable script through a third module, and allows a static import back", () => {
+    // measured on bun 1.4.3 (P-4647): import() back hung, static import back exited 0
+    const folder = studio();
+    const write = (name: string, lines: string[]) => {
+      writeFileSync(join(folder, name), `${lines.join("\n")}\n`);
+    };
+    write("a.ts", [
+      "export const x = 1;",
+      "if (import.meta.main) {",
+      '  const m = await import("./b.ts");',
+      "  await m.f();",
+      "}",
+    ]);
+    write("b.ts", ['import { g } from "./c.ts";', "export const f = () => g();"]);
+    write("c.ts", ["export async function g() {", '  await import("./a.ts");', "}"]);
+    expect(importBackCycles(folder)).toEqual(["a.ts -> b.ts -> c.ts -> import(a.ts)"]);
+    write("c.ts", [
+      'import { x } from "./a.ts";',
+      "export async function g() {",
+      "  return x;",
+      "}",
+    ]);
+    expect(importBackCycles(folder)).toEqual([]);
   });
 });
+
+type ImportEdge = { to: string; dynamic: boolean };
+
+/** Every .ts and .mjs module under `root` with its relative imports: static (`from`, side effect) or import(). */
+function importGraph(root: string): Map<string, { text: string; edges: ImportEdge[] }> {
+  const graph = new Map<string, { text: string; edges: ImportEdge[] }>();
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const path = join(dir, entry.name);
+      if (entry.isDirectory() && entry.name !== "node_modules") walk(path);
+      if (!entry.isFile() || !/\.(ts|mjs)$/.test(entry.name)) continue;
+      const text = readFileSync(path, "utf8");
+      const edge = (spec: string | undefined, dynamic: boolean) => ({
+        to: resolve(dir, spec ?? ""),
+        dynamic,
+      });
+      graph.set(path, {
+        text,
+        edges: [
+          // a type-only import is erased and loads nothing
+          ...[
+            ...text.matchAll(
+              /^\s*(?:import|export)\s+(type\s+)?[^;()]*?\bfrom\s+"(\.{1,2}\/[^"]+)"/gm,
+            ),
+          ]
+            .filter((found) => found[1] === undefined)
+            .map((found) => edge(found[2], false)),
+          ...[...text.matchAll(/^\s*import\s+"(\.{1,2}\/[^"]+)"/gm)].map((found) =>
+            edge(found[1], false),
+          ),
+          ...[...text.matchAll(/(?<!typeof\s)\bimport\(\s*"(\.{1,2}\/[^"]+)"\s*\)/g)].map((found) =>
+            edge(found[1], true),
+          ),
+        ],
+      });
+    }
+  };
+  walk(root);
+  return graph;
+}
+
+/**
+ * Each chain from a runnable script with a top-level await (`import.meta.main`, an `await` in its main block or at
+ * the top) back into it whose closing edge is an import(): that import() waits on the evaluation that waits on it.
+ */
+function importBackCycles(root: string): string[] {
+  const graph = importGraph(root);
+  const name = (path: string) => relative(root, path).split(sep).join("/");
+  const awaitsAtTop = (text: string) => {
+    const main = text.indexOf("if (import.meta.main)");
+    return (
+      main !== -1 &&
+      (/\bawait\b/.test(text.slice(main)) ||
+        /^(?:await\b|(?:export\s+)?(?:const|let)\s[^\n]*=\s*await\b)/m.test(text))
+    );
+  };
+  return [...graph]
+    .filter(([, { text }]) => awaitsAtTop(text))
+    .flatMap(([entry]) => {
+      // breadth first over every edge, each module reached once, remembering where from
+      const via = new Map<string, string>();
+      const queue = [entry];
+      const chain = (at: string): string[] =>
+        at === entry ? [name(entry)] : [...chain(via.get(at) ?? entry), name(at)];
+      const found: string[] = [];
+      for (const at of queue) {
+        for (const { to, dynamic } of graph.get(at)?.edges ?? []) {
+          if (to === entry) {
+            if (dynamic) found.push([...chain(at), `import(${name(entry)})`].join(" -> "));
+          } else if (graph.has(to) && !via.has(to)) {
+            via.set(to, at);
+            queue.push(to);
+          }
+        }
+      }
+      return found;
+    });
+}

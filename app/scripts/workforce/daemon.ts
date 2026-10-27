@@ -49,7 +49,6 @@ import {
   reelWork,
   reelWorking,
   startStudioPass,
-  STUDIO_LOG,
   withReel,
 } from "./reel.ts";
 import { breakerUntil, type CliUsage, runClaude, UsageLimitError } from "./cli.ts";
@@ -1497,9 +1496,9 @@ async function pass(client: Db): Promise<void> {
   // W7 item 19: the oldest queued reel is made by a process of its own, one at a time, so passes keep their minute. It
   // does not wait for colleague runs: Matter's live session is one and is nearly always running (P-3480). W8 0f: the same
   // pass uploads an approved draft, sends a waiting piece's preview and writes the rows of the studio.
+  // W8 item 1, round 5: the pass keeps its own lock, so one hung before its piece is `working` is not started again.
   if (!reelBusy && reelWork()) {
-    startStudioPass();
-    console.log(`${new Date().toISOString()} reel pass started (its lines: ${STUDIO_LOG})`);
+    for (const line of startStudioPass()) console.log(`${new Date().toISOString()} ${line}`);
   }
   await makeApprovedCalls(client);
   // W4: replies to our email reach their colleague; W8 0h: every other message of every folder is recorded once and
