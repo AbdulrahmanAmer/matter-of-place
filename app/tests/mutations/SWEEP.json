@@ -30,7 +30,7 @@
     "id": "sw-d-hidden-run-shell-only",
     "test": "tests/unit/workforce-sweep.test.ts",
     "file": "scripts/workforce/sweep.ts",
-    "find": "      const shell = parent !== undefined && HIDDEN_RUN_SHELL.test(parent.command) ? parent : undefined;",
+    "find": "      const shell =\n        parent !== undefined && HIDDEN_RUN_SHELL.test(parent.command) ? parent : undefined;",
     "replace": "      const shell = parent;",
     "run": "bunx vitest run --project unit tests/unit/workforce-sweep.test.ts",
     "expect": "× .*never ends a daemon run by hand from a terminal's cmd"
@@ -102,7 +102,7 @@
     "id": "sw-l-working-grace",
     "test": "tests/unit/workforce-sweep.test.ts",
     "file": "scripts/workforce/sweep.ts",
-    "find": "    if (!(now - (Number.isNaN(started) ? Date.parse(brief.at) : started) > WORKING_GRACE_MS)) continue;",
+    "find": "    if (!(now - (Number.isNaN(started) ? Date.parse(brief.at) : started) > WORKING_GRACE_MS))\n      continue;",
     "replace": "    if (Number.isNaN(started) && now < 0) continue;",
     "run": "bunx vitest run --project unit tests/unit/workforce-sweep.test.ts",
     "expect": "× .*puts a piece nobody is making back in the queue"

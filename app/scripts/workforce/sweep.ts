@@ -85,7 +85,8 @@ const isScheduled = (proc: Proc) => isBun(proc) && SCHEDULED.test(proc.command);
 const isRunnerCli = (proc: Proc) =>
   isCli(proc) &&
   (/(?:studio-)?no-mcp\.json/i.test(proc.command) ||
-    (/--input-format\s+stream-json/.test(proc.command) && /settings-full\.json/.test(proc.command)));
+    (/--input-format\s+stream-json/.test(proc.command) &&
+      /settings-full\.json/.test(proc.command)));
 
 const minutes = (ms: number) => `${String(Math.round(ms / 60_000))} min`;
 
@@ -144,7 +145,11 @@ export function planSweep(procs: Proc[], now: number, self: number): Plan {
   const keeper = young.find(busy) ?? young[0];
   for (const pass of passes) {
     if (now - pass.started > PASS_CAP_MS)
-      end(pass, "studio pass", `running ${minutes(now - pass.started)}, past ${minutes(PASS_CAP_MS)}`);
+      end(
+        pass,
+        "studio pass",
+        `running ${minutes(now - pass.started)}, past ${minutes(PASS_CAP_MS)}`,
+      );
     else if (pass !== keeper)
       end(pass, "studio pass", "a second studio pass; the studio makes one at a time");
   }
@@ -154,7 +159,8 @@ export function planSweep(procs: Proc[], now: number, self: number): Plan {
     const parent = parentOf(proc);
     if (isScheduled(proc)) {
       // hidden-run.vbs: wscript.exe waits on cmd.exe, which runs bun. With the launcher gone, the task has ended.
-      const shell = parent !== undefined && HIDDEN_RUN_SHELL.test(parent.command) ? parent : undefined;
+      const shell =
+        parent !== undefined && HIDDEN_RUN_SHELL.test(parent.command) ? parent : undefined;
       const launcher = shell === undefined ? undefined : parentOf(shell);
       if (shell === undefined || (launcher !== undefined && isLauncher(launcher))) continue;
       const age = now - proc.started;
@@ -172,7 +178,11 @@ export function planSweep(procs: Proc[], now: number, self: number): Plan {
     }
     if (parent === undefined) {
       if (isRunnerCli(proc))
-        end(proc, "CLI run", "the runner or session that started it is gone, so nobody reads its answer");
+        end(
+          proc,
+          "CLI run",
+          "the runner or session that started it is gone, so nobody reads its answer",
+        );
       else if (isFfmpeg(proc) && OUR_PATHS.test(proc.command))
         end(proc, "ffmpeg", "the studio pass that started it is gone");
       else if (isBun(proc) && RENDER.test(proc.command) && OUR_PATHS.test(proc.command))
@@ -282,7 +292,8 @@ export function returnOrphanedPieces(studio: string, now: number): string[] {
     const brief = readBriefFile(folder);
     if (brief?.state !== "working") continue;
     const started = typeof brief["started"] === "string" ? Date.parse(brief["started"]) : NaN;
-    if (!(now - (Number.isNaN(started) ? Date.parse(brief.at) : started) > WORKING_GRACE_MS)) continue;
+    if (!(now - (Number.isNaN(started) ? Date.parse(brief.at) : started) > WORKING_GRACE_MS))
+      continue;
     const before = typeof brief["reason"] === "string" ? brief["reason"] : "";
     const next: Record<string, unknown> = { ...brief };
     next["started"] = undefined;
@@ -352,7 +363,8 @@ async function sweep(dry: boolean): Promise<void> {
   for (const kill of kills)
     say(`${dry ? "would end" : "ending"} ${kill.kind} ${kill.pids.join(",")}: ${kill.reason}`);
   if (dry) {
-    for (const pid of working) say(`would keep scheduled pass ${String(pid)}: an answer is under way`);
+    for (const pid of working)
+      say(`would keep scheduled pass ${String(pid)}: an answer is under way`);
     return;
   }
   mkdirSync(HOME, { recursive: true });
@@ -384,7 +396,8 @@ async function sweep(dry: boolean): Promise<void> {
           state: "failed",
           finished_at: new Date().toISOString(),
           lease_until: null,
-          error: "stopped: its runner ran past the scheduled task's time limit and the sweep ended it",
+          error:
+            "stopped: its runner ran past the scheduled task's time limit and the sweep ended it",
         })
         .eq("state", "running")
         .eq("worker", runnerWorker(kill.pids[0] ?? 0))

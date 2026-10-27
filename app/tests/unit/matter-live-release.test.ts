@@ -48,13 +48,15 @@ describe("releaseHeld", () => {
     ];
     expect(await releaseHeld(fakeRuns(rows), "matter-live@x")).toEqual({ requeued: 1, closed: 1 });
     expect(rows.find((row) => row.id === "line")).toMatchObject({ state: "queued", worker: null });
-    expect(rows.find((row) => row.id === "goal")).toMatchObject({
-      state: "failed",
-      error: expect.stringContaining("supervisor restarted"),
-    });
+    const goal = rows.find((row) => row.id === "goal");
+    expect(goal?.state).toBe("failed");
+    expect(goal?.error).toContain("supervisor restarted");
     expect(rows.find((row) => row.id === "done")?.state).toBe("done");
     expect(rows.find((row) => row.id === "other")?.state).toBe("running");
-    expect(rows.find((row) => row.id === "other-line")).toMatchObject({ state: "running", worker: "x:123" });
+    expect(rows.find((row) => row.id === "other-line")).toMatchObject({
+      state: "running",
+      worker: "x:123",
+    });
     expect(rows.find((row) => row.id === "answered")?.state).toBe("done");
     // P-3450: live.ts loads the runner (daemon.ts) cold
   }, 30_000);

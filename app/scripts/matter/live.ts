@@ -405,7 +405,9 @@ function endLostSession(): void {
     { encoding: "utf8", windowsHide: true, timeout: 30_000 },
   );
   if (!/--input-format\s+stream-json/.test(found.stdout)) return;
-  console.log(`${new Date().toISOString()} live: ended the session ${String(pid)} the last supervisor left`);
+  console.log(
+    `${new Date().toISOString()} live: ended the session ${String(pid)} the last supervisor left`,
+  );
   killTree(pid);
 }
 

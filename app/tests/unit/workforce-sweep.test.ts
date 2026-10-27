@@ -21,7 +21,13 @@ import {
 // ends what nobody waits for, from one process listing; these cases are the stacks the laptop actually had.
 const NOW = Date.parse("2026-10-27T15:00:00Z");
 const ago = (minutes: number) => NOW - minutes * 60_000;
-const proc = (pid: number, parent: number, name: string, startedMinAgo: number, command = ""): Proc => ({
+const proc = (
+  pid: number,
+  parent: number,
+  name: string,
+  startedMinAgo: number,
+  command = "",
+): Proc => ({
   pid,
   parent,
   name,
@@ -37,8 +43,10 @@ const COLLEAGUE =
   "claude -p --model sonnet --mcp-config C:\\Users\\DELL\\.mop-workforce\\no-mcp.json --permission-mode dontAsk";
 const LIVE_CLI =
   "claude -p --settings E:\\mop-build\\live\\app\\scripts\\matter\\settings-full.json --input-format stream-json --output-format stream-json";
-const BUILDER = "claude -p --settings E:/mop-build/live/app/scripts/matter/settings-full.json --model opus";
-const ended = (procs: Proc[], self = 999) => planSweep(procs, NOW, self).kills.map((kill) => kill.pids);
+const BUILDER =
+  "claude -p --settings E:/mop-build/live/app/scripts/matter/settings-full.json --model opus";
+const ended = (procs: Proc[], self = 999) =>
+  planSweep(procs, NOW, self).kills.map((kill) => kill.pids);
 
 describe("planSweep", () => {
   it("ends a runner whose launcher the task's time limit ended, with what it started, and keeps the launched one", () => {
@@ -53,8 +61,8 @@ describe("planSweep", () => {
       proc(31, 30, "cmd.exe", 5, SHELL),
       proc(32, 31, "bun.exe", 5, DAEMON),
     ];
-    expect(planSweep(procs, NOW, 999).kills).toEqual([
-      expect.objectContaining({ pids: [22, 23], kind: "scheduled pass" }),
+    expect(planSweep(procs, NOW, 999).kills.map(({ pids, kind }) => ({ pids, kind }))).toEqual([
+      { pids: [22, 23], kind: "scheduled pass" },
     ]);
   });
 
@@ -72,7 +80,13 @@ describe("planSweep", () => {
     const procs = [
       proc(40, 4, "cmd.exe", 90, "cmd.exe"),
       proc(41, 40, "bun.exe", 90, DAEMON),
-      proc(42, 4, "cmd.exe", 600, SHELL.replace("scripts\\workforce\\daemon.ts", "scripts\\matter\\live.ts")),
+      proc(
+        42,
+        4,
+        "cmd.exe",
+        600,
+        SHELL.replace("scripts\\workforce\\daemon.ts", "scripts\\matter\\live.ts"),
+      ),
       proc(43, 42, "bun.exe", 600, "bun scripts\\matter\\live.ts"),
       proc(44, 43, "claude.exe", 30, LIVE_CLI),
     ];
@@ -92,16 +106,25 @@ describe("planSweep", () => {
     const procs = [
       proc(50, 4, "bun.exe", 30, PASS),
       proc(51, 4, "bun.exe", 20, PASS),
-      proc(52, 51, "claude.exe", 19, "claude -p --mcp-config C:\\Users\\DELL\\.mop-workforce\\studio-no-mcp.json"),
+      proc(
+        52,
+        51,
+        "claude.exe",
+        19,
+        "claude -p --mcp-config C:\\Users\\DELL\\.mop-workforce\\studio-no-mcp.json",
+      ),
       proc(53, 4, "bun.exe", 10, PASS),
     ];
     expect(ended(procs)).toEqual([[50], [53]]);
     const idle = [proc(54, 4, "bun.exe", 30, PASS), proc(55, 4, "bun.exe", 10, PASS)];
     expect(ended(idle)).toEqual([[55]]);
-    const old = [proc(56, 4, "bun.exe", PASS_CAP_MS / 60_000 + 1, PASS), proc(57, 4, "bun.exe", 5, PASS)];
-    expect(planSweep(old, NOW, 999).kills).toEqual([
-      expect.objectContaining({ pids: [56], reason: expect.stringContaining("past") }),
-    ]);
+    const old = [
+      proc(56, 4, "bun.exe", PASS_CAP_MS / 60_000 + 1, PASS),
+      proc(57, 4, "bun.exe", 5, PASS),
+    ];
+    const kills = planSweep(old, NOW, 999).kills;
+    expect(kills.map((kill) => kill.pids)).toEqual([[56]]);
+    expect(kills[0]?.reason).toContain("past");
   });
 
   it("leaves a studio pass a runner started out of the runner's tree", () => {
@@ -109,7 +132,13 @@ describe("planSweep", () => {
       proc(21, 20, "cmd.exe", 70, SHELL),
       proc(22, 21, "bun.exe", 70, DAEMON),
       proc(24, 22, "bun.exe", 60, PASS),
-      proc(25, 24, "ffmpeg.exe", 2, "ffmpeg -i C:\\Users\\DELL\\.mop-workforce\\studio\\a\\out\\reel.mp4"),
+      proc(
+        25,
+        24,
+        "ffmpeg.exe",
+        2,
+        "ffmpeg -i C:\\Users\\DELL\\.mop-workforce\\studio\\a\\out\\reel.mp4",
+      ),
     ];
     expect(ended(procs)).toEqual([[22]]);
   });
@@ -123,10 +152,22 @@ describe("planSweep", () => {
       proc(60, 1234, "claude.exe", 40, COLLEAGUE),
       proc(61, 1239, "claude.exe", 40, LIVE_CLI),
       // the desktop app, a person's own terminal session and a builder Matter started from his shell
-      proc(62, 4321, "claude.exe", 400, '"C:\\Program Files\\WindowsApps\\Claude_3\\app\\Claude.exe" --startup'),
+      proc(
+        62,
+        4321,
+        "claude.exe",
+        400,
+        '"C:\\Program Files\\WindowsApps\\Claude_3\\app\\Claude.exe" --startup',
+      ),
       proc(63, 5555, "claude.exe", 40, "claude --resume abc"),
       proc(64, 5556, "claude.exe", 40, BUILDER),
-      proc(65, 1235, "ffmpeg.exe", 2, "ffmpeg -i C:\\Users\\DELL\\.mop-workforce\\studio\\a\\shots\\01.png"),
+      proc(
+        65,
+        1235,
+        "ffmpeg.exe",
+        2,
+        "ffmpeg -i C:\\Users\\DELL\\.mop-workforce\\studio\\a\\shots\\01.png",
+      ),
       proc(66, 1236, "ffmpeg.exe", 2, "ffmpeg -i D:\\holiday.mov out.mp4"),
       proc(67, 1238, "bun.exe", 9, "bun E:\\mop-build\\live\\launch\\engine\\render-reel.mjs"),
       proc(68, 1240, "node.exe", 9, "node D:\\other\\launch\\engine\\serve.mjs"),
@@ -191,12 +232,25 @@ describe("the studio folder", () => {
   it("puts a piece nobody is making back in the queue, fails it the second time, and leaves a fresh one", () => {
     const studio = studioWith([
       ["lost", { state: "working", at: at(60), started: at(40), id: "keep-me" }],
-      ["lost-again", { state: "working", at: at(90), started: at(30), reason: "returned to the queue by the sweep: no pass was making it" }],
+      [
+        "lost-again",
+        {
+          state: "working",
+          at: at(90),
+          started: at(30),
+          reason: "returned to the queue by the sweep: no pass was making it",
+        },
+      ],
       ["fresh", { state: "working", at: at(3), started: at(2) }],
     ]);
     expect(returnOrphanedPieces(studio, NOW)).toEqual(["lost (queued)", "lost-again (failed)"]);
     const lost: unknown = JSON.parse(readFileSync(join(studio, "lost", "brief.json"), "utf8"));
-    expect(lost).toEqual({ state: "queued", at: at(60), id: "keep-me", reason: expect.stringContaining("returned") });
+    expect(lost).toEqual({
+      state: "queued",
+      at: at(60),
+      id: "keep-me",
+      reason: "returned to the queue by the sweep: no pass was making it",
+    });
     const fresh: unknown = JSON.parse(readFileSync(join(studio, "fresh", "brief.json"), "utf8"));
     expect(fresh).toMatchObject({ state: "working" });
   });
@@ -226,7 +280,9 @@ describe("report", () => {
     expect(text).toContain("ended 1 stuck process tree(s)");
     expect(text).toContain("studio pass 7: a second studio pass");
     expect(text).toContain("1 run(s) the ended runner held are marked failed");
-    expect(text).toContain("2 run(s) queued over 30 min, the oldest 45 min; the runner is passing.");
+    expect(text).toContain(
+      "2 run(s) queued over 30 min, the oldest 45 min; the runner is passing.",
+    );
     expect(text).toContain("2026-10-27-post (40 min); a studio pass is not running.");
     expect(text).toContain("Find why it hung and fix the cause.");
   });
