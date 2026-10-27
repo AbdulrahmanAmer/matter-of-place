@@ -7,7 +7,10 @@ import {
   goalGapMs,
   goalLine,
   goalSkipReason,
+  isWorkTool,
   nextGoalStep,
+  quietAfter,
+  youngTasks,
 } from "../../scripts/matter/live";
 import { readablePath } from "../../scripts/matter/read";
 import { matterPrompt } from "../../scripts/matter/run";
@@ -114,15 +117,41 @@ describe("Matter keeps going on his goal", () => {
       "his last 1 goal turn(s) did no work; the next waits 20 minutes",
     );
     expect(goalSkipReason({ ...ready, quiet: 1, goalAt: at - 1_200_000 })).toBeNull();
-    expect([0, 1, 2, 3, 4, 9].map(goalGapMs)).toEqual([
+    expect([0, 1, 2, 3, 9].map(goalGapMs)).toEqual([
       600_000,
       1_200_000,
       2_400_000,
-      4_800_000,
       GOAL_GAP_MAX_MS,
       GOAL_GAP_MAX_MS,
     ]);
-    expect(GOAL_GAP_MAX_MS).toBe(2 * 60 * 60_000);
+    expect(GOAL_GAP_MAX_MS).toBe(60 * 60_000);
+  });
+
+  it("counts a goal turn as work by its effect, and holds the goal back only for young background tasks", () => {
+    // a status read before "nothing new" is no work; a file written, a builder or an agent started is
+    expect(["Bash", "Read", "Grep", "Edit", "Write", "Agent", "Task"].map(isWorkTool)).toEqual([
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+    ]);
+    const turn = { goalTurn: true, work: 0, quiet: 2, isError: false };
+    expect([
+      quietAfter(turn),
+      quietAfter({ ...turn, work: 1 }),
+      quietAfter({ ...turn, goalTurn: false }),
+      quietAfter({ ...turn, isError: true }),
+    ]).toEqual([3, 0, 2, 2]);
+    const at = 10_000_000;
+    const open = new Map([
+      ["builder", at - 5 * 60_000],
+      ["watcher", at - GOAL_GAP_MAX_MS],
+    ]);
+    expect(youngTasks(open, at)).toBe(1);
+    expect(youngTasks(new Map(), at)).toBe(0);
   });
 
   it("names the first open step of his list, none when every step passes, none without a list", () => {

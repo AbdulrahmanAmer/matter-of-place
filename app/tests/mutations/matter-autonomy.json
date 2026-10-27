@@ -97,5 +97,32 @@
     "expect": "× .*waits while his own background work runs, and doubles the gap",
     "find": "  return Math.min(GOAL_GAP_MS * 2 ** quiet, GOAL_GAP_MAX_MS);",
     "replace": "  return GOAL_GAP_MS * 2 ** quiet;"
+  },
+  {
+    "id": "ma-e-work-by-effect",
+    "test": "tests/unit/matter-autonomy.test.ts",
+    "file": "scripts/matter/live.ts",
+    "run": "bunx vitest run --project unit tests/unit/matter-autonomy.test.ts",
+    "expect": "× .*counts a goal turn as work by its effect",
+    "find": "  return /^(Edit|Write|MultiEdit|NotebookEdit|Agent|Task)$/.test(name);",
+    "replace": "  return name !== \"\";"
+  },
+  {
+    "id": "ma-e-error-not-counted",
+    "test": "tests/unit/matter-autonomy.test.ts",
+    "file": "scripts/matter/live.ts",
+    "run": "bunx vitest run --project unit tests/unit/matter-autonomy.test.ts",
+    "expect": "× .*counts a goal turn as work by its effect",
+    "find": "  if (!input.goalTurn || input.isError) return input.quiet;",
+    "replace": "  if (!input.goalTurn) return input.quiet;"
+  },
+  {
+    "id": "ma-e-young-tasks-only",
+    "test": "tests/unit/matter-autonomy.test.ts",
+    "file": "scripts/matter/live.ts",
+    "run": "bunx vitest run --project unit tests/unit/matter-autonomy.test.ts",
+    "expect": "× .*counts a goal turn as work by its effect",
+    "find": "  return [...open.values()].filter((startedAt) => now - startedAt < GOAL_GAP_MAX_MS).length;",
+    "replace": "  return open.size + now * 0;"
   }
 ]
