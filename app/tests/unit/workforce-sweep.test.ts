@@ -75,16 +75,22 @@ describe("planSweep", () => {
       proc(23, 22, "claude.exe", 20, COLLEAGUE),
     ];
     const old = RUN_CEILING_MS / 60_000 + 30;
+    // a young pass is never judged, even one holding no run
     expect(ended(launched(55))).toEqual([]);
+    expect(ended(launched(55), 999, new Map([[22, null]]))).toEqual([]);
     // an old pass whose current run was claimed 20 minutes ago, or whose runs cannot be read, keeps working
     expect(ended(launched(old), 999, new Map([[22, ago(20)]]))).toEqual([]);
     expect(ended(launched(old))).toEqual([]);
-    // its run has answered past the ceiling, or it holds no run at all: it has hung
+    // its run has answered past the ceiling: it has hung, and the run read before the kill is the one failed
     const late = planSweep(launched(old), NOW, 999, new Map([[22, ago(old - 1)]]));
-    expect(late.map(({ pids, runs }) => ({ pids, runs }))).toEqual([
-      { pids: [22, 23], runs: "fail" },
+    expect(late.map(({ pids, runs, lease }) => ({ pids, runs, lease }))).toEqual([
+      { pids: [22, 23], runs: "fail", lease: new Date(ago(old - 1) + 3000_000).toISOString() },
     ]);
-    expect(ended(launched(old), 999, new Map([[22, null]]))).toEqual([[22, 23]]);
+    // holding no run when read, it is ended with no run to fail
+    const idle = planSweep(launched(old), NOW, 999, new Map([[22, null]]));
+    expect(idle.map(({ pids, runs }) => ({ pids, runs }))).toEqual([
+      { pids: [22, 23], runs: undefined },
+    ]);
   });
 
   it("never ends a daemon run by hand from a terminal's cmd, nor Matter's live supervisor", () => {
@@ -125,6 +131,8 @@ describe("planSweep", () => {
     // with nothing under any pass, the old one is the one that hung: the newest stays
     const idle = [proc(54, 4, "bun.exe", 30, PASS), proc(55, 4, "bun.exe", 10, PASS)];
     expect(ended(idle)).toEqual([[54]]);
+    // a piece marked `working` 20 minutes ago was marked by a pass started before it, between its child processes
+    expect(planSweep(idle, NOW, 999, new Map(), ago(20)).map((kill) => kill.pids)).toEqual([[55]]);
     const old = [
       proc(56, 4, "bun.exe", PASS_CAP_MS / 60_000 + 1, PASS),
       proc(57, 4, "bun.exe", 5, PASS),
@@ -291,7 +299,10 @@ describe("settleRuns", () => {
           return chain;
         },
         lte(column: string, value: string) {
-          tests.push((row) => typeof row[column] === "string" && String(row[column]) <= value);
+          tests.push((row) => {
+            const cell = row[column];
+            return typeof cell === "string" && cell <= value;
+          });
           return chain;
         },
         select() {
@@ -352,6 +363,14 @@ describe("settleRuns", () => {
         lease_until: lease(55),
         message_id: null,
       },
+      // claimed by the hung pass after the sweep read its claim, before the kill: not the run that hung
+      {
+        id: "g",
+        state: "running",
+        worker: runnerWorker(12),
+        lease_until: lease(48),
+        message_id: "m-person",
+      },
       {
         id: "e",
         state: "done",
@@ -373,7 +392,15 @@ describe("settleRuns", () => {
       fakeDb(runs, told),
       [
         { pids: [11], kind: "scheduled pass", reason: "stopped", runs: "requeue", ok: true },
-        { pids: [12], kind: "scheduled pass", reason: "hung", runs: "fail", ok: true },
+        // the lease read before the kill: a run the pass claimed after that read is never failed with it
+        {
+          pids: [12],
+          kind: "scheduled pass",
+          reason: "hung",
+          runs: "fail",
+          lease: lease(45),
+          ok: true,
+        },
         { pids: [13], kind: "scheduled pass", reason: "hung", runs: "fail", ok: false },
       ],
       killedAt,
@@ -384,6 +411,7 @@ describe("settleRuns", () => {
       ["b", "failed"],
       ["c", "failed"],
       ["d", "running"],
+      ["g", "running"],
       ["e", "done"],
       ["f", "running"],
     ]);
@@ -436,11 +464,17 @@ describe("report", () => {
       runner: { pid: 4242, ageMs: minutes * 60_000 },
     });
     expect(reportKey(stall(2, 45, 7))).toBe(reportKey(stall(3, 75, 9)));
-    expect(reportKey(stall(2, 45, 7))).not.toBe(
-      reportKey({ ...stall(2, 45, 7), waitingRuns: { count: 2, oldestMs: 0, oldestId: "run-2" } }),
-    );
-    expect(reportKey(stall(2, 45, 7))).not.toBe(
-      reportKey({ ...stall(2, 45, 7), runner: { pid: 5151, ageMs: 0 } }),
+    // a backlog draining while the runner passes every minute (a new process each time) is the same stall
+    const cycling = (oldestId: string, pid: number): Findings => ({
+      ...stall(2, 45, 7),
+      waitingRuns: { count: 2, oldestMs: 45 * 60_000, oldestId },
+      runner: { pid, ageMs: 60_000 },
+    });
+    expect(reportKey(cycling("run-1", 5151))).toBe(reportKey(cycling("run-2", 6161)));
+    // a runner pass held past the wait is another stall than one that cycles, and than none alive
+    expect(reportKey(stall(2, 45, 7))).not.toBe(reportKey(cycling("run-1", 4242)));
+    expect(reportKey(cycling("run-1", 5151))).not.toBe(
+      reportKey({ ...cycling("run-1", 5151), runner: null }),
     );
   });
 });

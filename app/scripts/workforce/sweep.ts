@@ -35,9 +35,16 @@ export type Proc = { pid: number; parent: number; name: string; started: number;
 
 /**
  * Processes to end, by exact id (the first is the one the reason is about), and why. `runs` says what becomes of the
- * runs an ended runner held: `requeue` when its task was stopped under it, `fail` when it hung past the ceiling.
+ * runs an ended runner held: `requeue` when its task was stopped under it, `fail` when it hung past the ceiling; `lease`
+ * is the lease of the run read before the kill, so a run the pass claimed after that read is never failed with it.
  */
-type Kill = { pids: number[]; kind: string; reason: string; runs?: "requeue" | "fail" };
+type Kill = {
+  pids: number[];
+  kind: string;
+  reason: string;
+  runs?: "requeue" | "fail";
+  lease?: string;
+};
 
 /**
  * The scripts a scheduled task starts through hidden-run.vbs (`cmd.exe /c ... bun <script>`), this one included, and
@@ -128,6 +135,7 @@ export function planSweep(
   now: number,
   self: number,
   claims: ReadonlyMap<number, number | null> = new Map(),
+  makingAt: number | null = null,
 ): Kill[] {
   const byPid = new Map(procs.map((proc) => [proc.pid, proc]));
   const parentOf = parentFinder(byPid);
@@ -155,13 +163,16 @@ export function planSweep(
 
   const kills: Kill[] = [];
   const taken = new Set<number>();
-  const end = (root: Proc, kind: string, reason: string, runs?: Kill["runs"]) => {
+  const end = (root: Proc, kind: string, reason: string, runs?: Kill["runs"], lease?: string) => {
     if (root.pid === self || taken.has(root.pid)) return;
     const pids = tree(root)
       .map((proc) => proc.pid)
       .filter((pid) => pid !== self && !taken.has(pid));
     for (const pid of pids) taken.add(pid);
-    kills.push(runs === undefined ? { pids, kind, reason } : { pids, kind, reason, runs });
+    const kill: Kill = { pids, kind, reason };
+    if (runs !== undefined) kill.runs = runs;
+    if (lease !== undefined) kill.lease = lease;
+    kills.push(kill);
   };
 
   // One studio pass at a time: past its cap a pass ends. Of the rest the one making a piece stays (its designer or
@@ -173,6 +184,9 @@ export function planSweep(
   const keeper =
     young.find((pass) => under(pass).some(isCli)) ??
     young.find((pass) => under(pass).length > 0) ??
+    // between child processes the maker shows nothing under it: it is the newest pass started before the piece it is
+    // making was marked `working` (the runner starts no pass while a piece is `working`)
+    [...young].reverse().find((pass) => makingAt !== null && pass.started <= makingAt) ??
     young.at(-1);
   for (const pass of passes) {
     if (now - pass.started > PASS_CAP_MS)
@@ -204,14 +218,17 @@ export function planSweep(
         // unknown, or a run claimed under the ceiling: no clock on a colleague's answer below it (2026-10-15)
         if (claimed === undefined || (claimed !== null && now - claimed <= RUN_CEILING_MS))
           continue;
-        end(
-          proc,
-          "scheduled pass",
-          claimed === null
-            ? `running ${minutes(age)} and holding no run`
-            : `its run has been answering ${minutes(now - claimed)}, past its ceiling of ${minutes(RUN_CEILING_MS)}`,
-          "fail",
-        );
+        // holding no run when read, it has no run to fail (one it claims after the read is left for its lease)
+        if (claimed === null)
+          end(proc, "scheduled pass", `running ${minutes(age)} and holding no run`);
+        else
+          end(
+            proc,
+            "scheduled pass",
+            `its run has been answering ${minutes(now - claimed)}, past its ceiling of ${minutes(RUN_CEILING_MS)}`,
+            "fail",
+            new Date(claimed + 3000_000).toISOString(),
+          );
       }
       continue;
     }
@@ -287,15 +304,42 @@ export function runnerPass(procs: Proc[], now: number): { pid: number; ageMs: nu
   return pass === undefined ? null : { pid: pass.pid, ageMs: now - pass.started };
 }
 
-/** True while the usage breaker holds every claim (cli.ts writes ~/.mop-workforce/breaker.json with its end). */
-function breakerOn(now: number): boolean {
+/** A JSON file of the workforce folder, or null when it is missing or not that shape. */
+function readJson<T>(name: string, schema: z.ZodType<T>): T | null {
   try {
-    const parsed: unknown = JSON.parse(readFileSync(join(HOME, "breaker.json"), "utf8"));
-    const until = z.object({ until: z.string() }).parse(parsed).until;
-    return Date.parse(until) > now;
+    const parsed: unknown = JSON.parse(readFileSync(join(HOME, name), "utf8"));
+    return schema.parse(parsed);
   } catch {
-    return false;
+    return null;
   }
+}
+
+/**
+ * True while runs wait by design: the usage breaker holds every claim (cli.ts breaker.json), or the staff policy takes
+ * a person's line only (config.ts policy.json, over 90% of the weekly allowance). No waiting run is a stall then.
+ */
+function holdsClaims(now: number): boolean {
+  const breaker = readJson("breaker.json", z.object({ until: z.string() }));
+  const policy = readJson("policy.json", z.object({ personOnly: z.boolean() }));
+  return (breaker !== null && Date.parse(breaker.until) > now) || policy?.personOnly === true;
+}
+
+/** The earliest moment a studio piece now `working` was marked so (the runner starts no pass after it); null if none. */
+function makingSince(studio: string): number | null {
+  const times = folders(studio).flatMap((folder) => {
+    const brief = readBriefFile(folder);
+    if (brief?.state !== "working") return [];
+    const started = brief["started"];
+    const at = typeof started === "string" ? Date.parse(started) : NaN;
+    return Number.isNaN(at) ? [] : [at];
+  });
+  return times.length === 0 ? null : Math.min(...times);
+}
+
+/** How a waiting report names the runner: none alive, passing minute by minute, or one pass held past the wait. */
+export function runnerShape(runner: Findings["runner"]): string | number {
+  if (runner === null) return "none";
+  return runner.ageMs > WAIT_MS ? runner.pid : "cycling";
 }
 
 /**
@@ -449,8 +493,9 @@ export function reportKey(found: Findings): string {
         found.settled.requeued > 0,
         found.settled.failed > 0,
         found.pieces.map((piece) => piece.replace(/ \((queued|failed)\)$/, "")),
-        found.waitingRuns.count > 0 ? found.waitingRuns.oldestId : null,
-        found.waitingRuns.count > 0 ? (found.runner?.pid ?? null) : null,
+        // a runner that passes every minute is a new process each time: one shape, "cycling"; only a pass that has
+        // itself run past the wait is named by its id
+        found.waitingRuns.count > 0 ? runnerShape(found.runner) : null,
         found.waitingPieces.map((piece) => piece.replace(/ \(\d+ min\)$/, "")),
       ]),
     )
@@ -498,7 +543,7 @@ export async function settleRuns(
       )
       .eq("state", "running")
       .eq("worker", runnerWorker(kill.pids[0] ?? 0))
-      .lte("lease_until", new Date(killedAt + 3000_000).toISOString());
+      .lte("lease_until", kill.lease ?? new Date(killedAt + 3000_000).toISOString());
     const { data } = await held.select("message_id");
     if (kill.runs === "requeue") settled.requeued += data?.length ?? 0;
     else {
@@ -530,7 +575,7 @@ async function sweep(dry: boolean): Promise<void> {
   } catch (failure: unknown) {
     say(`database not reached: ${failure instanceof Error ? failure.message : String(failure)}`);
   }
-  const kills = planSweep(procs, now, process.pid, claims);
+  const kills = planSweep(procs, now, process.pid, claims, makingSince(join(HOME, "studio")));
   for (const kill of kills)
     say(`${dry ? "would end" : "ending"} ${kill.kind} ${kill.pids.join(",")}: ${kill.reason}`);
   if (dry) return;
@@ -552,7 +597,7 @@ async function sweep(dry: boolean): Promise<void> {
     if (client !== null) {
       settled = await settleRuns(client, ended, killedAt);
       // runs that wait by design are not a stall: a paused or off colleague's, and every run while the breaker holds
-      const { data: queued } = breakerOn(now)
+      const { data: queued } = holdsClaims(now)
         ? { data: [] }
         : await client
             .from("agent_runs")

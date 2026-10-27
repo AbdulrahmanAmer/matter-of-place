@@ -219,8 +219,8 @@
     "id": "sw-r-settle-lease-cut",
     "test": "tests/unit/workforce-sweep.test.ts",
     "file": "scripts/workforce/sweep.ts",
-    "find": "      .lte(\"lease_until\", new Date(killedAt + 3000_000).toISOString());",
-    "replace": "      .lte(\"lease_until\", \"9999\");",
+    "find": "      .lte(\"lease_until\", kill.lease ?? new Date(killedAt + 3000_000).toISOString());",
+    "replace": "      .lte(\"lease_until\", new Date(killedAt + 3000_000).toISOString());",
     "run": "bunx vitest run --project unit tests/unit/workforce-sweep.test.ts",
     "expect": "× .*requeues a stopped runner's runs, fails a hung one's"
   },
@@ -257,6 +257,33 @@
     "file": "scripts/workforce/sweep.ts",
     "find": "        [...new Set(found.ended.map((kill) => kill.kind))].sort(),",
     "replace": "        found.ended.map((kill) => kill.pids[0]),",
+    "run": "bunx vitest run --project unit tests/unit/workforce-sweep.test.ts",
+    "expect": "× .*keys the same stall the same way as its numbers grow and passes come and go"
+  },
+  {
+    "id": "sw-w-lease-carried",
+    "test": "tests/unit/workforce-sweep.test.ts",
+    "file": "scripts/workforce/sweep.ts",
+    "find": "            new Date(claimed + 3000_000).toISOString(),",
+    "replace": "            undefined,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-sweep.test.ts",
+    "expect": "× .*lets a launched runner's run answer with no clock up to its ceiling"
+  },
+  {
+    "id": "sw-x-maker-between-children",
+    "test": "tests/unit/workforce-sweep.test.ts",
+    "file": "scripts/workforce/sweep.ts",
+    "find": "    [...young].reverse().find((pass) => makingAt !== null && pass.started <= makingAt) ??",
+    "replace": "    undefined ??",
+    "run": "bunx vitest run --project unit tests/unit/workforce-sweep.test.ts",
+    "expect": "× .*keeps one studio pass, the one making a piece"
+  },
+  {
+    "id": "sw-y-cycling-runner",
+    "test": "tests/unit/workforce-sweep.test.ts",
+    "file": "scripts/workforce/sweep.ts",
+    "find": "  return runner.ageMs > WAIT_MS ? runner.pid : \"cycling\";",
+    "replace": "  return runner.pid;",
     "run": "bunx vitest run --project unit tests/unit/workforce-sweep.test.ts",
     "expect": "× .*keys the same stall the same way as its numbers grow and passes come and go"
   }

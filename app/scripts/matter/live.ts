@@ -405,11 +405,7 @@ function runnerHead(): string {
   }).stdout.trim();
 }
 
-/**
- * Ends the CLI session a supervisor before this one left running (its crash path exits without ending it), so the line
- * releaseHeld puts back in the queue is never answered by two sessions at once. The id is checked to still be that
- * session (its stream input) before anything is ended, since Windows reuses process ids.
- */
+/** The sweep's stall report, taken once (scripts/workforce/sweep.ts writes it); empty when none waits. */
 function takeStall(): string {
   // renamed first, so a report the sweep writes while this one is handed waits for the next turn
   const taken = `${STALL_FILE}.taken`;
@@ -423,6 +419,11 @@ function takeStall(): string {
   }
 }
 
+/**
+ * Ends the CLI session a supervisor before this one left running (its crash path exits without ending it), so the line
+ * releaseHeld puts back in the queue is never answered by two sessions at once. The id is checked to still be that
+ * session (its stream input) before anything is ended, since Windows reuses process ids.
+ */
 function endLostSession(): void {
   if (!existsSync(CHILD_FILE)) return;
   const pid = Number(readFileSync(CHILD_FILE, "utf8").trim());
