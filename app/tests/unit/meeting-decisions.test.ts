@@ -1,20 +1,30 @@
+import { mkdtempSync, readdirSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { toolkitFor } from "../../src/domain/toolkits";
 import type { Db } from "../../src/server/lib/db";
 import { localSpecShape, propertySchema } from "../../scripts/lib/render-spec.mjs";
 import { goalLine, openDecisionsText, Supervisor } from "../../scripts/matter/live";
 import { context } from "../../scripts/workforce/daemon";
+import { TEAM_CEILING } from "../../scripts/workforce/hiring";
 import {
   closedDecisions,
   decisionRules,
   decisionsPost,
   lastJson,
   matterAnswer,
+  meetingDay,
+  meetingStep,
   missStreaks,
   queueDecisionRuns,
   refusedRepeats,
   settleDecisions,
+  shownStreaks,
+  startsLeftToday,
+  STEP_LIMIT_MS,
   stillOpenDecisions,
+  stoppedPost,
 } from "../../scripts/workforce/meeting";
 import { toolkitLine } from "../../scripts/workforce/toolkit-args";
 import { startedFromInside } from "../../scripts/workforce/triage";
@@ -68,7 +78,12 @@ function filteringDb(table: string, rows: readonly Row[]) {
   const client = {
     from: (name: string) => {
       if (name !== table) throw new Error(`unexpected table ${name}`);
-      return { select: () => query(rows) };
+      return {
+        select: (columns: string) => {
+          asked.push(`select ${columns}`);
+          return query(rows);
+        },
+      };
     },
   };
   // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- the one cast of the filtering client
@@ -221,7 +236,8 @@ describe("MEETING-FIX what a decision may ask (H143 (2))", () => {
 
   it("shows each colleague's toolkit as its decision run holds it: reads and proposals, no writes, no renders", () => {
     const social = rules.split("\n").find((line) => line.startsWith("- @social")) ?? "";
-    expect(social).toContain("Writes nothing.");
+    const shared = rules.split("\n").find((line) => line.startsWith("- Every colleague's")) ?? "";
+    expect(shared).toContain("Writes nothing.");
     expect(social).toContain("Drafts social posts for approval.");
     expect(social).not.toContain("Has the runner render");
     expect(rules).toContain("- @matter: its live session holds the operator's tools");
@@ -430,5 +446,178 @@ describe("MEETING-FIX the renderer's spec shape (H143 (5), P-4644)", () => {
     expect(toolkitLine(toolkitFor("editor"), paths, false)).not.toContain(
       "A spec is one JSON file",
     );
+  });
+});
+
+// W8 0j round 3 (2026-10-27): the meeting's second step ran past its one 8 minute limit, set nothing and said so only in
+// its log, and no step's size or duration was recorded anywhere.
+describe("MEETING-FIX round 3: each step timed, said when it stops, run again the same day (W8 0j)", () => {
+  const ticks =
+    (...values: number[]) =>
+    () =>
+      values.shift() ?? 0;
+  const install = readFileSync(
+    new URL("../../scripts/workforce/install.ps1", import.meta.url),
+    "utf8",
+  )
+    .replace(/\s*`\r?\n\s*/g, " ")
+    .split(/\r?\n/);
+  const home = () => mkdtempSync(join(tmpdir(), "meeting-day-"));
+  const stopped = () => Promise.reject(new Error("the step took longer than 5 minutes"));
+
+  it("logs each step's prompt size, its duration and how it ended", async () => {
+    const { db } = recordingDb();
+    const logged: string[] = [];
+    const log = (line: string) => {
+      logged.push(line);
+    };
+    const step = {
+      db,
+      dry: false,
+      step: "@chief's three lines",
+      prompt: "x".repeat(2686),
+      again: true,
+    };
+    await meetingStep(step, () => Promise.resolve("ok"), log, ticks(0, 42_400));
+    await expect(meetingStep(step, stopped, log, ticks(0, 300_000))).rejects.toThrow(
+      "the step took longer than 5 minutes",
+    );
+    expect(logged).toEqual([
+      "1970-01-01T00:00:00.000Z meeting step @chief's three lines: prompt 2686 characters, 42 s, answered",
+      "1970-01-01T00:00:00.000Z meeting step @chief's three lines: prompt 2686 characters, 300 s, stopped: the step took longer than 5 minutes",
+    ]);
+  });
+
+  it("says in the team thread which step stopped, that today's decisions were not set, and that the rest runs again", async () => {
+    const { db, written } = recordingDb();
+    const step = { db, dry: false, step: "@chief's three lines", prompt: "p", again: true };
+    await expect(meetingStep(step, stopped, () => undefined)).rejects.toThrow();
+    expect(
+      written.map((item) => [
+        item.table,
+        item.row["thread"],
+        item.row["author_kind"],
+        item.row["body"],
+      ]),
+    ).toEqual([
+      [
+        "agent_messages",
+        "team",
+        "system",
+        "The meeting stopped at @chief's three lines: the step took longer than 5 minutes. Today's decisions were not set. The meeting runs again at its next start today and takes up only the steps it did not finish.",
+      ],
+    ]);
+  });
+
+  it("says no start is left after the day's last one, at 21:45 Cairo time", () => {
+    // on 2026-10-27 Cairo is UTC+3: a meeting started at 20:45 has the 21:45 start after it, one at 21:45 has none
+    expect([
+      startsLeftToday(new Date("2026-10-27T17:45:00Z")),
+      startsLeftToday(new Date("2026-10-27T18:45:00Z")),
+    ]).toEqual([true, false]);
+    expect(stoppedPost("the decisions", "Matter took longer than 15 minutes", false)).toContain(
+      "No start is left today; tomorrow's meeting takes up the open decisions.",
+    );
+  });
+
+  it("starts the meeting again every hour until 21:45, the last start the code counts on", () => {
+    expect(install).toContain('$meetingTrigger = New-ScheduledTaskTrigger -Daily -At "17:45"');
+    expect(install.find((line) => line.startsWith("$meetingTrigger.Repetition = "))).toContain(
+      "-RepetitionInterval (New-TimeSpan -Hours 1) -RepetitionDuration (New-TimeSpan -Hours 4 -Minutes 5)",
+    );
+  });
+
+  it("keeps a full team's worst case, every step just inside its limit, inside the MOP Meeting task's limit", () => {
+    const registered =
+      install.find((line) => line.startsWith('Register-ScheduledTask -TaskName "MOP Meeting"')) ??
+      "";
+    const settings = /-Settings (\$\w+)/.exec(registered)?.[1] ?? "none";
+    const declared =
+      install.find((line) => line.startsWith(`${settings} = New-ScheduledTaskSettingsSet`)) ?? "";
+    const minutes = Number(
+      /-ExecutionTimeLimit \(New-TimeSpan -Minutes (\d+)\)/.exec(declared)?.[1] ?? "0",
+    );
+    // the analyst and Matter speak once; every other colleague of a full team says its three lines
+    const worst =
+      STEP_LIMIT_MS.scorecard + (TEAM_CEILING - 2) * STEP_LIMIT_MS.lines + STEP_LIMIT_MS.decisions;
+    expect(minutes).toBe(100);
+    expect(worst).toBeLessThanOrEqual(minutes * 60_000);
+  });
+
+  it("never runs a finished step twice in a day: a second start takes what the first one kept", async () => {
+    const dir = home();
+    let runs = 0;
+    const scorecard = () => {
+      runs += 1;
+      return Promise.resolve(`Scorecard ${String(runs)}`);
+    };
+    const first = await meetingDay(dir, "2026-10-27", false).once("the scorecard", scorecard);
+    const second = await meetingDay(dir, "2026-10-27", false).once("the scorecard", scorecard);
+    expect([first, second, runs]).toEqual(["Scorecard 1", "Scorecard 1", 1]);
+  });
+
+  it("runs a step that stopped again on the next start, and holds the day only once every step finished", async () => {
+    const dir = home();
+    const first = meetingDay(dir, "2026-10-27", false);
+    await first.once("the scorecard", () => Promise.resolve("Scorecard"));
+    await expect(first.once("@chief's three lines", stopped)).rejects.toThrow();
+    const second = meetingDay(dir, "2026-10-27", false);
+    expect(second.held()).toBe(false);
+    expect(await second.once("@chief's three lines", () => Promise.resolve("@chief: Done"))).toBe(
+      "@chief: Done",
+    );
+    second.finish(new Date("2026-10-27T15:00:00Z"));
+    expect(meetingDay(dir, "2026-10-27", false).held()).toBe(true);
+  });
+
+  it("keeps nothing on a dry run", async () => {
+    const dir = home();
+    let runs = 0;
+    const scorecard = () => {
+      runs += 1;
+      return Promise.resolve("Scorecard");
+    };
+    const day = meetingDay(dir, "2026-10-27", true);
+    await day.once("the scorecard", scorecard);
+    await meetingDay(dir, "2026-10-27", true).once("the scorecard", scorecard);
+    day.finish(new Date("2026-10-27T15:00:00Z"));
+    expect([runs, readdirSync(dir)]).toEqual([2, []]);
+  });
+
+  it("says the words every colleague's run shares once, and each owner's own words on its line", () => {
+    const rules = decisionRules([
+      { slug: "matter", name: "Matter", tools: [] },
+      { slug: "social", name: "Maya", tools: ["chat", "draft_post"] },
+      { slug: "concierge", name: "Ava", tools: ["chat", "draft_reply"] },
+    ]).join("\n");
+    const social = rules.split("\n").find((line) => line.startsWith("- @social")) ?? "";
+    expect(rules.split("No command, no keys").length - 1).toBe(1);
+    expect(social).toContain("Drafts social posts for approval.");
+    expect(social).not.toContain("Writes nothing.");
+  });
+
+  it("shows Matter every streak of two or more, and a single miss only from the newest day decisions were closed", () => {
+    const row = (owner: string, metric: string, checked: string) => ({
+      owner_id: owner,
+      metric,
+      decision: "Draft two posts",
+      status: "missed",
+      checked_at: checked,
+    });
+    const shown = shownStreaks(
+      missStreaks([
+        row("id-social", "drafts", "2026-10-26T14:47:05Z"),
+        row("id-concierge", "replies", "2026-10-20T14:47:05Z"),
+        row("id-chief", "lists", "2026-10-18T14:47:05Z"),
+        row("id-chief", "lists", "2026-10-17T14:47:05Z"),
+      ]),
+    ).map((streak) => `${streak.metric} ${String(streak.count)}`);
+    expect(shown).toEqual(["drafts 1", "lists 2"]);
+  });
+
+  it("reads when each closed decision was checked, so an old single miss can be left out", async () => {
+    const { db, asked } = filteringDb("agent_decisions", []);
+    await closedDecisions(db);
+    expect(asked.find((line) => line.startsWith("select "))).toContain("checked_at");
   });
 });

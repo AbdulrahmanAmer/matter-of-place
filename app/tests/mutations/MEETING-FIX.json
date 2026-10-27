@@ -304,5 +304,131 @@
     "test": "tests/unit/meeting-decisions.test.ts",
     "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
     "expect": "× .*says the web search once, and a hire or an admin change as a proposal that waits in Approvals"
+  },
+  {
+    "id": "meeting-fix-r3-log-size",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "input.prompt.length, clock() - start",
+    "replace": "0, clock() - start",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*logs each step's prompt size, its duration and how it ended"
+  },
+  {
+    "id": "meeting-fix-r3-log-stopped",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "    log(line(`stopped: ${reason}`));\n",
+    "replace": "",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*logs each step's prompt size, its duration and how it ended"
+  },
+  {
+    "id": "meeting-fix-r3-thread-line",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "      stoppedPost(input.step, reason, input.again),",
+    "replace": "      \"\",",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*says in the team thread which step stopped, that today's decisions were not set, and that the rest runs again"
+  },
+  {
+    "id": "meeting-fix-r3-not-set",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "    \"Today's decisions were not set.\",\n",
+    "replace": "",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*says in the team thread which step stopped, that today's decisions were not set, and that the rest runs again"
+  },
+  {
+    "id": "meeting-fix-r3-last-start",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "const LAST_START_HOUR = 21;",
+    "replace": "const LAST_START_HOUR = 22;",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*says no start is left after the day's last one, at 21:45 Cairo time"
+  },
+  {
+    "id": "meeting-fix-r3-hourly-retry",
+    "file": "scripts/workforce/install.ps1",
+    "find": "$meetingTrigger.Repetition = (New-ScheduledTaskTrigger -Once -At \"17:45\" -RepetitionInterval (New-TimeSpan -Hours 1) -RepetitionDuration (New-TimeSpan -Hours 4 -Minutes 5)).Repetition\n",
+    "replace": "",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*starts the meeting again every hour until 21:45, the last start the code counts on"
+  },
+  {
+    "id": "meeting-fix-r3-limits-sum",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "  lines: 5 * 60_000,",
+    "replace": "  lines: 9 * 60_000,",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*keeps a full team's worst case, every step just inside its limit, inside the MOP Meeting task's limit"
+  },
+  {
+    "id": "meeting-fix-r3-once-skip",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "      if (kept !== undefined) {",
+    "replace": "      if (kept === \"never\") {",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*never runs a finished step twice in a day: a second start takes what the first one kept"
+  },
+  {
+    "id": "meeting-fix-r3-held-marker",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "    held: (): boolean => !dry && existsSync(marker),",
+    "replace": "    held: (): boolean => !dry,",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*runs a step that stopped again on the next start, and holds the day only once every step finished"
+  },
+  {
+    "id": "meeting-fix-r3-dry-keeps-nothing",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "      if (!dry) writeFileSync(file, JSON.stringify(steps));",
+    "replace": "      writeFileSync(file, JSON.stringify(steps));",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*keeps nothing on a dry run"
+  },
+  {
+    "id": "meeting-fix-r3-shared-once",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "              .filter((sentence) => !shared.includes(sentence))",
+    "replace": "              .filter(() => true)",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*says the words every colleague's run shares once, and each owner's own words on its line"
+  },
+  {
+    "id": "meeting-fix-r3-streak-two",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "(streak) => streak.count >= 2 || (streak.checked_on",
+    "replace": "(streak) => (streak.checked_on",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*shows Matter every streak of two or more, and a single miss only from the newest day decisions were closed"
+  },
+  {
+    "id": "meeting-fix-r3-streak-newest",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "streak.checked_on === newest)",
+    "replace": "true)",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*shows Matter every streak of two or more, and a single miss only from the newest day decisions were closed"
+  },
+  {
+    "id": "meeting-fix-r3-reads-checked",
+    "file": "scripts/workforce/meeting.ts",
+    "find": "\"owner_id, decision, metric, status, checked_at\"",
+    "replace": "\"owner_id, decision, metric, status\"",
+    "test": "tests/unit/meeting-decisions.test.ts",
+    "run": "bunx vitest run --project unit tests/unit/meeting-decisions.test.ts",
+    "expect": "× .*reads when each closed decision was checked, so an old single miss can be left out"
   }
 ]
