@@ -267,9 +267,12 @@ export async function fileProposedPost(
     }
   } catch (error) {
     if (error instanceof Refused) return withdraw(deps, uploaded, error.message);
-    // an upload or a read failing partway leaves nothing public either; the error still reaches the runner
-    await withdraw(deps, uploaded, "");
-    throw error;
+    // an upload or a read failing partway leaves nothing public either; the error still reaches the runner, saying
+    // when the earlier uploads could not be removed (round 2 review)
+    const left = (await withdraw(deps, uploaded, "")).refused.trim();
+    if (left === "") throw error;
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`${message} ${left}`, { cause: error });
   }
   // The built channels are what every reader parses later: one the admin list could not parse is never stored.
   const built = z.array(channelPostSchema).safeParse(channels);

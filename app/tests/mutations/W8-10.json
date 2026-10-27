@@ -475,8 +475,8 @@
   },
   {
     "id": "w8-10-runner-upload-withdraw",
-    "find": "    await withdraw(deps, uploaded, \"\");",
-    "replace": "",
+    "find": "const left = (await withdraw(deps, uploaded, \"\")).refused.trim();",
+    "replace": "const left = \"\";",
     "expect": "× .*removes what it uploaded when an upload fails partway",
     "test": "tests/unit/workforce-proposed-post.test.ts",
     "file": "scripts/workforce/proposed-post.ts",
