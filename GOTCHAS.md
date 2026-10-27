@@ -1557,6 +1557,13 @@ Entry template
 - proof: from `app/` on slice/b7, `node scripts/watchfail.mjs --registry tests/mutations --changed origin/main > wf.txt 2>&1; echo exit=$?; grep -a -c "^watchfail: replayed" wf.txt; grep -a -c "WATCHED-FAIL OK B7:" wf.txt` → the review saw `exit=0`, two `replayed` lines (130 and 246) and `42` of 42 B7 ids; the count of B7 ids is the verdict
 - added: 2026-10-05
 
+## P-4645 · `gitleaks detect --no-git --source .` from the worktree root scans node_modules and stalls the laptop; a killed scan can leave gitleaks hanging
+- symptom: 2026-10-27, W8 0h gaps round: `gitleaks detect --redact --config app/scripts/harden/gitleaks.toml --no-git --source .` ran past two minutes; stopping its task left two gitleaks processes running, and afterwards even `gitleaks version` (shim and scoop binary) timed out at 30 s with exit 124.
+- cause: `--no-git --source .` walks every file, `app/node_modules` included; the stopped background task did not kill its child processes.
+- rule: scan only what the commit changes: copy `git diff --cached --name-only` into an empty scratch folder and point `--no-git --source` at it, or use the brief's git-mode command; if a scan is stopped, kill its `gitleaks` processes (`powershell Get-Process gitleaks | Stop-Process`). When gitleaks itself hangs, say BLOCKED and grep the staged diff for key shapes; CI's scan judges.
+- proof: `timeout 30 gitleaks version; echo $?` → `124` on the stalled laptop (2026-10-27 02:55 +0300).
+- added: 2026-10-27
+
 ## Retired, enforced
 
 A test, hook or script now holds each of these rules; the full entry was deleted (its text is in git history before the gardening commit). The ids stay taken.
