@@ -67,7 +67,8 @@ export const postPlanSchema = z.object({
 export const POST_TOOL_LINE =
   'A social post you propose carries its pictures: add "post" to its content: {"title": "a short name", "property_id": "the id when it is about a property", "test": true for a rehearsal, "channels": [{"channel": "instagram|x|linkedin", "format": "carousel|single|reel", "caption": "the caption for that channel", "images": [{"path": "the file in the studio or the Google Drive folder", "alt": "what the picture shows"}], "reel": {"video": {"path": "...", "alt": "..."}, "poster": {"path": "...", "alt": "..."}}}]}. Captions: X up to 280 characters, Instagram 2,200, LinkedIn 3,000; a reel on LinkedIn needs its poster; Facebook and YouTube are off. It waits in Proposed posts and nothing posts until a person approves it.';
 
-/** A proposal filed as a proposed post: a social post that carries its `post`. Any other stays a generic approval. */
+/** A proposal filed as a proposed post: a social post that carries its `post`. Any other social post is filed only with a reel of its run (H146); other
+ * actions stay generic approvals. */
 export function isStructuredPost(proposal: {
   action: string;
   content: { post?: unknown };
