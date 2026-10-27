@@ -42,6 +42,7 @@ export const subjectShownFrom = [
   "alert@uptimerobot.com",
   "noreply@zohoaccounts.com",
   "noreply@notify.cloudflare.com",
+  "noreply-dmarc@zoho.com",
 ] as const;
 
 /**
@@ -129,6 +130,58 @@ export function authenticatedDomain(header: string, from: string): string | null
   return dmarc?.[1]?.toLowerCase() === domain && domain !== "" ? domain : null;
 }
 
+/** Zoho's DMARC reporter, the one sender `zohoReport` vouches for. */
+const ZOHO_REPORTER = "noreply-dmarc@zoho.com";
+
+/** A header's `;`-separated parts, trimmed, after its name. */
+const partsOf = (line: string) =>
+  line
+    .replace(/^[^:]+:\s*/, "")
+    .split(";")
+    .map((part) => part.trim().replace(/\s+/g, " "));
+
+/**
+ * W8 0h (2026-10-27, ruling H144): whether a message is Zoho's own DMARC aggregate report about our domain. Measured on
+ * the real reports (2026-10-07 to 10-26, every one alike): Zoho hands them to its own mailbox inside Zoho (`Received:
+ * from mail.zoho.com by mx.zohomail.com with SMTP`), so they carry no `Authentication-Results` and no `Received-SPF`,
+ * only Zoho's one ARC set (i=1, `cv=none`, `d=zohomail.com`) whose verdict says DKIM passed for zoho.com and DMARC passed
+ * for this address. Every message that reaches Zoho over the network, another Zoho host included (measured on Google,
+ * Supabase, a person and a Zoho salesperson), gets Zoho's `Authentication-Results`, its `Received-SPF` and its own ARC
+ * set on top of any the sender wrote, so a stranger's message always fails one count below. Only this one address is
+ * accepted this way; a forged "Zoho" from anywhere else still holds.
+ */
+export function zohoReport(header: string, from: string): boolean {
+  if (addressOf(from) !== ZOHO_REPORTER) return false;
+  const lines = headerLines(header);
+  const count = (pattern: RegExp) => lines.filter((line) => pattern.test(line)).length;
+  if (count(/^(authentication-results|received-spf):/i) !== 0) return false;
+  if (
+    count(/^arc-seal:/i) !== 1 ||
+    count(/^arc-message-signature:/i) !== 1 ||
+    count(/^arc-authentication-results:/i) !== 1
+  )
+    return false;
+  const end = lines.findIndex((line) => !TRACE.test(line));
+  const trace = end < 0 ? lines : lines.slice(0, end);
+  const seal = partsOf(trace.find((line) => /^arc-seal:/i.test(line)) ?? "");
+  const verdict = partsOf(trace.find((line) => /^arc-authentication-results:/i.test(line)) ?? "");
+  const received = lines.find((line) => /^received:/i.test(line)) ?? "";
+  return (
+    seal.includes("i=1") &&
+    seal.includes("cv=none") &&
+    seal.includes("d=zohomail.com") &&
+    verdict[0] === "i=1" &&
+    verdict[1]?.toLowerCase() === "mx.zohomail.com" &&
+    verdict.some((part) => /^dkim=pass header\.i=@?zoho\.com$/i.test(part)) &&
+    verdict.some(
+      (part) =>
+        /^dmarc=pass header\.from=/i.test(part) &&
+        addressOf(part.replace(/^dmarc=pass header\.from=/i, "")) === addressOf(from),
+    ) &&
+    /^received: from mail\.zoho\.com by mx\.zohomail\.com with SMTP id /i.test(received)
+  );
+}
+
 /** The service a From address claims to be, by its domain alone (authentication is checked apart). */
 export function claimedService(from: string): string | null {
   const domain = domainOf(addressOf(from));
@@ -187,7 +240,8 @@ export function sortMessage(input: {
   automatic: boolean;
 }): Sorted {
   const { header, from } = input;
-  const authenticated = authenticatedDomain(header, from);
+  const authenticated =
+    authenticatedDomain(header, from) ?? (zohoReport(header, from) ? "zoho.com" : null);
   const service = claimedService(from);
   if (input.folderType === "Spam")
     return { source: "email_inbound", state: "spam", service: null, why: "filed as spam" };
@@ -296,12 +350,82 @@ export function noticeLabels(from: string, content: string): string | null {
   ].join("");
 }
 
+/**
+ * W8 0h (2026-10-27): the kinds of notice that need action whoever sends them, each by the service's own words. Only
+ * the kind's name ever leaves this list; the words matched never do.
+ */
+const ACTION_NOTICES: readonly (readonly [string, RegExp])[] = [
+  ["a final notice", /\bfinal (notice|reminder|warning)\b/i],
+  [
+    "a deadline",
+    /\b(deadline|action (is )?required|required action|\d{1,3} days? left|will (expire|end|stop|be (deleted|removed|disabled)))\b/i,
+  ],
+  [
+    "a suspension",
+    /\b(suspend(ed|s)?|suspension|deactivated|(project|account|service) (is |was |has been |will be )?paused)\b/i,
+  ],
+  [
+    "a billing stop",
+    /\b(payment (failed|declined|was declined|unsuccessful)|past due|overdue|card (was )?declined|unpaid invoice)\b/i,
+  ],
+  [
+    "a quota stop",
+    /\b(quota|usage limit|(limit|cap) (reached|exceeded)|exceeded (your|the) (limit|quota|plan)|over (your|the) (limit|quota))\b/i,
+  ],
+  [
+    "a security change",
+    /\b(security alert|password (was |has been )?(changed|reset)|new sign-?in|2-step verification|two-factor|(api )?key (was |has been )?(created|revoked|exposed|leaked))\b/i,
+  ],
+];
+
+/**
+ * The senders that relay a person's words (a shared document's title, a calendar invitation, an issue on a public
+ * repository): their mail never escalates on words, which anyone could make them write.
+ */
+const RELAYS =
+  /^(comments-noreply@docs\.google\.com|drive-shares-[a-z-]*noreply@google\.com|calendar-notification@google\.com|forms-receipts-noreply@google\.com|notifications@github\.com|.*@reply\.github\.com)$/;
+
+/** The folders Zoho files promotions under: their mail stays recorded, whatever words it uses. */
+const PROMOTION_FOLDERS = ["Newsletter", "Promotions"];
+
+/** The first lines of a message's text the action rule reads, besides its subject. */
+const FIRST_LINES = 5;
+
+/**
+ * W8 0h (2026-10-27): a known service's mail from an address that wakes no one can still need action (Supabase's final
+ * notice of 2026-10-20 that new tables need grants). Its subject and the first lines of its text are matched against
+ * `ACTION_NOTICES`; the summary names the kinds found in fixed words, so no word of the message reaches a prompt. Null
+ * when nothing matched, the sender relays a person's words, or Zoho filed it as a promotion.
+ */
+export function actionNotice(input: {
+  service: string;
+  from: string;
+  folderName: string;
+  subject: string;
+  content: string;
+}): string | null {
+  if (RELAYS.test(addressOf(input.from)) || PROMOTION_FOLDERS.includes(input.folderName))
+    return null;
+  const lines = plainText(input.content)
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line !== "")
+    .slice(0, FIRST_LINES)
+    .map((line) => line.slice(0, 300));
+  const text = flat([plainText(input.subject), ...lines].join("\n"));
+  const kinds = ACTION_NOTICES.filter(([, words]) => words.test(text)).map(([kind]) => kind);
+  return kinds.length === 0
+    ? null
+    : `${input.service} sent a notice that may need action: ${kinds.join(", ")}.`;
+}
+
 /** A notice's message, as `readNotice` needs it. */
 export type NoticeInput = {
   attachments: readonly Attachment[];
   folderName: string;
   header: string;
   from: string;
+  subject: string;
   content: string;
 };
 
@@ -310,12 +434,23 @@ export type NoticeInput = {
  * report, never by folder). An attachment that could not be fetched is unparsed. A notice whose reports all passed is
  * recorded and not escalated; any failure, any unparsed report and any notice without a report goes to Matter, with the
  * labels of its sender's parser when it has one. Only mail Zoho filed under Newsletter that carries a list's
- * unsubscribe header, no report and nothing its sender's parser knows is a newsletter, recorded and not escalated.
+ * unsubscribe header, no report and nothing its sender's parser knows is a newsletter, recorded and not escalated. A
+ * service's mail from an address that wakes no one goes to Matter only when `actionNotice` finds a kind in it.
  */
 export function readNotice(
   sorted: Sorted,
   message: NoticeInput,
 ): { state: InboundState; reports: (Report | Unparsed)[]; summary: string; detail: boolean } {
+  if (sorted.source === "service_notice" && sorted.state === "recorded") {
+    const action = actionNotice({
+      service: sorted.service ?? "A service",
+      from: message.from,
+      folderName: message.folderName,
+      subject: message.subject,
+      content: message.content,
+    });
+    if (action !== null) return { state: "escalated", reports: [], summary: action, detail: true };
+  }
   if (sorted.source !== "service_notice" || sorted.state !== "escalated")
     return { state: sorted.state, reports: [], summary: sorted.why, detail: false };
   const reports = message.attachments

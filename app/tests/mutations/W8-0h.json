@@ -694,5 +694,176 @@
     "replace": "  if (false)\n",
     "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"how many more there were\"",
     "expect": "× .*keeps the first fifty attachment names"
+  },
+  {
+    "id": "w8-0h6-zoho-report-read",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/service-notice.ts",
+    "find": "    seal.includes(\"cv=none\") &&",
+    "replace": "    seal.includes(\"cv=fail\") &&",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"records Zoho's DMARC report of 26 October\"",
+    "expect": "× .*records Zoho's DMARC report of 26 October"
+  },
+  {
+    "id": "w8-0h6-zoho-report-escalates",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/service-notice.ts",
+    "find": "  \"noreply-dmarc@zoho.com\",\n] as const;",
+    "replace": "] as const;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"wakes Matter for a Zoho report whose record failed DMARC\"",
+    "expect": "× .*wakes Matter for a Zoho report whose record failed DMARC"
+  },
+  {
+    "id": "w8-0h6-zoho-from-outside",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/service-notice.ts",
+    "find": "  if (count(/^(authentication-results|received-spf):/i) !== 0) return false;",
+    "replace": "  if (false) return false;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"holds a Zoho report that came in from outside Zoho\"",
+    "expect": "× .*holds a Zoho report that came in from outside Zoho"
+  },
+  {
+    "id": "w8-0h6-zoho-second-verdict",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/service-notice.ts",
+    "find": "    count(/^arc-authentication-results:/i) !== 1\n",
+    "replace": "    false\n",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"holds a forged Zoho report carrying a second ARC verdict\"",
+    "expect": "× .*holds a forged Zoho report carrying a second ARC verdict"
+  },
+  {
+    "id": "w8-0h6-zoho-reporter-only",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/service-notice.ts",
+    "find": "  if (addressOf(from) !== ZOHO_REPORTER) return false;",
+    "replace": "  if (false) return false;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"only the reporter is vouched for\"",
+    "expect": "× .*holds a Zoho staff member's own mail delivered inside Zoho"
+  },
+  {
+    "id": "w8-0h6-html-entities",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail.ts",
+    "find": "(_match, name: string) => entity(name))",
+    "replace": "(_match, name: string) => `&${name};`)",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"reads the text of Supabase's HTML-only notice\"",
+    "expect": "× .*reads the text of Supabase's HTML-only notice"
+  },
+  {
+    "id": "w8-0h6-html-invisible",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail.ts",
+    "find": "/[\\u00ad\\u034f\\u061c",
+    "replace": "/[\\u00ad\\u061c",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"reads the text of Supabase's HTML-only notice\"",
+    "expect": "× .*reads the text of Supabase's HTML-only notice"
+  },
+  {
+    "id": "w8-0h6-action-recorded",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/service-notice.ts",
+    "find": "  if (sorted.source === \"service_notice\" && sorted.state === \"recorded\") {",
+    "replace": "  if (false) {",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"sends Supabase's final notice to Matter in the runner's words\"",
+    "expect": "× .*sends Supabase's final notice to Matter in the runner's words"
+  },
+  {
+    "id": "w8-0h6-action-final",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/service-notice.ts",
+    "find": "  [\"a final notice\", /\\bfinal (notice|reminder|warning)\\b/i],",
+    "replace": "  [\"a final notice\", /\\bfinal (warning)\\b/i],",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"sends Supabase's final notice to Matter in the runner's words\"",
+    "expect": "× .*sends Supabase's final notice to Matter in the runner's words"
+  },
+  {
+    "id": "w8-0h6-action-relay",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/service-notice.ts",
+    "find": "RELAYS.test(addressOf(input.from)) ||",
+    "replace": "false ||",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"never escalates on words a person can make a service write\"",
+    "expect": "× .*never escalates on words a person can make a service write"
+  },
+  {
+    "id": "w8-0h6-action-promotion",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/service-notice.ts",
+    "find": "PROMOTION_FOLDERS.includes(input.folderName)",
+    "replace": "false",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"keeps a promotion Zoho filed under Newsletter\"",
+    "expect": "× .*keeps a promotion Zoho filed under Newsletter"
+  },
+  {
+    "id": "w8-0h6-replay-by-id",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail.ts",
+    "find": "      const row = list.find((listed) => listed.messageId === providerId);",
+    "replace": "      const row = list.find((listed) => listed.messageId !== providerId);",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"replays Google's DMARC report of 14 October\"",
+    "expect": "× .*replays Google's DMARC report of 14 October"
+  },
+  {
+    "id": "w8-0h6-replay-woken",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail.ts",
+    "find": "    recorded.args.p_line === \"\" ? \"\" : \" Matter would be woken.\",",
+    "replace": "    \"\",",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"replays the Search Console notice of 22 October\"",
+    "expect": "× .*replays the Search Console notice of 22 October"
+  },
+  {
+    "id": "w8-0h6-replay-alias",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail.ts",
+    "find": "    recorded.args.p_alias === \"\" ? \"\" : `, sent to ${recorded.args.p_alias}@`,",
+    "replace": "    \"\",",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"replays a person's mail to hello@ as new mail\"",
+    "expect": "× .*replays a person's mail to hello@ as new mail"
+  },
+  {
+    "id": "w8-0h6-replay-content",
+    "test": "tests/unit/workforce-inbound-mail.test.ts",
+    "file": "scripts/workforce/mail.ts",
+    "find": "          header,\n          content,\n          attachments,\n",
+    "replace": "          header,\n          content: \"\",\n          attachments,\n",
+    "run": "bunx vitest run --project unit tests/unit/workforce-inbound-mail.test.ts -t \"replays the owner's crafted instruction to hello@\"",
+    "expect": "× .*replays the owner's crafted instruction to hello@"
+  },
+  {
+    "id": "w8-0h6-grant-service-role",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "      ...(service.length === 0",
+    "replace": "      ...(service.length < 0",
+    "run": "bunx vitest run --project unit tests/unit/check-migrations.test.ts -t \"refuses a table in public with no grant to service_role\"",
+    "expect": "× .*refuses a table in public with no grant to service_role"
+  },
+  {
+    "id": "w8-0h6-grant-matrix",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": ".filter((operation) => !authenticated.includes(\"all\") && !authenticated.includes(operation));",
+    "replace": ".filter(() => false);",
+    "run": "bunx vitest run --project unit tests/unit/check-migrations.test.ts -t \"refuses a table whose RLS matrix row reads it\"",
+    "expect": "× .*refuses a table whose RLS matrix row reads it"
+  },
+  {
+    "id": "w8-0h6-grant-partition",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "    if (name === undefined || PARTITION_OF.test(text)) return [];",
+    "replace": "    if (name === undefined) return [];",
+    "run": "bunx vitest run --project unit tests/unit/check-migrations.test.ts -t \"passes the grants our migrations write\"",
+    "expect": "× .*passes the grants our migrations write"
+  },
+  {
+    "id": "w8-0h6-grant-role",
+    "test": "tests/unit/check-migrations.test.ts",
+    "file": "scripts/check-migrations.mjs",
+    "find": "        .filter((grant) => grant.roles.includes(role))",
+    "replace": "        .filter(() => true)",
+    "run": "bunx vitest run --project unit tests/unit/check-migrations.test.ts -t \"never counts a grant to another role\"",
+    "expect": "× .*never counts a grant to another role"
   }
 ]

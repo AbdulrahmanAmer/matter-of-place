@@ -2456,3 +2456,19 @@ registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3
   NEXT: one PR for the meeting fix (an inside run per owner after the meeting, the meeting shown toolkits and rulings and
   retiring a decision missed twice, the live session shown Matter's decisions) plus the renderer spec shape in the
   toolkit line (P-4644). Bank: P-4644.
+
+- 2026-10-27 02:45 +0300: W8 0h gaps builder (Opus, branch `overdrive/w8-0h-mail-gaps`, worktree E:/mop-build/od-w8-0h2,
+  from main b3d65289; no PR, Matter merges). Measured on the real Zoho headers: Zoho's own DMARC reports reach admin@
+  inside Zoho with NO `Authentication-Results` and no `Received-SPF`, only one ARC set i=1 (cv=none, d=zohomail.com,
+  dkim=pass header.i=zoho.com, dmarc=pass header.from=<noreply-dmarc@zoho.com>); every network delivery (Google,
+  Supabase, a person, a Zoho salesperson) gets AR + Received-SPF + Zoho's ARC on top. Built: `zohoReport` (that shape,
+  that one address; ruling H144) and the reporter in `subjectShownFrom`; `plainText` decodes every entity and drops
+  preheader padding; `actionNotice` (fixed kinds, relays and promotions excluded) escalates a quiet service address;
+  `check-migrations.mjs` refuses a new public table without its grants (service_role, and authenticated per the RLS
+  matrix); `mail.ts --replay <id> [--env <file>]` (no writes). Live replay (no writes): 2018643b recorded with counts,
+  b931c287 escalated "a final notice, a deadline", 67bbe153 escalated with labels, 30b6f63f new to hello@; three quiet
+  Google mails stayed recorded. Tests: workforce-inbound-mail 60, workforce-mail 4, check-migrations 93 pass locally;
+  six real fixtures (owner's address and name replaced); registry `w8-0h6-*` (19). NOT DONE: storing a service mail's
+  body (kept empty by the person-only check, see H144 (3)); decoding Zoho's HTML-escaped listing subjects before
+  storage (`&quot;` is stored as written). UNPROVEN: the 19 entries replayed and the scripts typecheck and lint (no local
+  CI; CI judges); the first live Zoho report after merge. Bank: P-015, P-1800, P-4501, P-4502 hit again.
