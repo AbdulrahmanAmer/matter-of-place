@@ -51,14 +51,7 @@ import {
   startStudioPass,
   withReel,
 } from "./reel.ts";
-import {
-  addUsage,
-  breakerUntil,
-  type CliUsage,
-  retryArgs,
-  runClaude,
-  UsageLimitError,
-} from "./cli.ts";
+import { breakerUntil, type CliUsage, runClaude, UsageLimitError } from "./cli.ts";
 import { costMicroUsd, inputTokens, lessonsBlock, recallLessons, type Lesson } from "./growth.ts";
 import { followMain, mapDue, runnerBusy } from "./follow.ts";
 import { readRunAnswer, type Outcome, UNREADABLE_SUMMARY } from "./answer.ts";
@@ -133,9 +126,6 @@ const WORKER = `${hostname()}:${String(process.pid)}`;
 // No clock on a colleague's work (operator, 2026-10-15: a 6-minute limit threw away the chief of staff's real work at
 // 00:52). A run is stopped only when it prints nothing for this long, which with stream-json means it is stuck.
 const CLI_IDLE_MS = 15 * 60_000;
-// P-4691: the retry of an unreadable answer only rewrites it (11 to 15 s measured, 2026-10-28) and prints one JSON at
-// its end, so it has a cap rather than a silence limit.
-const RETRY_TIMEOUT_MS = 10 * 60_000;
 const RUNS_PER_HOUR = 40;
 const HISTORY = 24;
 const models: Record<string, string> = {
@@ -1010,11 +1000,6 @@ export async function runOnce(client: Db): Promise<boolean> {
     const { shape } = decided;
     // H101: only a signed-in person's message gives Matter full power, keeps its notes and lets it hire directly.
     const power = isMatter ? matterPower(run.cause, authorKind) : "read";
-    const model = isMatter
-      ? policy.matterModel
-      : (models[underCeiling(agent.model, policy.colleagueCeiling)] ??
-        models["sonnet"] ??
-        "claude-sonnet-5-5");
     const answer: RunAnswer = isMatter
       ? await askMatter(
           matterPrompt({
@@ -1039,13 +1024,21 @@ export async function runOnce(client: Db): Promise<boolean> {
         )
       : await (async () => {
           // H115: the run's toolkit decides its command line, its folder and what it is told it may use.
-          const launch = await colleagueLaunch(HOME, agent.slug, model, shape.research, {
-            id: run.id,
-            outside: decided.outside,
-            inside: startedInside,
-            // the pieces whose photographs the runner places: only a person's or a key's line names them
-            ...(startedInside && !decided.outside && wokeBody !== null ? { line: wokeBody } : {}),
-          });
+          const launch = await colleagueLaunch(
+            HOME,
+            agent.slug,
+            models[underCeiling(agent.model, policy.colleagueCeiling)] ??
+              models["sonnet"] ??
+              "claude-sonnet-5-5",
+            shape.research,
+            {
+              id: run.id,
+              outside: decided.outside,
+              inside: startedInside,
+              // the pieces whose photographs the runner places: only a person's or a key's line names them
+              ...(startedInside && !decided.outside && wokeBody !== null ? { line: wokeBody } : {}),
+            },
+          );
           const asked = await askClaude(launch, (toolkit) =>
             promptFor(
               // W8 0c: a run about an outside message is not offered admin calls or hires at all.
@@ -1064,32 +1057,11 @@ export async function runOnce(client: Db): Promise<boolean> {
     // media, no colleague woken by a mention. What it drops is said in the thread. Matter's read of a held line keeps
     // nothing that acts (W8 review): it read the outside text itself.
     // The plan is decided in one tested function (W8 fourth review); the runner only carries it out.
-    // P-4691: an answer that is not a valid outcome is asked for once more, with its parse error, and a second failure
-    // is said plainly, never posted raw. The retry is a call of its own, not a resume: the run's folder (where an outside
-    // run's session is kept) and its settings file are gone by now, and a resume would hand the retry the run's tools.
-    // Round 2 (fresh review, 2026-10-28, W8 0d stays fail-closed): Matter's read of a held line and its owner's
-    // explanation are never asked again, so a retry never decides `allow` or `how`; unreadable, they are the plain line.
+    // P-4691: an answer that is not a valid outcome is taken only through `readRunAnswer`'s fixed repairs of its closing
+    // brackets (round 4, Matter: no model rewrites an answer), and else said plainly, never posted raw. Matter's read of
+    // a held line and its owner's explanation are never repaired (W8 0d fail-closed): unreadable, they are the plain line.
     const failClosed = shape.rule === "held" || shape.rule === "explain";
-    let retryUsage: CliUsage | undefined;
-    const read = await readRunAnswer(
-      answer.text,
-      failClosed
-        ? null
-        : async (prompt) => {
-            const asked = await runClaude({
-              args: retryArgs(join(HOME, "answer"), model),
-              cwd: join(HOME, "answer"),
-              env: childEnv(),
-              prompt,
-              timeoutMs: RETRY_TIMEOUT_MS,
-              who: isMatter ? "Matter" : "the colleague",
-            });
-            retryUsage = asked.usage;
-            return asked.text;
-          },
-    );
-    // the retry's tokens are the run's too
-    const usage = addUsage(answer.usage, retryUsage);
+    const read = readRunAnswer(answer.text, !failClosed);
     if (read.ending !== "read")
       console.log(`${new Date().toISOString()} ${agent.slug}'s answer was ${read.ending}`);
     const plan = decided.plan(read.outcome, power, run.cause);
@@ -1243,12 +1215,12 @@ export async function runOnce(client: Db): Promise<boolean> {
       session_id: "session" in answer && typeof answer.session === "string" ? answer.session : null,
       turns: 1,
       lessons_used: shown.map((lesson) => lesson.id),
-      ...(usage === undefined
+      ...(answer.usage === undefined
         ? {}
         : {
-            input_tokens: inputTokens(usage),
-            output_tokens: usage.output_tokens,
-            cost_microusd: costMicroUsd(agent.model, usage),
+            input_tokens: inputTokens(answer.usage),
+            output_tokens: answer.usage.output_tokens,
+            cost_microusd: costMicroUsd(agent.model, answer.usage),
           }),
     };
     // W8 0d second review: the line this run wrote as its reply, which Matter's read shows as the explanation.

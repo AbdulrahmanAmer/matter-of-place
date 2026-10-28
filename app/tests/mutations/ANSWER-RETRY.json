@@ -1,30 +1,30 @@
 [
   {
-    "id": "ar-retry-asks-again",
-    "test": "tests/unit/workforce-escalation.test.ts",
-    "file": "scripts/workforce/answer.ts",
-    "find": "    const second = readOutcome(await again(retryPrompt(text, error)));",
-    "replace": "    const second = readOutcome(text);",
-    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*asks Julian's unreadable answer again with its parse error"
-  },
-  {
-    "id": "ar-retry-names-error",
-    "test": "tests/unit/workforce-escalation.test.ts",
-    "file": "scripts/workforce/answer.ts",
-    "find": "    fenced(\"WHY\", error),",
-    "replace": "    fenced(\"WHY\", \"\"),",
-    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*asks Julian's unreadable answer again with its parse error"
-  },
-  {
     "id": "ar-unreadable-plain-line",
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/answer.ts",
     "find": "  return { outcome: { ...readJsonAnswer(\"\"), reply: UNREADABLE_LINE }, ending: \"unreadable\" };",
     "replace": "  return { outcome: readJsonAnswer(text), ending: \"unreadable\" };",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*says plainly when the retry cannot be read either"
+    "expect": "× .*says the plain line, files nothing and never posts the raw JSON"
+  },
+  {
+    "id": "ar-r4-prose-plain-line",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "  return { outcome: { ...readJsonAnswer(\"\"), reply: UNREADABLE_LINE }, ending: \"unreadable\" };",
+    "replace": "  return { outcome: readJsonAnswer(text), ending: \"unreadable\" };",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
+    "expect": "× .*says the plain line for a prose answer"
+  },
+  {
+    "id": "ar-r4-allow-plain-line",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "  return { outcome: { ...readJsonAnswer(\"\"), reply: UNREADABLE_LINE }, ending: \"unreadable\" };",
+    "replace": "  return { outcome: readJsonAnswer(text), ending: \"unreadable\" };",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
+    "expect": "× .*says the plain line when the only repair would make a nested or trailing allow"
   },
   {
     "id": "ar-valid-read-first",
@@ -33,16 +33,7 @@
     "find": "  if (\"outcome\" in first) return { outcome: first.outcome, ending: \"read\" };\n",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*reads a valid fenced answer as before, with no retry"
-  },
-  {
-    "id": "ar-usage-limit-stops",
-    "test": "tests/unit/workforce-escalation.test.ts",
-    "file": "scripts/workforce/answer.ts",
-    "find": "    if (failure instanceof UsageLimitError) throw failure;\n",
-    "replace": "",
-    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*puts the run back in the queue when the retry meets the usage limit"
+    "expect": "× .*reads a valid fenced answer as before"
   },
   {
     "id": "ar-unreadable-summary",
@@ -51,52 +42,7 @@
     "find": "      summary: read.ending === \"unreadable\" ? UNREADABLE_SUMMARY : plan.summary,",
     "replace": "      summary: plan.summary,",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*says plainly when the retry cannot be read either"
-  },
-  {
-    "id": "ar-retry-run-model",
-    "test": "tests/unit/workforce-escalation.test.ts",
-    "file": "scripts/workforce/daemon.ts",
-    "find": "              args: retryArgs(join(HOME, \"answer\"), model),",
-    "replace": "              args: retryArgs(join(HOME, \"answer\"), \"haiku\"),",
-    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*asks Julian's unreadable answer again with its parse error"
-  },
-  {
-    "id": "ar-retry-saves-nothing",
-    "test": "tests/unit/workforce-escalation.test.ts",
-    "file": "scripts/workforce/cli.ts",
-    "find": "    ...[\"-p\", \"--model\", model, \"--output-format\", \"json\", \"--no-session-persistence\"],",
-    "replace": "    ...[\"-p\", \"--model\", model, \"--output-format\", \"json\"],",
-    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*asks Julian's unreadable answer again with its parse error"
-  },
-  {
-    "id": "ar-r2-retry-traced",
-    "test": "tests/unit/workforce-escalation.test.ts",
-    "file": "scripts/workforce/answer.ts",
-    "find": "  if (second !== null && tracesTo(text, second.raw))",
-    "replace": "  if (second !== null)",
-    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*files nothing and says the plain line when the retry adds a hire and a proposal"
-  },
-  {
-    "id": "ar-r2-object-only",
-    "test": "tests/unit/workforce-escalation.test.ts",
-    "file": "scripts/workforce/answer.ts",
-    "find": "    again === null || !text.includes(\"{\") ? null : await askedAgain(text, first.error, again);",
-    "replace": "    again === null ? null : await askedAgain(text, first.error, again);",
-    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*never asks again an answer that holds no object"
-  },
-  {
-    "id": "ar-r2-fenced-answer",
-    "test": "tests/unit/workforce-escalation.test.ts",
-    "file": "scripts/workforce/answer.ts",
-    "find": "    fenced(\"ANSWER\", text),",
-    "replace": "    `<<<ANSWER\\n${text}\\nANSWER>>>`,",
-    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*fences the answer, so a closing mark inside it closes nothing"
+    "expect": "× .*says the plain line, files nothing and never posts the raw JSON"
   },
   {
     "id": "ar-r2-issue-code",
@@ -105,7 +51,7 @@
     "find": "${issue?.path.join(\".\") ?? \"\"} ${issue?.code ?? \"\"}`;",
     "replace": "${issue?.path.join(\".\") ?? \"\"} ${issue?.message ?? \"\"}`;",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*keeps a received value of a schema issue out of the retry's words"
+    "expect": "× .*names a schema issue by its path and code"
   },
   {
     "id": "ar-r2-held-fail-closed",
@@ -114,7 +60,7 @@
     "find": "    const failClosed = shape.rule === \"held\" || shape.rule === \"explain\";",
     "replace": "    const failClosed = shape.rule === \"explain\";",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*never asks again Matter's read of a held line"
+    "expect": "× .*never repairs Matter's read of a held line"
   },
   {
     "id": "ar-r2-explain-fail-closed",
@@ -123,123 +69,105 @@
     "find": "    const failClosed = shape.rule === \"held\" || shape.rule === \"explain\";",
     "replace": "    const failClosed = shape.rule === \"held\";",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*never asks again an owner's explanation of a held line"
+    "expect": "× .*never repairs an owner's explanation of a held line"
   },
   {
-    "id": "ar-r2-retry-usage",
-    "test": "tests/unit/workforce-escalation.test.ts",
-    "file": "scripts/workforce/daemon.ts",
-    "find": "    const usage = addUsage(answer.usage, retryUsage);",
-    "replace": "    const usage = answer.usage;",
-    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*counts the retry's tokens in the run's usage"
-  },
-  {
-    "id": "ar-r3-trace-order",
+    "id": "ar-r4-no-repair-flag",
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/answer.ts",
-    "find": "      pos = at + form.length;",
+    "find": "  const read = (repair ? repairs(text) : []).flatMap((candidate) => outcomeOf(candidate) ?? []);",
+    "replace": "  const read = repairs(text).flatMap((candidate) => outcomeOf(candidate) ?? []);",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
+    "expect": "× .*never repairs Matter's read of a held line"
+  },
+  {
+    "id": "ar-r4-stray-out",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "        `${body.slice(0, at)}${body.slice(at + 1)}`,\n",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*refuses a retry that duplicates a proposal"
+    "expect": "× .*repairs Julian's real answer by taking out its one stray bracket"
   },
   {
-    "id": "ar-r3-trace-between",
+    "id": "ar-r4-fence-aside",
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/answer.ts",
-    "find": "      if (at < 0 || !PUNCTUATION.test(original.slice(pos, at))) continue;",
-    "replace": "      if (at < 0) continue;",
+    "find": "  const body = text.slice(from).replace(/\\s*(```\\s*)?$/, \"\");",
+    "replace": "  const body = text.slice(from);",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*refuses a retry that moves a value between keys"
+    "expect": "× .*repairs Julian's real answer by taking out its one stray bracket"
   },
   {
-    "id": "ar-r3-trace-whole-number",
+    "id": "ar-r4-kind-change",
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/answer.ts",
-    "find": "      if (next !== \"\" && !after.includes(next)) continue;",
+    "find": "        `${body.slice(0, at)}${closes}${body.slice(at + 1)}`,\n",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*refuses a merged number taken from the digits of a date"
+    "expect": "× .*changes the kind of a closing bracket written wrong"
   },
   {
-    "id": "ar-r3-trace-from-body",
+    "id": "ar-r4-append-owed",
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/answer.ts",
-    "find": "      if (at < 0 || !PUNCTUATION.test(original.slice(pos, at))) continue;\n      if (next !== \"\" && !after.includes(next)) continue;",
-    "replace": "      if (at < 0) continue;",
+    "find": "  return owed.length === 0 ? [] : [`${body}${owed.reverse().join(\"\")}`];",
+    "replace": "  return [];",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*refuses an action or a to taken from the body"
+    "expect": "× .*appends the closing brace an answer left off"
   },
   {
-    "id": "ar-r3-trace-allow-place",
+    "id": "ar-r4-trim-extra",
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/answer.ts",
-    "find": "      if (at < 0 || !PUNCTUATION.test(original.slice(pos, at))) continue;\n      if (next !== \"\" && !after.includes(next)) continue;",
-    "replace": "      if (at < 0) continue;",
+    "find": "    if (closes === undefined) return /^[\\s}\\]]*$/.test(body.slice(at)) ? [body.slice(0, at)] : [];",
+    "replace": "    if (closes === undefined) return [];",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*allows only where the original wrote allow"
+    "expect": "× .*takes out the extra closing brackets at the end"
   },
   {
-    "id": "ar-r3-trace-escaped",
+    "id": "ar-r4-strings-untouched",
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/answer.ts",
-    "find": "    return take([JSON.stringify(value), ...asWritten], \",]}\");",
-    "replace": "    return take(asWritten, \",]}\");",
+    "find": "    } else if (char === '\"') inString = true;",
+    "replace": "    } else if (char === '\"') inString = false;",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*traces Julian's real answer, its one bracket put right"
+    "expect": "× .*never edits a bracket inside a string"
   },
   {
-    "id": "ar-r3-trace-as-written",
+    "id": "ar-r4-escapes-untouched",
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/answer.ts",
-    "find": "    const asWritten = QUOTE_AT_EDGE.test(value) ? [] : [`\"${value}\"`];",
-    "replace": "    const asWritten: string[] = [];",
+    "find": "      if (char === \"\\\\\") at += 1;",
+    "replace": "      if (char === \"\\\\\") at += 0;",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*traces a retried object to the original"
+    "expect": "× .*never edits a bracket inside a string"
   },
   {
-    "id": "ar-r3-trace-no-fold",
+    "id": "ar-r4-object-start",
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/answer.ts",
-    "find": "    const asWritten = QUOTE_AT_EDGE.test(value) ? [] : [`\"${value}\"`];",
-    "replace": "    const asWritten = [`\"${value}\"`];",
+    "find": "    if (!starts.has(start)) continue;\n",
+    "replace": "",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*refuses a string that folds the fields after it"
+    "expect": "× .*appends the closing brace an answer left off"
   },
   {
-    "id": "ar-r3-trace-whole-string",
+    "id": "ar-r4-object-start-held",
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/answer.ts",
-    "find": "    return take([JSON.stringify(value), ...asWritten], \",]}\");\n  };\n  return walk(retried) && TAIL.test(original.slice(pos));",
-    "replace": "    return take([JSON.stringify(value), ...asWritten, JSON.stringify(value).slice(0, -1)], \",]}\");\n  };\n  return walk(retried);",
+    "find": "    if (!starts.has(start)) continue;\n",
+    "replace": "",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*refuses a retry that slices a string"
+    "expect": "× .*never reads an object nested in Matter's broken decision"
   },
   {
-    "id": "ar-r3-trace-fence",
-    "test": "tests/unit/workforce-escalation.test.ts",
+    "id": "ar-r4-object-start-reader",
+    "test": "tests/unit/workforce-answer.test.ts",
     "file": "scripts/workforce/answer.ts",
-    "find": "  return tracesIn(original, retried) || tracesIn(asSeen, retried);",
-    "replace": "  return tracesIn(original, retried);",
-    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*traces an answer that truly holds a closing mark"
-  },
-  {
-    "id": "ar-r3-trace-each-start",
-    "test": "tests/unit/workforce-escalation.test.ts",
-    "file": "scripts/workforce/answer.ts",
-    "find": "  for (let start = original.indexOf(\"{\"); start >= 0; start = original.indexOf(\"{\", start + 1))",
-    "replace": "  for (let start = original.indexOf(\"{\"); start >= 0; start = -1)",
-    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*traces only the answer's own closing object"
-  },
-  {
-    "id": "ar-r3-trace-whole-object",
-    "test": "tests/unit/workforce-escalation.test.ts",
-    "file": "scripts/workforce/answer.ts",
-    "find": "  return walk(retried) && TAIL.test(original.slice(pos));",
-    "replace": "  return walk(retried);",
-    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
-    "expect": "× .*traces only the answer's own closing object"
+    "find": "    if (!starts.has(start)) continue;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-answer.test.ts",
+    "expect": "× .*never reads an object nested in one left open"
   }
 ]

@@ -7,7 +7,7 @@ describe("a colleague's answer", () => {
   it("is read from its closing object even when the prose before it holds braces", () => {
     const text = [
       "Proposed subject: We have received {{property_address}}.",
-      'Note: {not json} and {"half": ',
+      'Note: {not json} and {"half": 1}',
       '{"reply": "Filed.", "task": "Subject proposal", "actions": [{"method": "PUT", "path": "/api/admin/x", "body": {"a": 1}, "why": "w"}]}',
     ].join("\n");
     const answer = readJsonAnswer(text);
@@ -16,6 +16,12 @@ describe("a colleague's answer", () => {
       "Subject proposal",
       1,
     ]);
+  });
+
+  // P-4691 round 4: an object left open (`{"half": `, or an answer missing its final brace) may hold the next one
+  it("never reads an object nested in one left open as the answer", () => {
+    const text = '{"reply": "Asked.", "media": [{"reply": "Allowed.", "allow": true}]';
+    expect(readJsonAnswer(text)).toMatchObject({ reply: text, allow: false });
   });
 
   it("treats an answer with no object as a plain reply", () => {

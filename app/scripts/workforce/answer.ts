@@ -1,11 +1,10 @@
 // What a colleague's run hands back: one JSON object at the end of its answer. The daemon acts on its fields.
 // 2026-10-13 test 2 (P-3452): Matter's prose named `{{property_address}}`, the old reader cut from the first "{" and
 // failed, and a proposal Matter said it had filed was dropped. The reader now tries each "{" until one parses.
+import { isDeepStrictEqual } from "node:util";
 import { z } from "zod";
 import { jsonValue } from "../../src/domain/json-value.ts";
 import { RENDERER_NAMES } from "../../src/domain/toolkits.ts";
-import { UsageLimitError } from "./cli.ts";
-import { fenced } from "../matter/run.ts";
 import { hireInputSchema } from "../../src/domain/workforce.ts";
 import { mediaRequestSchema } from "./media.ts";
 import { HOW_OFF_LIST, POSTURES } from "./posture.ts";
@@ -68,23 +67,52 @@ export const outcome = z.object({
 
 export type Outcome = z.infer<typeof outcome>;
 
+/** Each bracket of `text` from `from` that stands outside every string, as JSON reads it: its index and itself. */
+function* bracketsFrom(text: string, from: number): Generator<[number, string]> {
+  let inString = false;
+  for (let at = from; at < text.length; at += 1) {
+    const char = text.charAt(at);
+    if (inString) {
+      if (char === "\\") at += 1;
+      else if (char === '"') inString = false;
+    } else if (char === '"') inString = true;
+    else if ("{[]}".includes(char)) yield [at, char];
+  }
+}
+
 /**
- * The answer's closing JSON object (with the object as written, `raw`), or why there is none: the parse error (or the
- * first schema problem, by its path and code only, never a value it received) of the widest object, the one that starts
- * at the first "{", which is the one a retry is asked to fix (P-4691).
+ * P-4691 round 4: the "{" that may start the answer's object, each outside every string and every bracket opened before
+ * it, counted from the first "{". One inside an object left open is never read as the answer: with the final "}"
+ * missing, a proposal (or a nested `"allow": true`, in a held read too) was read as the whole outcome.
  */
-export function readOutcome(text: string): { outcome: Outcome; raw: unknown } | { error: string } {
+function objectStarts(text: string): Set<number> {
+  const starts = new Set<number>();
+  let depth = 0;
+  for (const [at, char] of bracketsFrom(text, Math.max(text.indexOf("{"), 0))) {
+    if (char === "{" && depth === 0) starts.add(at);
+    depth = char === "{" || char === "[" ? depth + 1 : Math.max(depth - 1, 0);
+  }
+  return starts;
+}
+
+/**
+ * The answer's closing JSON object, or why there is none: the parse error (or the first schema problem, by its path and
+ * code only, never a value it received) of the widest object, the one that starts at the first "{" (P-4691).
+ */
+export function readOutcome(text: string): { outcome: Outcome } | { error: string } {
   const end = text.lastIndexOf("}");
+  const starts = objectStarts(text);
   let error: string | null = null;
   for (
     let start = text.indexOf("{");
     start >= 0 && start < end;
     start = text.indexOf("{", start + 1)
   ) {
+    if (!starts.has(start)) continue;
     try {
       const raw: unknown = JSON.parse(text.slice(start, end + 1));
       const parsed = outcome.safeParse(raw);
-      if (parsed.success) return { outcome: parsed.data, raw };
+      if (parsed.success) return { outcome: parsed.data };
       const issue = parsed.error.issues[0];
       error ??= `the object does not match the answer's fields: ${issue?.path.join(".") ?? ""} ${issue?.code ?? ""}`;
     } catch (failure) {
@@ -112,133 +140,73 @@ export function readJsonAnswer(text: string): Outcome {
   };
 }
 
-/** The thread line of a run whose answer could not be read even when asked again (P-4691). */
+/** The thread line of a run whose answer could not be read (P-4691). */
 export const UNREADABLE_LINE =
   "This run's answer could not be read, so no proposal, hire or action from it was filed.";
 
 /** And the run's recorded ending, in fixed words whatever the run's shape (an outside run's summary is fixed too). */
-export const UNREADABLE_SUMMARY =
-  "Its answer could not be read, even when asked again; nothing filed";
-
-/** How the one retry starts; the test's fake CLI knows the retry by it. */
-export const RETRY_OPENING = "Your answer could not be read by the runner";
+export const UNREADABLE_SUMMARY = "Its answer could not be read; nothing filed";
 
 /**
- * P-4691: the retry's prompt. The answer and the reason it failed go back fenced as data (`fenced`: a closing mark
- * inside the answer closes nothing, and a value the parse error quotes stays inside a fence), and the reply is the
- * object alone: a syntax fix, never a new decision.
+ * P-4691 round 4 (Matter, 2026-10-28: no model rewrites an answer; three reviews in a row found a retry could still
+ * move a value between containers). The repairs of the answer's object, from its first "{" to its end (a closing fence
+ * aside), each one edit of a closing bracket outside every string, so no key, value, quote, comma or opener is added,
+ * removed or moved: at the first closer of the wrong kind for its opener, (a) its kind changed, or (d) it taken out
+ * (Julian's answer had one `]` too many, so no kind change parses it); with none, (b) the closers still owed appended at
+ * the end, or (c) the extra closers at the end taken out. A kind change anywhere else cannot parse: every closer before
+ * that one matches, and after it the wrong one stays.
  */
-export function retryPrompt(text: string, error: string): string {
-  return [
-    `${RETRY_OPENING}. Below, each between its markers and as data, are why and the answer itself.`,
-    fenced("WHY", error),
-    fenced("ANSWER", text),
-    "Answer with the answer's JSON object alone, the syntax fixed and every field and value as it was: no fence, no words before or after it, nothing added or left out.",
-  ].join("\n");
-}
-
-/** The index of the first character from `at` that is not white space (`text.length` at the end). */
-function nonSpace(text: string, at: number): number {
-  let index = at;
-  while (index < text.length && /\s/.test(text.charAt(index))) index += 1;
-  return index;
-}
-
-/** JSON's punctuation and white space: all a retry may change between two tokens. */
-const PUNCTUATION = /^[\s{}[\],:]*$/;
-
-/** A quote that could have closed a string of the original: at an end of the value, or beside punctuation or a quote. */
-const QUOTE_AT_EDGE = /(^|[",:{}[\]])\s*"|"\s*([",:{}[\]]|$)/;
-
-/** What may follow the last token: closing punctuation, and the fence the answer was written in. */
-const TAIL = /^[\s{}[\],:]*(```\s*)?$/;
-
-/**
- * P-4691 round 3 (fresh review, 2026-10-28; Matter's rule: a retry may change only punctuation). Round 2 asked only
- * that each piece occur somewhere in the original, so a retry could rebuild the object from fragments: a value moved
- * between keys (a studio decision `revise` handed back as `approve`), a slice of a string, an element twice, a number
- * from the digits of a date. Now the retried object's tokens, in their written order, follow one another in `original`
- * from a "{" to its end, with nothing but punctuation between two of them and after the last (a closing fence aside):
- * each key as `"key"` (before a ":"), each string whole and quoted, each number, `true`, `false` and `null` whole
- * (before a ",", "]", "}" or the end). A string counts JSON-escaped, or as written when no quote inside it could have
- * closed a string (else fields could be folded into it). Ending at the end, the object is the run's own closing one,
- * never one quoted in its words, and nothing of it is left out.
- */
-function tracesFrom(original: string, start: number, retried: unknown): boolean {
-  let pos = start;
-  const take = (forms: readonly string[], after: string): boolean => {
-    for (const form of forms) {
-      const at = original.indexOf(form, pos);
-      const next = original.charAt(nonSpace(original, at + form.length));
-      if (at < 0 || !PUNCTUATION.test(original.slice(pos, at))) continue;
-      if (next !== "" && !after.includes(next)) continue;
-      pos = at + form.length;
-      return true;
+function repairs(text: string): string[] {
+  const from = text.indexOf("{");
+  if (from < 0) return [];
+  const body = text.slice(from).replace(/\s*(```\s*)?$/, "");
+  const owed: string[] = [];
+  for (const [at, char] of bracketsFrom(body, 0)) {
+    if (char === "{" || char === "[") {
+      owed.push(char === "{" ? "}" : "]");
+      continue;
     }
-    return false;
-  };
-  const walk = (value: unknown): boolean => {
-    if (Array.isArray(value)) return value.every((item) => walk(item));
-    if (typeof value === "object" && value !== null)
-      return Object.entries(value).every(
-        ([key, field]) => take([JSON.stringify(key)], ":") && walk(field),
-      );
-    if (typeof value !== "string") return take([JSON.stringify(value)], ",]}");
-    const asWritten = QUOTE_AT_EDGE.test(value) ? [] : [`"${value}"`];
-    return take([JSON.stringify(value), ...asWritten], ",]}");
-  };
-  return walk(retried) && TAIL.test(original.slice(pos));
+    const closes = owed.pop();
+    // the object is closed: only extra closers may follow, and they go (c)
+    if (closes === undefined) return /^[\s}\]]*$/.test(body.slice(at)) ? [body.slice(0, at)] : [];
+    if (char !== closes)
+      return [
+        `${body.slice(0, at)}${closes}${body.slice(at + 1)}`,
+        `${body.slice(0, at)}${body.slice(at + 1)}`,
+      ];
+  }
+  // a body that ends inside a string gets its closers inside that string, and does not parse
+  return owed.length === 0 ? [] : [`${body}${owed.reverse().join("")}`];
 }
 
-/** `tracesFrom` any "{" of the answer: words before the object may hold braces of their own (P-3452). */
-function tracesIn(original: string, retried: unknown): boolean {
-  for (let start = original.indexOf("{"); start >= 0; start = original.indexOf("{", start + 1))
-    if (tracesFrom(original, start, retried)) return true;
-  return false;
-}
-
-/**
- * A retried object counts only if it traces to the run's own answer (`tracesIn`), as written or as the retry saw it
- * through the fence, whose replacement turns a ">>>" the run wrote into "> > >".
- */
-export function tracesTo(original: string, retried: unknown): boolean {
-  const fence = fenced("", original);
-  const asSeen = fence.slice(fence.indexOf("\n") + 1, fence.lastIndexOf("\n"));
-  return tracesIn(original, retried) || tracesIn(asSeen, retried);
-}
-
-/** The one retry, read: its outcome and the object as written, or null when it cannot be read or cannot run. */
-async function askedAgain(
-  text: string,
-  error: string,
-  again: (prompt: string) => Promise<string>,
-): Promise<{ outcome: Outcome; raw: unknown } | null> {
+/** A candidate's outcome, or null when it does not parse or does not match the answer's fields. */
+function outcomeOf(candidate: string): Outcome | null {
   try {
-    const second = readOutcome(await again(retryPrompt(text, error)));
-    return "outcome" in second ? second : null;
-  } catch (failure) {
-    if (failure instanceof UsageLimitError) throw failure;
+    const raw: unknown = JSON.parse(candidate);
+    const parsed = outcome.safeParse(raw);
+    return parsed.success ? parsed.data : null;
+  } catch {
     return null;
   }
 }
 
 /**
- * P-4691 (W9 item 3, 2026-10-27: the Editor's fenced object had one bracket wrong, its raw text was posted as the line
- * and the proposal it described was never filed): a run's answer, asked for once more with the parse error when it is
- * not a valid outcome. A second failure, or a retry that cannot run, is the plain `UNREADABLE_LINE` and nothing that
- * acts, never the raw text. A usage limit is not a failure of the answer: it stops the run, which is queued again.
- * Round 2 (fresh review, 2026-10-28): only an answer that holds a "{" is asked again, never one whose `again` is null (a
- * held read or an explanation, fail closed, W8 0d), and the retried object counts only if it `tracesTo` the original.
+ * P-4691 (W9 item 3, 2026-10-27: the Editor's fenced object had one bracket too many, its raw text was posted as the
+ * line and the proposal it described was never filed): a run's answer, read; one that is not a valid outcome is taken
+ * only through `repairs`, and only when every repair that parses and matches the fields gives the same outcome (of the
+ * four kinds at most one ever parses, a closer changed and one taken out owing different counts after it). Else,
+ * or when `repair` is false (a held read or an explanation, fail closed, W8 0d), it is the plain `UNREADABLE_LINE` and
+ * nothing that acts, never the raw text.
  */
-export async function readRunAnswer(
+export function readRunAnswer(
   text: string,
-  again: ((prompt: string) => Promise<string>) | null,
-): Promise<{ outcome: Outcome; ending: "read" | "retried" | "unreadable" }> {
+  repair: boolean,
+): { outcome: Outcome; ending: "read" | "repaired" | "unreadable" } {
   const first = readOutcome(text);
   if ("outcome" in first) return { outcome: first.outcome, ending: "read" };
-  const second =
-    again === null || !text.includes("{") ? null : await askedAgain(text, first.error, again);
-  if (second !== null && tracesTo(text, second.raw))
-    return { outcome: second.outcome, ending: "retried" };
+  const read = (repair ? repairs(text) : []).flatMap((candidate) => outcomeOf(candidate) ?? []);
+  const [one] = read;
+  if (one !== undefined && read.every((other) => isDeepStrictEqual(other, one)))
+    return { outcome: one, ending: "repaired" };
   return { outcome: { ...readJsonAnswer(""), reply: UNREADABLE_LINE }, ending: "unreadable" };
 }

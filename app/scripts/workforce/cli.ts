@@ -24,18 +24,6 @@ export function isolatedArgs(home: string, allowed = ""): string[] {
   ];
 }
 
-/**
- * P-4691: the command line of the one retry of an answer that is not a valid outcome (`readRunAnswer`): the run's model,
- * shut off like the triage (`isolatedArgs`, no tool at all), nothing saved. No `--json-schema`: measured on CLI 2.1.296
- * (2026-10-28), a schema of only `reply` made the retry put the whole object, as a string, inside `reply`, 4 runs of 4.
- */
-export function retryArgs(home: string, model: string): string[] {
-  return [
-    ...["-p", "--model", model, "--output-format", "json", "--no-session-persistence"],
-    ...isolatedArgs(home),
-  ];
-}
-
 export const usageSchema = z.object({
   input_tokens: z.number().int().nonnegative().default(0),
   output_tokens: z.number().int().nonnegative().default(0),
@@ -43,18 +31,6 @@ export const usageSchema = z.object({
   cache_read_input_tokens: z.number().int().nonnegative().optional(),
 });
 export type CliUsage = z.infer<typeof usageSchema>;
-
-/** Two calls of one run counted as one (P-4691: an unreadable answer's retry is the run's usage too). */
-export function addUsage(a: CliUsage | undefined, b: CliUsage | undefined): CliUsage | undefined {
-  if (a === undefined || b === undefined) return a ?? b;
-  return {
-    input_tokens: a.input_tokens + b.input_tokens,
-    output_tokens: a.output_tokens + b.output_tokens,
-    cache_creation_input_tokens:
-      (a.cache_creation_input_tokens ?? 0) + (b.cache_creation_input_tokens ?? 0),
-    cache_read_input_tokens: (a.cache_read_input_tokens ?? 0) + (b.cache_read_input_tokens ?? 0),
-  };
-}
 
 const cliAnswer = z.object({
   is_error: z.boolean().optional(),
