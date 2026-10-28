@@ -1473,6 +1473,7 @@ Entry template
 - hit again: 2026-10-05, B17 g1 round 2: main gained B5's `20261005013003_email.sql` and `20261005013009_email_templates_seed.sql`, so `20261005000102_essentials_flags.sql` sorted before them again; `check-migrations.mjs` asked for `rename ... to a timestamp after 20261005013009`, and run again with the `git mv` staged inside the unfinished merge it died with `ENOENT` on the old name, so the rename went into the merge commit and ran green there; the file became `20261007023009_essentials_flags.sql`, the clock's UTC time. A lane that holds a migration re-stamps it at every merge of main that brings one.
 - hit again: 2026-10-08, B8 g2: the merge of origin/main at the start of the group brought main's `20261008065636`, newer than g1's `20261008065327_jobs_admin.sql`; `migrations:check` after the g2 commit asked for the rename, `bun run migrations:restamp` renamed three files (jobs_admin, action_roles, takedown) and the next `migrations:check` crashed with `ENOENT` on the old name until the rename was committed (`migration-order: OK (57 on main, 3 added)` after it). Run `migrations:check` right after every merge of main, before writing anything.
 - hit again: 2026-10-08, B11 merge gate: after `bun run migrations:restamp` renamed five committed migrations, `bun run migrations:check` crashed with the same ENOENT on the old name until the merge was committed; commit first, then check.
+- hit again: 2026-10-28, PR 518 (H151): main gained Matter's `20261027202710_fn_newsletter_interest_counts.sql` while the PR held `20261027190000_agent_token_not_staff.sql`; CI `migration-order` failed after the merge of main. Renamed to `20261027203000` (before the PR's own `20261027203804`) and the two documents naming it updated; `select version from supabase_migrations.schema_migrations` first showed the old stamp was never applied, so the rename was safe.
 - added: 2026-10-03
 
 ## P-404 · The plan's grep over `tests/fixtures/*.ts` for `randomUUID` also finds B2's harness, `db.ts`
@@ -9395,4 +9396,18 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: the audit reads advisories at run time, so a release that was clean yesterday fails today; the package is transitive, so no branch's own change can fix it.
 - rule: fix it once, in its own small pull request from main, with an `overrides` pin to the fixed version (supply-chain rules: at least 7 days old unless it is the security fix, install with `--ignore-scripts`, `bun audit` and `osv-scanner scan source --lockfile bun.lock` before pushing); then merge main into every open branch. Never ignore a high advisory to get one PR through.
 - proof: `cd app && bun audit --audit-level=high --ignore=GHSA-jmr9-qjv8-65gv --ignore=GHSA-7pqw-9j4j-h8q3 --ignore=GHSA-xjj6-f33q-929c --ignore=GHSA-27r3-jxmh-p828 --ignore=GHSA-mrhx-c7xc-m3w5` → `No vulnerabilities found (checked 881 packages ...)` with `"undici": "7.30.1"` in `overrides` (7.30.1 published 2026-10-15).
+- added: 2026-10-28
+
+## P-4691 · Headless `claude -p` has no Artifact tools: a script cannot publish or feed an artifact page
+- symptom: 2026-10-28, the operator asked for a board artifact that updates by itself. `echo "...tools whose names start with Artifact..." | claude -p --model haiku` answered `NONE`; the interactive session has Artifact and ArtifactData.
+- cause: the artifact tools exist only in an attended session; print mode (every runner, builder and Matter's stream-json session) has none, and an artifact page cannot fetch any host but the allowed CDNs.
+- rule: a page that must stay current on its own reads a local MCP server through the `mcp` capability (`host:<server>`, live only in the Claude app on the laptop) fed by a script on a schedule; it saves its newest copy to its own `db` for other devices. Never plan a scheduled `claude -p` publish.
+- proof: `claude mcp get mop-board` → `Status: ✔ Connected`; `~/.mop-workforce/board/snapshot.mjs` written by the "MOP Board" task.
+- added: 2026-10-28
+
+## P-4692 · PowerShell started from a hidden scheduled task can take over 30 s to answer
+- symptom: 2026-10-28, "MOP Board": run by hand under bun the snapshot took 20 s with no error; the same script from its scheduled task took 140 s and logged `powershell.exe -NoProfile: spawnSync powershell.exe ETIMEDOUT` (30 s limit), and some runs ended at the 3 min task limit (result 267014).
+- cause: the first PowerShell of a hidden wscript task loads slowly (profile-less but cold), and a git or gh call may wait on a credential prompt nobody sees.
+- rule: in a scheduled script give a `powershell.exe` child at least 90 s, set `GIT_TERMINAL_PROMPT=0`, `GCM_INTERACTIVE=never` and `GH_PROMPT_DISABLED=1` on git and gh children, log a timestamp and the run's seconds, and give the task a limit well above the slowest run.
+- proof: `grep -E "^20.* board:" ~/.mop-workforce/board.log | tail -3` (the seconds per run).
 - added: 2026-10-28
