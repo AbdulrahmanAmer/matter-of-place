@@ -121,6 +121,8 @@ export const subjectActionInput = z.object({ id: z.string().uuid() }).strict();
 /**
  * `POST audit/subject-requests/:id/delete`: the request, and the Instagram handle the person names, if any, whose
  * comments and messages are deleted with it (W8 item 4 round 2). A leading @ is allowed; the rest is a handle.
+ * `POST audit/subject-requests/:id/export` takes the same shape: the handle's comments and messages join the bundle
+ * (round 3). One schema, one export (knip refuses an alias as a duplicate export, P-4654).
  */
 export const subjectDeleteInput = z
   .object({
@@ -132,12 +134,6 @@ export const subjectDeleteInput = z
       .optional(),
   })
   .strict();
-
-/**
- * `POST audit/subject-requests/:id/export`: the request, and the Instagram handle the person names, if any, whose
- * comments and messages join the bundle (W8 item 4 round 3). The same shape as a deletion's.
- */
-export const subjectExportInput = subjectDeleteInput;
 
 /** The access bundle: every row the address appears in, as stored (S55). */
 export const subjectExportSchema = z.object({
