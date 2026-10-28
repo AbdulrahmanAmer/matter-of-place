@@ -4391,6 +4391,7 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: a new script reads secrets through `eval "$(node scripts/load-env.mjs --profile dev)"` and gets its project from `devProject()` of `scripts/lib/storage-env.ts`; it never parses `.env` itself. A script that needs a name the profile does not export adds the name to the profile, not a reader to the script.
 - proof: `cd app && grep -c readFileSync scripts/auth-invite-test.ts` prints `0` and `grep -n "devProject" scripts/auth-invite-test.ts` prints the import from `./lib/storage-env.ts` and its call; `bun run jscpd` exits 0 on `slice/b5` at B5 g4 (2026-10-06).
 - added: 2026-10-06
+- hit again: 2026-10-27, H151: `scripts/matter/admin-browser-drive.mjs` copied `chromePath()` from `scripts/lib/shoot.mjs` (13 lines, 77 tokens) and the second CI `check` failed jscpd after lint passed; the helper moved to `scripts/lib/chrome-path.mjs` and both import it. Before writing a helper in a new script, grep `scripts/lib` for it. Proof: `grep -rn "chrome-path.mjs" app/scripts` → the two imports.
 
 ## P-533 · After a Claude Code session restart, a workflow run cannot be resumed from the new session until its journal is copied over: resume reads only the current session's folder
 - symptom: 2026-10-07 02:38 on the Dell, the first resume after the session restart that loaded `unit-reviewer`: "The journal for workflow run wf_b52b8501-a01 is not on disk, and this session cannot fetch a remote copy". The run's `workflows/<id>.json` and `subagents/workflows/<id>/` sat under the old session's folder (`~/.claude/projects/<project>/<old session id>/`), and `resumeFromRunId` looks only under the new one.
@@ -9369,18 +9370,11 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - proof: `gh pr view 509 --json body` showed the old body before `gh pr edit 509 --body-file`; `head -1 ~/.mop-workforce/builders/w8-1-render/brief.final.md` showed "round 9" under the round 10 launch.
 - added: 2026-10-27
 
-## P-4672 · A unit test that drives `context()` as the Editor reaches the request desk, which deletes folders under the real home
-- symptom: 2026-10-27, W7 item 8: a test calling `context()` for every colleague slug with `owns = ownsSource(source, slug)` stopped at "unexpected table agents" in `requestDesk`; had the fake answered it, the Editor's case would have run `rmSync` on `~/.mop-workforce/desks/editor/work/requests` of the live runner on this laptop.
-- cause: `requestDesk` (request-desk.ts) defaults its `home` to `homedir()` and clears the outside and work request folders of the owner of submissions before it reads anything; `context()` passes no home.
-- rule: a test that drives `context()` for a slug that owns submissions passes `owns = () => false` unless it is about the request desk, and a request-desk test passes its own temporary `home`; never let a unit test reach `requestDesk` with the default home.
-- proof: `grep -n 'home = join(homedir()' app/scripts/workforce/request-desk.ts` → the default; `cd app && bunx vitest run --project unit tests/unit/workforce-interest.test.ts` → `6 passed` with `() => false`.
-- added: 2026-10-27
-
-## P-4681 · A count made in TypeScript over a PostgREST read is wrong past 1000 rows, silently
-- symptom: 2026-10-27, W7 item 8 round 1 failed its fresh Opus review: `interest.ts` counted signups over `from("subscribers").select(...)` with no order and no paging; past 1000 rows the counts would come out short and differ between runs, and no test or error would show it.
-- cause: `supabase/config.toml` sets `max_rows = 1000`; PostgREST cuts every table read and every set-returning rpc at that many rows without an error. A fake db returns every row, so a unit test cannot see the cut.
-- rule: a count, total or "how many" over a table is made in SQL (a service-role function that groups and returns counts only, as `newsletter_interest_counts` does), never by fetching rows into code; a read that must return rows pages with `order` and `range`. Open: the Interest screen's `listInterest` reads every signup through `newsletter_export_subscribers` and totals them in code, so its totals and list stop at 1000 rows too (not changed in W7 item 8 round 2: the screen lists addresses, so it needs rows and paging, not a counts function).
-- proof: `grep -n "max_rows" app/supabase/config.toml` → `max_rows = 1000`; `grep -n 'rpc("newsletter_interest_counts"' app/scripts/workforce/interest.ts` → the one call.
+## P-4681 · Who a session is was decided by "has a cookie", so an agent account in a browser passed as a person
+- symptom: 2026-10-27, H151: `requireActor` returned `kind: "human"` for any session cookie. Matter's agent account (admin role, kind `agent` in `user_roles`) signed in through a browser would have passed every person-only guard that `authz.ts` and the services decide in TypeScript (`mayApprove`, H101's person author kind, W8 item 9's agent roles); only writes that reach `write_audit` were refused, because it compares the passed kind with the stored one.
+- cause: the kind was taken from the credential's shape (cookie or bearer key), not from the account. `user_roles.actor_kind` is the database's authority, and `revoke_role` deletes rows, so revoking every role and granting one again with the default kind can turn an agent account that still holds keys into a "person".
+- rule: decide human or agent from the account, in one place (`sessionPrincipal`, actor.ts), for every reader of a session (API, admin page gate, both sign-in paths); an account is an agent when any role row says so or it has ever held an `agent_keys` row. A unit fake that serves `user_roles` must also serve `agent_keys` (`rolesDb` does by default; a hand-built `fakeDb` answers `unexpected table agent_keys`). Grep `getSessionUser` and `enabledRoles(` before adding any new session reader. A session is also a Supabase access token, which reaches PostgREST past the Worker: an account that newly gets one (an agent) must get nothing from the row-level-security helpers (`app.role_in`, `app.is_staff` answer only for a person since migration 20261027203000). `bun run db:fn` writes only `public` functions (it refuses a file that does not create `public.<name>`), so a change to an `app.*` function is a migration holding the function file's text, written from the file.
+- proof: `git grep -n "kind: \"human\"" -- app/src/server/lib/actor.ts` → only the `if (!agent)` line of `sessionPrincipal`; `tests/mutations/H151.json` entries `h151-a-key-marks-agent` and `h151-b-role-marks-agent` replay red on CI, and `h151-s-db-role-in-agent` on the db job (UNPROVEN locally: no local test runs while the repository is public); `grep -c "does not create public" app/scripts/db-fn.mjs` → `1`.
 - added: 2026-10-27
 
 ## P-4680 · Matter's goal line is re-handed every ten minutes while he waits on his own background work
@@ -9388,6 +9382,27 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - cause: `continueGoal` (scripts/matter/live.ts) handed the first unticked step every ten minutes whatever he was waiting on; `goalSkipReason` ignored his open background tasks, and a turn that only answered cost nothing to repeat.
 - rule: no goal line while a background task of his started under an hour ago is open (its end wakes the session, and that wake turn covers the goal); after each goal turn that did no work (no Edit, Write, Agent, Task, task started or merge; a status read is not work) the gap doubles, ten minutes to an hour; a person's line or a finished task starts the pace over; an error result is not counted.
 - proof: `cd app && bunx vitest run --project unit tests/unit/matter-autonomy.test.ts` (registry ma-d-*); live: `select count(*) from agent_messages where thread='matter' and author_name='Matter' and created_at > now() - interval '2 hours'` after the merge.
+- added: 2026-10-27
+
+## P-4682 · A new admin route needs `routeTree.gen.ts` regenerated, and the laptop may not build: run `vite dev` for 90 s on a linked node_modules
+- symptom: 2026-10-27, H151 review round: the new `src/routes/api/admin/auth.agent-sign-in.ts` is typed by `createFileRoute("/api/admin/auth/agent-sign-in")`, which `tsc` refuses until the generated route tree names it (G-001), and the worktree had no node_modules while local builds are off (no local CI).
+- cause: only the router plugin writes `src/routeTree.gen.ts`, during `vite build` or `vite dev`; a lane worktree is never installed.
+- rule: link the live checkout's install (`New-Item -ItemType Junction -Path <worktree>/app/node_modules -Target E:/mop-build/live/app/node_modules`, only when both lockfiles match: `git diff --stat <live head> -- app/package.json app/bun.lock` is empty), run `timeout 90 node node_modules/vite/bin/vite.js dev --port 8899 --strictPort` once, and commit the regenerated file with the route; never hand-edit it. The same link lets `bun scripts/gen-action-roles.mjs` and `bun run db:fn` run for a matrix or function change.
+- proof: `git diff --stat app/src/routeTree.gen.ts` → `21 insertions(+)`, every added line naming `/api/admin/auth/agent-sign-in` (2026-10-27).
+- added: 2026-10-27
+
+## P-4683 · Two whole-tree unit checks a new service and a new fixture must pass: a scope-less agent is refused before the database, and a fixture reads no random uuid
+- symptom: 2026-10-28, H151 review round, CI `check`: `admin-authz-sweep.test.ts` failed with `team/service.ts#issueAgentSignIn as agent: db_touched`, and `clock.test.ts` "the fixture files" failed with `supabase-auth.ts`; every new test of the slice was green.
+- cause: the sweep calls every exported `(actor, db, ...)` service with an agent holding every role and no scope and wants a `ForbiddenError` before any property of `db` is read; a `scopeFree` action passes `authorize`, so the service's first `checkDb` touched the client. `clock.test.ts` greps `tests/fixtures/*.ts` for `crypto.randomUUID`, `Math.random` and `Date.now`.
+- rule: an action a key may take for itself is scoped to a real group (`dashboard`), not `scopeFree`, unless the service reads no database; a fixture default is a fixed id, never `crypto.randomUUID()`. Run both greps in your head before pushing a new service or fixture.
+- proof: `grep -n "agent_sign_in" app/src/server/lib/permissions/dashboard.ts` shows no `scopeFree`; `grep -c "randomUUID" app/tests/fixtures/supabase-auth.ts` → `0`.
+- added: 2026-10-28
+
+## P-4672 · A unit test that drives `context()` as the Editor reaches the request desk, which deletes folders under the real home
+- symptom: 2026-10-27, W7 item 8: a test calling `context()` for every colleague slug with `owns = ownsSource(source, slug)` stopped at "unexpected table agents" in `requestDesk`; had the fake answered it, the Editor's case would have run `rmSync` on `~/.mop-workforce/desks/editor/work/requests` of the live runner on this laptop.
+- cause: `requestDesk` (request-desk.ts) defaults its `home` to `homedir()` and clears the outside and work request folders of the owner of submissions before it reads anything; `context()` passes no home.
+- rule: a test that drives `context()` for a slug that owns submissions passes `owns = () => false` unless it is about the request desk, and a request-desk test passes its own temporary `home`; never let a unit test reach `requestDesk` with the default home.
+- proof: `grep -n 'home = join(homedir()' app/scripts/workforce/request-desk.ts` → the default; `cd app && bunx vitest run --project unit tests/unit/workforce-interest.test.ts` → `6 passed` with `() => false`.
 - added: 2026-10-27
 
 ## P-4690 · A new advisory on a package three levels down fails `audit:deps` in every open pull request at once

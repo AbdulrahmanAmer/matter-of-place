@@ -651,7 +651,7 @@
   {
     "id": "b7-g2-actor-disabled-row",
     "file": "src/server/lib/actor.ts",
-    "find": ".filter((row) => row.disabled_at === null)",
+    "find": ".filter((grant) => grant.disabled_at === null)",
     "replace": ".filter(() => true)",
     "test": "tests/unit/actor.test.ts",
     "run": "bunx vitest run --project unit --testTimeout=180000 tests/unit/actor.test.ts",

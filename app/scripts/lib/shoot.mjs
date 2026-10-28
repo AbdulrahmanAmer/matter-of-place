@@ -3,12 +3,13 @@
 // uploaded to the public `media` bucket. The page holds only data URLs: every other request is refused (invariant 2).
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, join, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import puppeteer from "puppeteer-core";
 import { renderToStaticMarkup } from "react-dom/server";
 import sharp from "sharp";
 import { z } from "zod";
+import { chromePath } from "./chrome-path.mjs";
 import { PHOTO_MAX_BYTES, confineRender, inside, realPath } from "./confine.mjs";
 import { mediaKey } from "./media-key.mjs";
 import { putIfMissing } from "./media-store.mjs";
@@ -32,7 +33,6 @@ const specSchema = z.object({
   slides: z.array(slideSchema).optional(),
   out: z.object({ key_prefix: z.string().regex(/^assets\/[^/]+\/[^/]+\/r\d+\/$/) }),
 });
-const engineSchema = z.object({ findChrome: z.function().returns(z.string()) });
 const jobSchema = z.object({ payload: z.object({ data: z.object({ spec: specSchema }) }) });
 const fixtureSchema = z.object({
   property: propertySchema,
@@ -83,17 +83,6 @@ async function pageCss() {
     (_match, file) => `url("data:font/woff2;base64,${fonts.get(String(file)) ?? ""}")`,
   );
   return `body{margin:0}\n${tokens}\n${inlined}\n${social}`;
-}
-
-/** @returns {Promise<string>} Chrome from `CHROME_PATH`, else the cached one `findChrome()` returns on the laptop */
-async function chromePath() {
-  const fromEnv = process.env["CHROME_PATH"];
-  if (fromEnv !== undefined && fromEnv !== "") return fromEnv;
-  const enginePath = fileURLToPath(new URL("../../../launch/engine/chrome.mjs", import.meta.url));
-  const engine = engineSchema.parse(
-    await import(/* @vite-ignore */ pathToFileURL(enginePath).href),
-  );
-  return engine.findChrome();
 }
 
 // Runs in the page: both families loaded from their data URLs, every image decoded.
