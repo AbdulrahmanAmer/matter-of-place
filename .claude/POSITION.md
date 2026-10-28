@@ -2516,3 +2516,21 @@ registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3
   exit 0, nothing to end. Matter's goal run 0951ea21 closed by hand. Matter's own studio lock merged in PR 509.
   UNPROVEN: the sweep ending a real stack; a stall report reaching Matter's live session. Bank P-4660, P-4661, P-4662
   (raw insert into agent_messages reaches no one), P-4643 cause corrected.
+
+- 2026-10-28 05:45 +0300, PAUSE until 2026-10-28 19:00 (operator: "yeah we can pause when proper let me know when you
+  pause"; he switches Claude accounts then). Merged since the last block: PR 515 (goal pace: no line while Matter's own
+  work runs, backoff after empty goal turns, P-4680; live: his log shows "goal step skipped: N background task(s)"),
+  PR 519 (W7 item 8), PR 520 (undici 7.30.1, P-4690). Open: PR 518 (feat/matter-admin-session, worktree
+  E:/mop-build/matter-admin, head 16539bc6, all CI green after main merged and the migration renamed to 20261027203000):
+  NEXT a fresh Opus review of the security-review fix round (critical group), merge with gate-loop, wait for deploy and
+  the migration, then the first real sign-in with `app/scripts/matter/admin-browser.ts` (UNPROVEN: generateLink token
+  with type email, cookies surviving Chrome close, puppeteer-core in the desk checkout), then tell Matter to prove W7 3,
+  4, 7 and W8 10, 11 through it. Matter's own: PR 521 (W8 item 4, CI round), PR 522, answer-retry round 5; Matter was
+  sent a PARK order (message 4b280c68) and his session plus the staff jobs are switched off when he answers "Parked."
+  Resume: sign the laptop's Claude in to the new account (the operator), enable the MOP tasks that were disabled
+  (listed in the pause line below), post Matter a resume line with workforce_post_message. Board artifact made:
+  https://claude.ai/artifact/L7ECEzLg5nwcr3WurN8pQ2, fed by `~/.mop-workforce/board/snapshot.mjs` ("MOP Board" task,
+  every 5 min, limit 6 min, no model) through the local MCP server `mop-board` (user scope); live only in the Claude
+  app on the laptop (UNPROVEN until the operator opens it there once). The board scripts live outside the repo.
+  Still UNPROVEN: the sweep ending a real stack; a stall report reaching Matter's live session. Weekly Claude limit
+  80% at the pause. Bank: P-318 hit again, P-4691, P-4692.
