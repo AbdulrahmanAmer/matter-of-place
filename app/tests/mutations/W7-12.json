@@ -141,7 +141,7 @@
     "kind": "sql",
     "test": "tests/db/concierge-email-delivery.db.test.ts",
     "sql": "drop index if exists public.email_messages_inquiry_created_idx;\n",
-    "run": "bunx vitest run --project db tests/db/concierge-email-delivery.db.test.ts -t \"through their own index\"",
-    "expect": "× .*reads the emails about inquiries through their own index, newest first"
+    "run": "bunx vitest run --project db tests/db/concierge-email-delivery.db.test.ts -t \"has its own index\"",
+    "expect": "× .*has its own index for the emails about inquiries, newest first"
   }
 ]

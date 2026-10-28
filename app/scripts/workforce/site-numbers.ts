@@ -72,7 +72,7 @@ function windowLines(rows: readonly SiteRow[], days: number): string[] {
   ];
 }
 
-/** The block: visits, the ten top pages, signups and inquiries by market, for the last 7 and 28 days. */
+/** The block: page views, the ten top pages, signups and inquiries by market, for the last 7 and 28 days. */
 export function siteNumbersBlock(rows: readonly SiteRow[]): string {
   return [
     "Site numbers (UTC days ending yesterday, from the daily totals; inquiries from the inquiries received):",

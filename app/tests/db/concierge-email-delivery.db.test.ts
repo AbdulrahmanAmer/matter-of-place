@@ -160,7 +160,7 @@ describe("concierge_email_delivery", () => {
     for (const answer of answers) expect(answer).toMatch(/^42501 permission denied/);
   });
 
-  it("reads the emails about inquiries through their own index, newest first", async () => {
+  it("has its own index for the emails about inquiries, newest first", async () => {
     const found = await withRollback((db) =>
       db.query<{ indexdef: string }>(
         "select indexdef from pg_indexes where schemaname = 'public' and indexname = 'email_messages_inquiry_created_idx'",
