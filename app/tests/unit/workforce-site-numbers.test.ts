@@ -41,16 +41,16 @@ const rows = (): SiteRow[] => [
 const BLOCK = [
   "Site numbers (UTC days ending yesterday, from the daily totals; inquiries from the inquiries received):",
   "Last 7 days:",
-  "- Visits (page views): 151",
+  "- Page views: 151",
   "- Top pages: /property/fairfield-house (40), / (30), /california (12)",
   "- Signups: Place Notes form 3, interest form 0, confirmed 1",
   "- Inquiries by market: California 2, Florida 0, New York 1, no market named 1",
   "Last 28 days:",
-  "- Visits (page views): 1,600",
+  "- Page views: 1,600",
   "- Top pages: / (200), /property/fairfield-house (150)",
   "- Signups: Place Notes form 9, interest form 4, confirmed 5",
   "- Inquiries by market: California 5, Florida 1, New York 0, no market named 2",
-  "A top page is named only when it is one of our pages; every page view counts in visits.",
+  "Page views count only the pages that send a view event: property, market, market guide, region, story and archive pages, and home, /properties and /stories while they show coming soon; a coming-soon page counts once. Every other page (/about, /contact, /guides and the rest) sends none, so its visits are not here. A top page is named only when it is one of our pages.",
 ].join("\n");
 
 const FAILED = "The site numbers could not be read for this run; say so if the report needs them.";
@@ -113,10 +113,12 @@ describe("site numbers in the Analyst's briefing (W7 item 10)", () => {
       .object({ p_to: z.string(), p_pages: z.array(z.string()) })
       .parse(db.calls[0]?.args[0]);
     expect(args.p_to).toBe("2026-10-27");
-    // 16 fixed pages of the sitemap, three market pages and every market with every region (3 × 12)
-    expect(args.p_pages).toHaveLength(55);
-    for (const page of ["/", "/about", "/place-notes", "/california", "/florida/miami"])
+    // 16 fixed pages of the sitemap and each of the three markets' page and guide; the database names region pages
+    // from its market and region rows, so no market is paired with another market's region here
+    expect(args.p_pages).toHaveLength(22);
+    for (const page of ["/", "/about", "/place-notes", "/california", "/new-york/guide"])
       expect(args.p_pages).toContain(page);
+    expect(args.p_pages).not.toContain("/florida/bay-area");
   });
 
   it("names no page and no market a visitor typed", () => {
@@ -136,7 +138,7 @@ describe("site numbers in the Analyst's briefing (W7 item 10)", () => {
 
   it("shows zeros and no page when the site has no numbers yet", () => {
     expect(siteNumbersBlock([])).toContain(
-      "Last 7 days:\n- Visits (page views): 0\n- Top pages: none yet\n- Signups: Place Notes form 0, interest form 0, confirmed 0\n- Inquiries by market: California 0, Florida 0, New York 0, no market named 0",
+      "Last 7 days:\n- Page views: 0\n- Top pages: none yet\n- Signups: Place Notes form 0, interest form 0, confirmed 0\n- Inquiries by market: California 0, Florida 0, New York 0, no market named 0",
     );
   });
 

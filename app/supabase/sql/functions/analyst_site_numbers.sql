@@ -11,10 +11,14 @@ security invoker
 set search_path = ''
 as $$
   -- W7 item 10: the Analyst's site numbers for the 7 and the 28 UTC days before p_to, counted here so no read meets
-  -- PostgREST's row cap. 'visits' is every page view of analytics_daily (an event named *_view); 'page' the ten pages
-  -- with the most views, named only when the page is ours (one of p_pages, or a published property's or story's page),
-  -- so no path a visitor's beacon sent is returned; 'signup' each signup event; 'inquiries' the inquiries received, per
-  -- market (the property's market, else the market of the page it was sent from, else ''), never a word of one.
+  -- PostgREST's row cap. 'visits' sums the view events of analytics_daily (an event named *_view): the site has no
+  -- page_view, so only the pages that send one count (property, market and guide, region, story, archive, and a page
+  -- showing coming soon). A coming-soon market or region page sends its own view and coming_soon_view at one path, so
+  -- coming_soon_view counts only at a path that sent no other view in the window (home, /properties, /stories).
+  -- 'page' the ten pages with the most views, named only when the page is ours (one of p_pages, a region's page, an
+  -- archive page or a published property's or story's page), so no path a visitor's beacon sent is returned; 'signup'
+  -- each signup event; 'inquiries' the inquiries received, per market (the property's market, else the market of the
+  -- page it was sent from, else ''), never a word of one.
   with windows (days) as (values (7), (28)),
   daily as (
     select w.days, d.event, d.path, d.events
@@ -25,6 +29,8 @@ as $$
     select v.days,
       case
         when v.path = any(p_pages) then v.path
+        when v.path in (select '/' || r.market_slug || '/' || r.slug from public.regions r) then v.path
+        when v.path in (select '/archive/' || f.kind || '/' || f.slug from public.archive_facets f) then v.path
         when exists (
           select 1 from public.properties p
           where p.editorial_state = 'published' and v.path = '/property/' || p.slug
@@ -38,6 +44,13 @@ as $$
       v.events
     from daily v
     where v.event like '%\_view'
+      and (
+        v.event <> 'coming_soon_view'
+        or not exists (
+          select 1 from daily o
+          where o.days = v.days and o.path = v.path and o.event like '%\_view' and o.event <> 'coming_soon_view'
+        )
+      )
   ),
   pages as (
     select v.days, v.page, sum(v.events)::int as events,

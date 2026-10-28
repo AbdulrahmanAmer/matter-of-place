@@ -41,8 +41,12 @@ const rows = (): DeliveryRow[] => [
   },
 ];
 
+// Approving a reply sends nothing yet (workforce_decide), so the header says these are the site's own emails.
+const HEADER =
+  "Email delivery (the 10 newest emails about inquiries, newest first; \"opened\" only when the reader's mail reported it). Approving a reply does not send an email yet; these are the site's own emails to the people of inquiries:";
+
 const BLOCK = [
-  'Email delivery (the 10 newest emails we sent about inquiries, newest first; "opened" only when the reader\'s mail reported it):',
+  HEADER,
   `- 2026-10-27, inquiry ${A}, the acknowledgement: delivered, opened`,
   `- 2026-10-26, inquiry ${B}, the acknowledgement: bounced`,
   `- 2026-10-25, inquiry ${C}, standalone: sent, no delivery report yet`,
@@ -116,9 +120,7 @@ describe("email delivery in the Concierge's briefing (W7 item 12)", () => {
   });
 
   it("says none sent yet when no email went out", () => {
-    expect(deliveryBlock([])).toBe(
-      'Email delivery (the 10 newest emails we sent about inquiries, newest first; "opened" only when the reader\'s mail reported it):\n- none sent yet',
-    );
+    expect(deliveryBlock([])).toBe(`${HEADER}\n- none sent yet`);
   });
 
   it("gives one plain line when the read fails, and the run goes on", async () => {

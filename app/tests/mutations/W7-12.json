@@ -72,6 +72,15 @@
     "expect": "× .*gives one plain line when the read fails, and the run goes on"
   },
   {
+    "id": "w7-12-no-send-yet-said",
+    "test": "tests/unit/workforce-email-delivery.test.ts",
+    "file": "scripts/workforce/email-delivery.ts",
+    "find": " Approving a reply does not send an email yet; these are the site's own emails to the people of inquiries:",
+    "replace": ":",
+    "run": "bunx vitest run --project unit tests/unit/workforce-email-delivery.test.ts",
+    "expect": "× .*says delivered, opened, bounced or sent for each email, by the inquiry it answers"
+  },
+  {
     "id": "w7-12-db-inquiries-only",
     "kind": "sql",
     "test": "tests/db/concierge-email-delivery.db.test.ts",
@@ -126,5 +135,13 @@
     "sql": "create or replace function public.concierge_email_delivery(p_limit int)\nreturns table (\n  inquiry_id uuid,\n  template_key text,\n  status text,\n  sent_at timestamptz,\n  opened boolean\n)\nlanguage sql\nstable\nsecurity invoker\nset search_path = ''\nas $$\n  -- W7 item 12: what became of the newest emails we sent to the people of inquiries (the Concierge's area), at most\n  -- p_limit (capped at 50), newest first. The inquiry each answers, its template, its state and whether Resend saw it\n  -- opened, decided here so the opens of many emails never meet PostgREST's row cap; never the address or the subject.\n  select m.entity_id,\n    m.template_key,\n    m.status,\n    coalesce(m.sent_at, m.created_at),\n    m.resend_id is not null and exists (\n      select 1 from public.email_events e\n      where e.resend_email_id = m.resend_id and e.type = 'email.opened'\n    )\n  from public.email_messages m\n  where m.entity = 'inquiry' and m.entity_id is not null and m.kind <> 'test'\n  order by m.created_at desc, m.id desc\n  limit least(greatest(coalesce(p_limit, 0), 0), 50);\n$$;\n\nrevoke execute on function public.concierge_email_delivery(int) from public, anon, authenticated;\ngrant execute on function public.concierge_email_delivery(int) to service_role, anon, authenticated;\n",
     "run": "bunx vitest run --project db tests/db/concierge-email-delivery.db.test.ts -t \"is refused to anon and authenticated\"",
     "expect": "× .*is refused to anon and authenticated"
+  },
+  {
+    "id": "w7-12-db-inquiry-index",
+    "kind": "sql",
+    "test": "tests/db/concierge-email-delivery.db.test.ts",
+    "sql": "drop index if exists public.email_messages_inquiry_created_idx;\n",
+    "run": "bunx vitest run --project db tests/db/concierge-email-delivery.db.test.ts -t \"through their own index\"",
+    "expect": "× .*reads the emails about inquiries through their own index, newest first"
   }
 ]

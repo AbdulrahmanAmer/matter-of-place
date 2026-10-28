@@ -7,7 +7,7 @@
 // the daily totals carry a page, not a market. One call a run of the Analyst; the cache rule (architecture 13) is for
 // public reads.
 import type { Db } from "../../src/server/lib/db.ts";
-import { marketSlugSchema, regionSlugSchema } from "../../src/domain/market.ts";
+import { marketSlugSchema } from "../../src/domain/market.ts";
 import { marketName } from "../../src/lib/market-names.ts";
 import { staticSitemapPaths } from "../../src/server/seo/sitemap.ts";
 
@@ -16,13 +16,13 @@ const READERS: readonly string[] = ["analyst"];
 const WINDOWS = [7, 28] as const;
 const MARKETS = marketSlugSchema.options;
 
-/** Our fixed pages, every market's page and every region's: the database adds published properties and stories. */
+/**
+ * Our fixed pages and every market's page and guide: the database adds each region's page (from its market and region
+ * rows, the one market-to-region list), archive pages, and published properties and stories.
+ */
 const PAGES: readonly string[] = [
   ...staticSitemapPaths,
-  ...MARKETS.flatMap((market) => [
-    `/${market}`,
-    ...regionSlugSchema.options.map((region) => `/${market}/${region}`),
-  ]),
+  ...MARKETS.flatMap((market) => [`/${market}`, `/${market}/guide`]),
 ];
 
 /** A page's address as our routes and slugs make them; the database already names our pages only, this holds twice. */
@@ -62,7 +62,7 @@ function windowLines(rows: readonly SiteRow[], days: number): string[] {
     .reduce((sum, row) => sum + row.events, 0);
   return [
     `Last ${String(days)} days:`,
-    `- Visits (page views): ${n(visits)}`,
+    `- Page views: ${n(visits)}`,
     `- Top pages: ${pages.length === 0 ? "none yet" : pages.join(", ")}`,
     `- Signups: ${signups.join(", ")}`,
     `- Inquiries by market: ${[
@@ -77,7 +77,7 @@ export function siteNumbersBlock(rows: readonly SiteRow[]): string {
   return [
     "Site numbers (UTC days ending yesterday, from the daily totals; inquiries from the inquiries received):",
     ...WINDOWS.flatMap((days) => windowLines(rows, days)),
-    "A top page is named only when it is one of our pages; every page view counts in visits.",
+    "Page views count only the pages that send a view event: property, market, market guide, region, story and archive pages, and home, /properties and /stories while they show coming soon; a coming-soon page counts once. Every other page (/about, /contact, /guides and the rest) sends none, so its visits are not here. A top page is named only when it is one of our pages.",
   ].join("\n");
 }
 

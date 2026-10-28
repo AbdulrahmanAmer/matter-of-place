@@ -1,7 +1,7 @@
 // W7 item 12 (the item's own text): "Email delivery for the Concierge: whether its approved replies were delivered,
 // opened or bounced (item 1's data)." No row ties an approved reply to an email (approving `reply_inquiry` sends
-// nothing, workforce_decide), so the Concierge is shown what became of the newest emails we sent about inquiries, each
-// by the inquiry it answers: an email to the person of an inquiry is recorded there, a reply's included. The rows come from
+// nothing, workforce_decide), so the Concierge is shown what became of the newest emails about inquiries, each by the
+// inquiry it answers: the site's own emails to the person of an inquiry, and the block says a reply sends none yet. The rows come from
 // `concierge_email_delivery`, which reads `email_messages` and `email_events` and decides "opened" in the database, so
 // no number of opens meets PostgREST's row cap; never an address or a subject line (a subject can carry a name).
 import type { Db } from "../../src/server/lib/db.ts";
@@ -42,7 +42,7 @@ function line(row: DeliveryRow): string {
 /** The block: each email, newest first, with what became of it. */
 export function deliveryBlock(rows: readonly DeliveryRow[]): string {
   return [
-    `Email delivery (the ${String(NEWEST)} newest emails we sent about inquiries, newest first; "opened" only when the reader's mail reported it):`,
+    `Email delivery (the ${String(NEWEST)} newest emails about inquiries, newest first; "opened" only when the reader's mail reported it). Approving a reply does not send an email yet; these are the site's own emails to the people of inquiries:`,
     ...(rows.length === 0 ? ["- none sent yet"] : rows.map(line)),
   ].join("\n");
 }
