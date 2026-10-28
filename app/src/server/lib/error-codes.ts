@@ -113,6 +113,8 @@ export const errorCodes = {
   channel_disabled: 422,
   invalid_format: 422,
   caption_too_long: 422,
+  // W8 item 4: a proposed Instagram reply longer than its kind takes; the detail names the limit.
+  reply_too_long: 422,
   media_not_found: 422,
   reel_poster_required: 422,
   // W6 item 8 (H142): a Five Features credit is spent only by a contact whose ledger holds one.

@@ -67,6 +67,8 @@ function tables(overrides: NonNullable<FakeDbOptions["tables"]> = {}): FakeDbOpt
           created_at: "2026-10-13T14:00:01.000Z",
         },
       ],
+      // W8 item 4: an Instagram comment, by its row and kind only.
+      social_inbox: [{ id: ID, kind: "comment" }],
       ...overrides,
     },
   };
