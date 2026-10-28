@@ -91,13 +91,16 @@ vi.mock("node:path", async (importOriginal) => {
 const cli = vi.hoisted(() => ({
   prompts: [] as { who: string; prompt: string }[],
   launches: [] as { args: readonly string[]; cwd: string; settings: string; files: string[] }[],
-  answer: (who: string, prompt: string): string | Error => `${who} ${prompt}`.slice(0, 0),
+  // a run's text, or the whole answer when the test sets how it ended (`cut`: stopped at its output limit)
+  answer: (who: string, prompt: string): string | Error | { text: string; cut: boolean } =>
+    `${who} ${prompt}`.slice(0, 0),
 }));
 
 const ask = (who: string, prompt: string) => {
   cli.prompts.push({ who, prompt });
   const out = cli.answer(who, prompt);
-  return out instanceof Error ? Promise.reject(out) : Promise.resolve({ text: out });
+  if (out instanceof Error) return Promise.reject(out);
+  return Promise.resolve(typeof out === "string" ? { text: out } : out);
 };
 
 vi.mock("../../scripts/workforce/cli.ts", async (importOriginal) => {
@@ -1489,7 +1492,7 @@ describe("P-4691: an answer that is not a valid outcome is repaired only by a fi
   const repaired = (text: string) => readRunAnswer(text, true);
 
   /** The Editor, woken by a person's line, answers `text` to every call: what the runner left. */
-  async function editorRun(text: string) {
+  async function editorRun(text: string, cut = false) {
     mkdirSync(join(home, "drive-social"), { recursive: true });
     writeFileSync(
       join(home, "config.json"),
@@ -1520,7 +1523,7 @@ describe("P-4691: an answer that is not a valid outcome is repaired only by a fi
       cause: "message",
       message_id: LINE_ID,
     });
-    cli.answer = () => text;
+    cli.answer = () => (cut ? { text, cut } : text);
     cli.launches = [];
     const done = await runOnce(memory.db);
     return {
@@ -1568,6 +1571,61 @@ describe("P-4691: an answer that is not a valid outcome is repaired only by a fi
 
   it("takes out the extra closing brackets at the end", () => {
     expect(repaired(`${WHOLE}}]\n`)).toEqual({ ...repaired(WHOLE), ending: "repaired" });
+  });
+
+  // round 5: one `}` too many early closes `content` too soon; the first wrong closer is a right one further on
+  it("says the plain line when one stray brace could move `to` out of `content` or keep it in", () => {
+    const early = WHOLE.replace(',"to":"the brokerage"}}', '},"to":"the brokerage"}}');
+    expect(repaired(early)).toEqual({
+      outcome: { ...readJsonAnswer(""), reply: UNREADABLE_LINE },
+      ending: "unreadable",
+    });
+  });
+
+  it("takes out a stray brace before the first wrong closer when that is the only reading", () => {
+    for (const early of [
+      WHOLE.replace('"Filed.",', '"Filed."},'),
+      WHOLE.replace('"reply_inquiry",', '"reply_inquiry"},'),
+    ]) {
+      const read = repaired(early);
+      expect([early, read.ending, read.outcome.task, read.outcome.proposals]).toEqual([
+        early,
+        "repaired",
+        "Wrote",
+        [PROPOSAL],
+      ]);
+    }
+  });
+
+  it("says the plain line when one stray brace could move an action's last body field out to the action", () => {
+    const action = { method: "PUT", path: "/api/admin/x", why: "w", body: { a: 1, b: 2 } };
+    const whole = JSON.stringify({ reply: "Asked.", task: "x", actions: [action] });
+    expect(repaired(whole).ending).toBe("read");
+    expect(repaired(whole.replace('"a":1,"b":2}', '"a":1},"b":2}')).ending).toBe("unreadable");
+  });
+
+  it("repairs from the answer's own object when the prose before it quotes a template", () => {
+    const read = repaired(
+      `Proposed subject: "We have received {{property_address}}."\n${WHOLE.slice(0, -1)}`,
+    );
+    expect([read.ending, read.outcome.proposals]).toEqual(["repaired", [PROPOSAL]]);
+  });
+
+  it("never appends closers to an answer cut short in a number, a literal, a string or after a key", () => {
+    for (const cut of [
+      '{"reply": "Merged.", "merged": [51',
+      '{"reply": "Asked.", "allow": tr',
+      '{"reply": "Asked.", "task": ',
+      '{"reply": "Asked.", "task": "x",',
+      '{"reply": "Asked.", "task": "Wri',
+    ])
+      expect([cut, repaired(cut).ending]).toEqual([cut, "unreadable"]);
+  });
+
+  it("never repairs an answer the CLI says was cut off at its output limit", async () => {
+    const ran = await editorRun(WHOLE.slice(0, -1), true);
+    expect([ran.launches, ran.approvals, ran.editorSaid]).toEqual([1, [], [UNREADABLE_LINE]]);
+    expect(ran.summary).toBe(UNREADABLE_SUMMARY);
   });
 
   it("never edits a bracket inside a string, escaped quotes included", () => {

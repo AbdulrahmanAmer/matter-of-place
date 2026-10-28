@@ -38,6 +38,9 @@ const cliAnswer = z.object({
   session_id: z.string().optional(),
   // W2 step 6: the CLI's own token counts; the cost is ours to compute (growth.ts).
   usage: usageSchema.optional(),
+  // P-4691 round 5: why the model stopped, as the result line gives it (CLI 2.1.296: "end_turn"); "max_tokens" is a run
+  // cut off at its output limit, whose answer is never repaired.
+  stop_reason: z.string().nullable().optional(),
 });
 
 /** The operator's Claude limit is spent: nothing can run until `resetAt` (gap audit item 32). */
@@ -128,7 +131,7 @@ export function runClaude(input: {
   idleMs?: number;
   /** Who timed out, in the words the office shows: "the colleague", "Matter". */
   who: string;
-}): Promise<{ text: string; session?: string; usage?: CliUsage }> {
+}): Promise<{ text: string; session?: string; usage?: CliUsage; cut?: boolean }> {
   const program = input.env["WORKFORCE_CLI"]?.trim() || "claude";
   return new Promise((done, fail) => {
     const child = spawn(program, [...input.args], {
@@ -203,6 +206,7 @@ export function runClaude(input: {
           text: answer.result,
           ...(answer.session_id === undefined ? {} : { session: answer.session_id }),
           ...(answer.usage === undefined ? {} : { usage: answer.usage }),
+          ...(answer.stop_reason === "max_tokens" ? { cut: true } : {}),
         });
       } catch {
         fail(new Error("the Claude CLI answer was not readable"));

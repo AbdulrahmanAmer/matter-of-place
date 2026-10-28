@@ -216,7 +216,7 @@ export async function askMatter(
   env: NodeJS.ProcessEnv,
   power: MatterPower = "read",
   held = false,
-): Promise<{ text: string; usage?: CliUsage }> {
+): Promise<{ text: string; usage?: CliUsage; cut?: boolean }> {
   ensureDesk();
   const answer = await runClaude({
     args: matterArgs(power, held),
@@ -226,7 +226,11 @@ export async function askMatter(
     timeoutMs: runTimeoutMs(power),
     who: "Matter",
   });
-  return { text: answer.text, ...(answer.usage === undefined ? {} : { usage: answer.usage }) };
+  return {
+    text: answer.text,
+    ...(answer.usage === undefined ? {} : { usage: answer.usage }),
+    ...(answer.cut === undefined ? {} : { cut: answer.cut }),
+  };
 }
 
 /** Keeps the note Matter chose to keep, under the cap. */

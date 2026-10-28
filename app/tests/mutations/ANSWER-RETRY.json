@@ -75,8 +75,8 @@
     "id": "ar-r4-no-repair-flag",
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/answer.ts",
-    "find": "  const read = (repair ? repairs(text) : []).flatMap((candidate) => outcomeOf(candidate) ?? []);",
-    "replace": "  const read = repairs(text).flatMap((candidate) => outcomeOf(candidate) ?? []);",
+    "find": "  const read = repair ? readings(text) : [];",
+    "replace": "  const read = readings(text);",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
     "expect": "× .*never repairs Matter's read of a held line"
   },
@@ -84,7 +84,7 @@
     "id": "ar-r4-stray-out",
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/answer.ts",
-    "find": "        `${body.slice(0, at)}${body.slice(at + 1)}`,\n",
+    "find": "      `${body.slice(0, one)}${body.slice(one + 1)}`,\n",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
     "expect": "× .*repairs Julian's real answer by taking out its one stray bracket"
@@ -93,8 +93,8 @@
     "id": "ar-r4-fence-aside",
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/answer.ts",
-    "find": "  const body = text.slice(from).replace(/\\s*(```\\s*)?$/, \"\");",
-    "replace": "  const body = text.slice(from);",
+    "find": "  const unfenced = text.replace(/\\s*(```\\s*)?$/, \"\");",
+    "replace": "  const unfenced = text;",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
     "expect": "× .*repairs Julian's real answer by taking out its one stray bracket"
   },
@@ -102,7 +102,7 @@
     "id": "ar-r4-kind-change",
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/answer.ts",
-    "find": "        `${body.slice(0, at)}${closes}${body.slice(at + 1)}`,\n",
+    "find": "      `${body.slice(0, one)}${body.charAt(one) === \"}\" ? \"]\" : \"}\"}${body.slice(one + 1)}`,\n",
     "replace": "",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
     "expect": "× .*changes the kind of a closing bracket written wrong"
@@ -111,7 +111,7 @@
     "id": "ar-r4-append-owed",
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/answer.ts",
-    "find": "  return owed.length === 0 ? [] : [`${body}${owed.reverse().join(\"\")}`];",
+    "find": "  return read.stop === \"end\" && read.closable ? [`${body}${read.owed}`] : [];",
     "replace": "  return [];",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
     "expect": "× .*appends the closing brace an answer left off"
@@ -120,8 +120,8 @@
     "id": "ar-r4-trim-extra",
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/answer.ts",
-    "find": "    if (closes === undefined) return /^[\\s}\\]]*$/.test(body.slice(at)) ? [body.slice(0, at)] : [];",
-    "replace": "    if (closes === undefined) return [];",
+    "find": "    return onlyClosersLeft ? [...edits, body.slice(0, at)] : edits;",
+    "replace": "    return edits;",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
     "expect": "× .*takes out the extra closing brackets at the end"
   },
@@ -147,8 +147,8 @@
     "id": "ar-r4-object-start",
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/answer.ts",
-    "find": "    if (!starts.has(start)) continue;\n",
-    "replace": "",
+    "find": "    if (!inside.has(at) && at < brokenAt) starts.push(at);",
+    "replace": "    starts.push(at);",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
     "expect": "× .*appends the closing brace an answer left off"
   },
@@ -156,8 +156,8 @@
     "id": "ar-r4-object-start-held",
     "test": "tests/unit/workforce-escalation.test.ts",
     "file": "scripts/workforce/answer.ts",
-    "find": "    if (!starts.has(start)) continue;\n",
-    "replace": "",
+    "find": "    if (!inside.has(at) && at < brokenAt) starts.push(at);",
+    "replace": "    starts.push(at);",
     "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
     "expect": "× .*never reads an object nested in Matter's broken decision"
   },
@@ -165,9 +165,126 @@
     "id": "ar-r4-object-start-reader",
     "test": "tests/unit/workforce-answer.test.ts",
     "file": "scripts/workforce/answer.ts",
-    "find": "    if (!starts.has(start)) continue;\n",
-    "replace": "",
+    "find": "    if (!inside.has(at) && at < brokenAt) starts.push(at);",
+    "replace": "    starts.push(at);",
     "run": "bunx vitest run --project unit tests/unit/workforce-answer.test.ts",
     "expect": "× .*never reads an object nested in one left open"
+  },
+  {
+    "id": "ar-r5-fresh-read",
+    "test": "tests/unit/workforce-answer.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "    const until = read.stop === \"end\" ? text.length : read.at;",
+    "replace": "    const until = text.length;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-answer.test.ts",
+    "expect": "× .*is read when the prose quotes a template, holds an inch mark after a brace"
+  },
+  {
+    "id": "ar-r5-fresh-read-live",
+    "test": "tests/unit/matter-lessons.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "    const until = read.stop === \"end\" ? text.length : read.at;",
+    "replace": "    const until = text.length;",
+    "run": "bunx vitest run --project unit tests/unit/matter-lessons.test.ts",
+    "expect": "× .*learns of a merge from the closing JSON when the prose before it quotes a template"
+  },
+  {
+    "id": "ar-r5-left-open-holds",
+    "test": "tests/unit/workforce-answer.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "    for (const inner of opens) if (inner > at && inner < until) inside.add(inner);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-answer.test.ts",
+    "expect": "× .*stays unreadable when an object left open in the prose holds the closing one"
+  },
+  {
+    "id": "ar-r5-broken-after",
+    "test": "tests/unit/workforce-answer.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "    if (read.stop === \"invalid\" && read.wrongCloser) brokenAt = Math.min(brokenAt, read.at);",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-answer.test.ts",
+    "expect": "× .*never reads an object after a closer of the wrong kind as the answer"
+  },
+  {
+    "id": "ar-r5-every-closer",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "    const edits = closers.flatMap((one) => [",
+    "replace": "    const edits = [at].flatMap((one) => [",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
+    "expect": "× .*takes out a stray brace before the first wrong closer when that is the only reading"
+  },
+  {
+    "id": "ar-r5-agreement-to",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "  const agreed = read.every((other) => isDeepStrictEqual(other, one));",
+    "replace": "  const agreed = true;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
+    "expect": "× .*says the plain line when one stray brace could move `to` out of `content` or keep it in"
+  },
+  {
+    "id": "ar-r5-agreement-action",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "  const agreed = read.every((other) => isDeepStrictEqual(other, one));",
+    "replace": "  const agreed = true;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
+    "expect": "× .*says the plain line when one stray brace could move an action's last body field"
+  },
+  {
+    "id": "ar-r5-strict",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "    const strict = strictOutcome.safeParse(raw);",
+    "replace": "    const strict = outcome.safeParse(raw);",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
+    "expect": "× .*says the plain line, files nothing and never posts the raw JSON when the only repair would move"
+  },
+  {
+    "id": "ar-r5-repair-start",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "  const start = repairStart(unfenced);",
+    "replace": "  const start = objectStarts(unfenced)[0];",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
+    "expect": "× .*repairs from the answer's own object when the prose before it quotes a template"
+  },
+  {
+    "id": "ar-r5-cut-number",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "      if (at + Math.max(number.length, 1) >= text.length) return cut;\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
+    "expect": "× .*never appends closers to an answer cut short in a number"
+  },
+  {
+    "id": "ar-r5-cut-run",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    const read = readRunAnswer(answer.text, !failClosed && answer.cut !== true);",
+    "replace": "    const read = readRunAnswer(answer.text, !failClosed);",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
+    "expect": "× .*never repairs an answer the CLI says was cut off at its output limit"
+  },
+  {
+    "id": "ar-r5-stop-reason",
+    "test": "tests/unit/workforce-cli.test.ts",
+    "file": "scripts/workforce/cli.ts",
+    "find": "          ...(answer.stop_reason === \"max_tokens\" ? { cut: true } : {}),\n",
+    "replace": "",
+    "run": "bunx vitest run --project unit tests/unit/workforce-cli.test.ts",
+    "expect": "× .*says a run that stopped at its output limit was cut, and only that one"
+  },
+  {
+    "id": "ar-r5-start-after-closer",
+    "test": "tests/unit/workforce-escalation.test.ts",
+    "file": "scripts/workforce/answer.ts",
+    "find": "      if (char === \"}\" || char === \"]\") return true;",
+    "replace": "      if (char === \"}\" || char === \"]\") return false;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-escalation.test.ts -t P-4691",
+    "expect": "× .*takes out a stray brace before the first wrong closer when that is the only reading"
   }
 ]

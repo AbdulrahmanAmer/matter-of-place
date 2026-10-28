@@ -44,6 +44,11 @@ describe("runClaude", () => {
     });
   }, 20_000);
 
+  it("says a run that stopped at its output limit was cut, and only that one", async () => {
+    await expect(run("cut", { idleMs: 2_000 })).resolves.toMatchObject({ cut: true });
+    await expect(run("json", { idleMs: 2_000 })).resolves.not.toHaveProperty("cut");
+  }, 20_000);
+
   it("reports the usage limit from the final answer", async () => {
     await expect(run("out-of-usage", { idleMs: 2_000 })).rejects.toBeInstanceOf(UsageLimitError);
   }, 20_000);

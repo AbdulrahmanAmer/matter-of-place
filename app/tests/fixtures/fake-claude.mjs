@@ -53,6 +53,11 @@ process.stdin.on("end", () => {
     result();
     return;
   }
+  if (mode === "cut") {
+    // P-4691 round 5: the result line of a run stopped at its output limit (CLI 2.1.296 gives `stop_reason`)
+    result({ result: '{"reply": "Merged.", "merged": [51', stop_reason: "max_tokens" });
+    return;
+  }
   if (mode === "out-of-usage") {
     result({ is_error: true, result: "Claude usage limit reached|1792040000" });
   }

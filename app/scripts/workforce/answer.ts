@@ -12,24 +12,24 @@ import { postRequestSchema } from "./post-request.ts";
 import { reelRequestSchema } from "./reel.ts";
 import { studioDecisionSchema } from "./studio.ts";
 
+const proposalContent = z.object({
+  body: z.string().min(1).max(20000),
+  to: z.string().max(300).optional(),
+  // W8 item 10: a social post's channels, formats, files and captions. Read loosely here and checked when it
+  // is filed, so a malformed post is refused with its reason instead of dropping the whole answer.
+  post: jsonValue.optional(),
+});
+
+const proposal = z.object({
+  action: z.enum(["reply_inquiry", "social_post", "newsletter_issue", "campaign_plan"]),
+  summary: z.string().min(1).max(500),
+  content: proposalContent,
+});
+
 export const outcome = z.object({
   reply: z.string().default(""),
   task: z.string().default(""),
-  proposals: z
-    .array(
-      z.object({
-        action: z.enum(["reply_inquiry", "social_post", "newsletter_issue", "campaign_plan"]),
-        summary: z.string().min(1).max(500),
-        content: z.object({
-          body: z.string().min(1).max(20000),
-          to: z.string().max(300).optional(),
-          // W8 item 10: a social post's channels, formats, files and captions. Read loosely here and checked when it
-          // is filed, so a malformed post is refused with its reason instead of dropping the whole answer.
-          post: jsonValue.optional(),
-        }),
-      }),
-    )
-    .default([]),
+  proposals: z.array(proposal).default([]),
   hire: z.array(hireInputSchema).default([]),
   // Matter only: one line it keeps in its capped notes.
   note: z.string().default(""),
@@ -67,6 +67,17 @@ export const outcome = z.object({
 
 export type Outcome = z.infer<typeof outcome>;
 
+/**
+ * P-4691 round 5: a repaired answer is read strictly, a key the outcome does not define refused at every level it
+ * defines, so a `to` or `post` moved out of `content` by a bracket fails instead of being stripped. Actions are free
+ * shapes: there only the agreement of every reading guards.
+ */
+const strictOutcome = outcome
+  .extend({
+    proposals: z.array(proposal.extend({ content: proposalContent.strict() }).strict()).default([]),
+  })
+  .strict();
+
 /** Each bracket of `text` from `from` that stands outside every string, as JSON reads it: its index and itself. */
 function* bracketsFrom(text: string, from: number): Generator<[number, string]> {
   let inString = false;
@@ -81,34 +92,141 @@ function* bracketsFrom(text: string, from: number): Generator<[number, string]> 
 }
 
 /**
- * P-4691 round 4: the "{" that may start the answer's object, each outside every string and every bracket opened before
- * it, counted from the first "{". One inside an object left open is never read as the answer: with the final "}"
- * missing, a proposal (or a nested `"allow": true`, in a held read too) was read as the whole outcome.
+ * How far the JSON object or array that opens at `from` reads as JSON: `closed` just past its end, `invalid` at the
+ * first character that cannot continue it (`wrongCloser` when that is a closer of the other kind where its own closer
+ * could stand), or `end` with the text ending inside it: the closers it still owes, and whether they may follow now
+ * (never inside a string, a number or a literal, nor after a key, a ":" or a ",": P-4691 round 5, a cut answer).
  */
-function objectStarts(text: string): Set<number> {
-  const starts = new Set<number>();
-  let depth = 0;
-  for (const [at, char] of bracketsFrom(text, Math.max(text.indexOf("{"), 0))) {
-    if (char === "{" && depth === 0) starts.add(at);
-    depth = char === "{" || char === "[" ? depth + 1 : Math.max(depth - 1, 0);
+type ValueRead =
+  | { stop: "closed" | "invalid"; at: number; wrongCloser: boolean }
+  | { stop: "end"; owed: string; closable: boolean };
+
+const JSON_NUMBER = /-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/y;
+
+/** The closing `"` of the string that opens at `from`, -1 when the text ends inside it, or the invalid character. */
+function stringEnd(text: string, from: number): { close: number } | { invalid: number } {
+  for (let at = from + 1; at < text.length;) {
+    const char = text.charAt(at);
+    if (char === '"') return { close: at };
+    if (char.charCodeAt(0) < 0x20) return { invalid: at };
+    if (char !== "\\") {
+      at += 1;
+      continue;
+    }
+    const escaped = text.charAt(at + 1);
+    if (escaped === "u") {
+      const hex = text.slice(at + 2, at + 6);
+      if (!/^[\da-fA-F]*$/.test(hex)) return { invalid: at + 2 };
+      at += 6;
+    } else if (escaped === "" || '"\\/bfnrt'.includes(escaped)) at += 2;
+    else return { invalid: at + 1 };
+  }
+  return { close: -1 };
+}
+
+function readValue(text: string, from: number): ValueRead {
+  const owed: string[] = [];
+  // what may come next; `opened` right after an opener, where its own closer may come at once
+  let want: "value" | "key" | "colon" | "after" = "value";
+  let opened = false;
+  const invalid = (at: number, wrongCloser = false): ValueRead => ({
+    stop: "invalid",
+    at,
+    wrongCloser,
+  });
+  const cut: ValueRead = { stop: "end", owed: "", closable: false };
+  let at = from;
+  while (at < text.length) {
+    const char = text.charAt(at);
+    if (" \t\n\r".includes(char)) {
+      at += 1;
+      continue;
+    }
+    const wanted = want;
+    const justOpened = opened;
+    opened = false;
+    if (char === "}" || char === "]") {
+      const closes = owed.at(-1);
+      if (closes === undefined || (wanted !== "after" && !justOpened)) return invalid(at);
+      if (char !== closes) return invalid(at, true);
+      owed.pop();
+      at += 1;
+      want = "after";
+      if (owed.length === 0) return { stop: "closed", at, wrongCloser: false };
+    } else if ((char === "{" || char === "[") && wanted === "value") {
+      owed.push(char === "{" ? "}" : "]");
+      want = char === "{" ? "key" : "value";
+      opened = true;
+      at += 1;
+    } else if (char === '"' && (wanted === "value" || wanted === "key")) {
+      const string = stringEnd(text, at);
+      if ("invalid" in string) return invalid(string.invalid);
+      if (string.close < 0) return cut;
+      at = string.close + 1;
+      want = wanted === "key" ? "colon" : "after";
+    } else if (char === ":" && wanted === "colon") {
+      want = "value";
+      at += 1;
+    } else if (char === "," && wanted === "after") {
+      want = owed.at(-1) === "}" ? "key" : "value";
+      at += 1;
+    } else if (wanted === "value" && (char === "-" || (char >= "0" && char <= "9"))) {
+      JSON_NUMBER.lastIndex = at;
+      const number = JSON_NUMBER.exec(text)?.[0] ?? "";
+      // a number the text ends in may be cut short (`[51` of `[512`)
+      if (at + Math.max(number.length, 1) >= text.length) return cut;
+      if (number === "") return invalid(at);
+      at += number.length;
+      want = "after";
+    } else if (wanted === "value" && "tfn".includes(char)) {
+      const literal = ["true", "false", "null"].find((word) => word.startsWith(char)) ?? "";
+      if (text.startsWith(literal, at)) {
+        at += literal.length;
+        want = "after";
+      } else if (literal.startsWith(text.slice(at, at + literal.length))) return cut;
+      else return invalid(at);
+    } else return invalid(at);
+  }
+  return {
+    stop: "end",
+    owed: owed.slice().reverse().join(""),
+    closable: owed.length > 0 && (want === "after" || opened),
+  };
+}
+
+/**
+ * P-4691 round 5: the "{" that may start the answer's object. One is refused only when an earlier "{", read fresh as
+ * JSON from itself, still holds it: so no quote state is carried across the prose (round 4 read from the first "{" on,
+ * and a `{{property_address}}` in a quoted phrase, an inch mark `12"` or a stray "{" hid the real object), and an object
+ * nested in one left open is never read as the answer (with the final "}" missing, a proposal or a nested
+ * `"allow": true` was once read as the whole outcome). Nor is any "{" after a closer of the wrong kind: the answer's
+ * object broke there, and what follows is still inside it.
+ */
+function objectStarts(text: string): number[] {
+  const starts: number[] = [];
+  const opens: number[] = [];
+  for (let at = text.indexOf("{"); at >= 0; at = text.indexOf("{", at + 1)) opens.push(at);
+  const inside = new Set<number>();
+  let brokenAt = text.length;
+  for (const at of opens) {
+    if (!inside.has(at) && at < brokenAt) starts.push(at);
+    const read = readValue(text, at);
+    const until = read.stop === "end" ? text.length : read.at;
+    for (const inner of opens) if (inner > at && inner < until) inside.add(inner);
+    if (read.stop === "invalid" && read.wrongCloser) brokenAt = Math.min(brokenAt, read.at);
   }
   return starts;
 }
 
 /**
  * The answer's closing JSON object, or why there is none: the parse error (or the first schema problem, by its path and
- * code only, never a value it received) of the widest object, the one that starts at the first "{" (P-4691).
+ * code only, never a value it received) of the widest object, the first start `objectStarts` gives (P-4691).
  */
 export function readOutcome(text: string): { outcome: Outcome } | { error: string } {
   const end = text.lastIndexOf("}");
-  const starts = objectStarts(text);
   let error: string | null = null;
-  for (
-    let start = text.indexOf("{");
-    start >= 0 && start < end;
-    start = text.indexOf("{", start + 1)
-  ) {
-    if (!starts.has(start)) continue;
+  for (const start of objectStarts(text)) {
+    if (start >= end) break;
     try {
       const raw: unknown = JSON.parse(text.slice(start, end + 1));
       const parsed = outcome.safeParse(raw);
@@ -149,54 +267,81 @@ export const UNREADABLE_SUMMARY = "Its answer could not be read; nothing filed";
 
 /**
  * P-4691 round 4 (Matter, 2026-10-28: no model rewrites an answer; three reviews in a row found a retry could still
- * move a value between containers). The repairs of the answer's object, from its first "{" to its end (a closing fence
- * aside), each one edit of a closing bracket outside every string, so no key, value, quote, comma or opener is added,
- * removed or moved: at the first closer of the wrong kind for its opener, (a) its kind changed, or (d) it taken out
- * (Julian's answer had one `]` too many, so no kind change parses it); with none, (b) the closers still owed appended at
- * the end, or (c) the extra closers at the end taken out. A kind change anywhere else cannot parse: every closer before
- * that one matches, and after it the wrong one stays.
+ * move a value between containers). The repairs of the answer's object, `body` from its start to its end (a closing
+ * fence aside), each one edit of a closing bracket outside every string, so no key, value, quote, comma or opener is
+ * added, removed or moved. At the first closer of the wrong kind, or with nothing left to close: round 5, every closer up
+ * to and including it, its kind changed or it taken out (one `}` too many early closes `content` too soon, and the first
+ * wrong closer is then a right one further on), and when only closers follow, those taken out (Julian's answer had one
+ * `]` too many). With none: the closers still owed appended, only where a closer may stand (round 5: never after a
+ * digit, a partial literal, a ":" or a ",", nor inside a string; an answer cut short is not one that forgot its brackets).
  */
-function repairs(text: string): string[] {
-  const from = text.indexOf("{");
-  if (from < 0) return [];
-  const body = text.slice(from).replace(/\s*(```\s*)?$/, "");
+function repairsFrom(body: string): string[] {
   const owed: string[] = [];
+  const closers: number[] = [];
   for (const [at, char] of bracketsFrom(body, 0)) {
     if (char === "{" || char === "[") {
       owed.push(char === "{" ? "}" : "]");
       continue;
     }
+    closers.push(at);
     const closes = owed.pop();
-    // the object is closed: only extra closers may follow, and they go (c)
-    if (closes === undefined) return /^[\s}\]]*$/.test(body.slice(at)) ? [body.slice(0, at)] : [];
-    if (char !== closes)
-      return [
-        `${body.slice(0, at)}${closes}${body.slice(at + 1)}`,
-        `${body.slice(0, at)}${body.slice(at + 1)}`,
-      ];
+    if (char === closes) continue;
+    const edits = closers.flatMap((one) => [
+      `${body.slice(0, one)}${body.charAt(one) === "}" ? "]" : "}"}${body.slice(one + 1)}`,
+      `${body.slice(0, one)}${body.slice(one + 1)}`,
+    ]);
+    const onlyClosersLeft = closes === undefined && /^[\s}\]]*$/.test(body.slice(at));
+    return onlyClosersLeft ? [...edits, body.slice(0, at)] : edits;
   }
-  // a body that ends inside a string gets its closers inside that string, and does not parse
-  return owed.length === 0 ? [] : [`${body}${owed.reverse().join("")}`];
+  const read = readValue(body, 0);
+  return read.stop === "end" && read.closable ? [`${body}${read.owed}`] : [];
 }
 
-/** A candidate's outcome, or null when it does not parse or does not match the answer's fields. */
-function outcomeOf(candidate: string): Outcome | null {
-  try {
-    const raw: unknown = JSON.parse(candidate);
-    const parsed = outcome.safeParse(raw);
-    return parsed.success ? parsed.data : null;
-  } catch {
-    return null;
-  }
+/**
+ * P-4691 round 5: the start a repair reads from, of those `readOutcome` tries, the first that reads as JSON up to a
+ * bracket: to the text's end, closed with a ",", or a closer next, or broken at a closer or after one (a closer written
+ * wrong shows there or later). A `{{property_address}}` in the prose before it, broken at once, is passed over (round 4
+ * repaired from the first "{" in the text).
+ */
+function repairStart(text: string): number | undefined {
+  return objectStarts(text).find((start) => {
+    const read = readValue(text, start);
+    if (read.stop === "end") return true;
+    if (read.stop === "closed") return /^\s*[,}\]]/.test(text.slice(read.at));
+    for (const [at, char] of bracketsFrom(text, start)) {
+      if (at > read.at) return false;
+      if (char === "}" || char === "]") return true;
+    }
+    return false;
+  });
+}
+
+/**
+ * Each reading of a broken answer: of every repair that parses as JSON, its outcome read strictly, or null when the
+ * strict fields refuse it (a reading that parses but means something else is a disagreement, never skipped).
+ */
+function readings(text: string): (Outcome | null)[] {
+  const unfenced = text.replace(/\s*(```\s*)?$/, "");
+  const start = repairStart(unfenced);
+  if (start === undefined) return [];
+  return Array.from(new Set(repairsFrom(unfenced.slice(start)))).flatMap((candidate) => {
+    let raw: unknown;
+    try {
+      raw = JSON.parse(candidate);
+    } catch {
+      return [];
+    }
+    const strict = strictOutcome.safeParse(raw);
+    return [strict.success ? strict.data : null];
+  });
 }
 
 /**
  * P-4691 (W9 item 3, 2026-10-27: the Editor's fenced object had one bracket too many, its raw text was posted as the
  * line and the proposal it described was never filed): a run's answer, read; one that is not a valid outcome is taken
- * only through `repairs`, and only when every repair that parses and matches the fields gives the same outcome (of the
- * four kinds at most one ever parses, a closer changed and one taken out owing different counts after it). Else,
- * or when `repair` is false (a held read or an explanation, fail closed, W8 0d), it is the plain `UNREADABLE_LINE` and
- * nothing that acts, never the raw text.
+ * only through `readings`, and only when every repair that parses gives the same outcome under the strict fields. Else,
+ * or when `repair` is false (a held read or an explanation, fail closed, W8 0d; a run cut off at its output limit), it is
+ * the plain `UNREADABLE_LINE` and nothing that acts, never the raw text.
  */
 export function readRunAnswer(
   text: string,
@@ -204,9 +349,10 @@ export function readRunAnswer(
 ): { outcome: Outcome; ending: "read" | "repaired" | "unreadable" } {
   const first = readOutcome(text);
   if ("outcome" in first) return { outcome: first.outcome, ending: "read" };
-  const read = (repair ? repairs(text) : []).flatMap((candidate) => outcomeOf(candidate) ?? []);
+  const read = repair ? readings(text) : [];
   const [one] = read;
-  if (one !== undefined && read.every((other) => isDeepStrictEqual(other, one)))
-    return { outcome: one, ending: "repaired" };
+  // round 5: the agreement check is live, several closers are tried and two readings may differ
+  const agreed = read.every((other) => isDeepStrictEqual(other, one));
+  if (one !== undefined && one !== null && agreed) return { outcome: one, ending: "repaired" };
   return { outcome: { ...readJsonAnswer(""), reply: UNREADABLE_LINE }, ending: "unreadable" };
 }

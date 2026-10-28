@@ -535,6 +535,20 @@ describe("the live supervisor's merge bookkeeping", () => {
     expect(written(rpc)).toEqual([464]);
   });
 
+  // P-4691 round 5: a quoted template in the prose no longer hides the closing object from `readJsonAnswer`
+  it("learns of a merge from the closing JSON when the prose before it quotes a template", async () => {
+    const { db, rpc } = liveDb();
+    const live = new Supervisor(db, { gh: github(), kept: () => null, queue: queue() });
+    await live.onResult({
+      kind: "result",
+      text: 'Proposed subject: "We have received {{property_address}}."\n{"reply": "Merged 464.", "merged": [464]}',
+      session: null,
+      isError: false,
+    });
+    await live.settleMerges(Date.now());
+    expect(written(rpc)).toEqual([464]);
+  });
+
   it("asks again a minute later for a merge the gate has not finished, and writes it once", async () => {
     const { db, rpc } = liveDb();
     let state = "OPEN";

@@ -328,7 +328,7 @@ export async function colleagueLaunch(
 async function askClaude(
   launch: ColleagueLaunch,
   prompt: (toolkit: string) => string,
-): Promise<{ text: string; session?: string; usage?: CliUsage }> {
+): Promise<{ text: string; session?: string; usage?: CliUsage; cut?: boolean }> {
   try {
     return await runClaude({
       args: launch.args,
@@ -1060,8 +1060,9 @@ export async function runOnce(client: Db): Promise<boolean> {
     // P-4691: an answer that is not a valid outcome is taken only through `readRunAnswer`'s fixed repairs of its closing
     // brackets (round 4, Matter: no model rewrites an answer), and else said plainly, never posted raw. Matter's read of
     // a held line and its owner's explanation are never repaired (W8 0d fail-closed): unreadable, they are the plain line.
+    // Nor is a run cut off at its output limit (round 5): a cut answer is not one that forgot its brackets.
     const failClosed = shape.rule === "held" || shape.rule === "explain";
-    const read = readRunAnswer(answer.text, !failClosed);
+    const read = readRunAnswer(answer.text, !failClosed && answer.cut !== true);
     if (read.ending !== "read")
       console.log(`${new Date().toISOString()} ${agent.slug}'s answer was ${read.ending}`);
     const plan = decided.plan(read.outcome, power, run.cause);
