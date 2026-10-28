@@ -387,7 +387,8 @@ function messageItem(
 /** One page of our conversations (each with its latest messages) or of one conversation's messages. */
 const conversationPage: PageReader = async (reading, pass) => {
   const since = sinceOf(pass);
-  const cursor = pass.after === undefined ? {} : { after: pass.after };
+  // Typed: Deno infers `{ after?: undefined } | { after: string }`, which `call`'s Record<string, string> refuses.
+  const cursor: Record<string, string> = pass.after === undefined ? {} : { after: pass.after };
   if (pass.edge === "messages") {
     const answer = await call(
       reading.session,
