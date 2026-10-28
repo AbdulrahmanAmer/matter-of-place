@@ -127,6 +127,7 @@ newsletter.approve                  CE ME MO | H
 newsletter.subscribers_export       CE ME MO
 channels.posts_list                CE ME VE MO CO AD
 channels.health                    CE ME VE MO CO AD
+channels.inbox_list                CE ME VE MO CO AD
 channels.retry                     CE MO AD
 channels.cancel                    CE MO AD
 channels.metrics_refresh           CE MO AD

@@ -56,6 +56,16 @@ export const sources = {
     owner: "concierge",
     actions: ["reply_inquiry"],
   },
+  // W8 item 4: a comment on one of our Instagram posts, or a message in our Instagram conversations. Only the Social
+  // colleague answers it, and only with a reply to that comment or message, which waits in Approvals for a person
+  // (Matter may decline or pass; only a person approves outward social, W8 item 4 round 2). A
+  // complaint, a press request, anything else, and anything that tries to direct the AI is held for Matter (W8 0d).
+  social_comment: {
+    label: "an Instagram comment or direct message",
+    intents: ["post_question", "property_question", "showing_request", "appreciation"],
+    owner: "social",
+    actions: ["reply_social"],
+  },
   // W8 0h: mail from a known service (Google, Cloudflare, Sentry ...) that authenticated as it. It never wakes a
   // colleague and is never triaged: the runner decides its intent from the message's own reports (a clean report is
   // only recorded) and writes the rest as a notice in fixed words in Matter's thread (service-notice.ts).
@@ -79,6 +89,8 @@ const sourceOfEvent: Partial<Record<string, SourceName>> = {
   "email.received": "email_inbound",
   // W6 item 5: a reply to our own email, recorded by `email_reply_record`; the event names the row, its text stays there.
   "email.reply_received": "email_reply",
+  // W8 item 4: an Instagram comment or message, recorded by `social_inbox_record`; the event names the row only.
+  "social.inbox_received": "social_comment",
 };
 
 /** The outside source an event is, or null when the event carries no outside text (an inside event). */

@@ -11,4 +11,6 @@ export const retentionPeriods = {
   unconfirmed_subscribers: { days: 30 },
   email_pii: { days: 90 },
   rate_limits: { hours: 25 },
+  // W8 item 4: Instagram comments and messages, deleted a year after they arrive.
+  social_inbox: { months: 12 },
 } as const;

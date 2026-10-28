@@ -21,6 +21,7 @@ declare
   v_lesson text;
   v_target uuid;
   v_version integer;
+  v_limit integer;
 begin
   -- W1 invariant 3: a person's decision on one proposal; an approval holds only for the exact content the person saw.
   if p_decision not in ('approved', 'rejected') then
@@ -40,6 +41,29 @@ begin
   if p_decision = 'approved' and p_content_hash is distinct from v_row.content_hash then
     raise exception 'version_conflict';
   end if;
+  -- W8 item 4 round 2: a reply to an Instagram comment or message is outward social, so a person approves it, as a post
+  -- (approve_proposed_post), for the 60 days of human approval. Matter or the system may still decline one.
+  -- Round 3: the person is one on record (a human role row, not disabled), not only an id said to be human.
+  if p_decision = 'approved' and v_row.action = 'reply_social'
+    and (p_actor is null or p_actor_kind is distinct from 'human' or not exists (
+      select 1 from public.user_roles r
+      where r.user_id = p_actor and r.actor_kind = 'human' and r.disabled_at is null
+    ))
+  then
+    raise exception 'manual_approval' using errcode = '42501', detail = 'A person approves a reply on Instagram.';
+  end if;
+  -- Round 3: a person's edit of a reply is held to Instagram's limit for its kind, as the proposal was
+  -- (social_inbox_propose): 2,200 characters under a comment, 1,000 in a message.
+  if p_decision = 'approved' and v_row.action = 'reply_social' and v_edited is not null then
+    -- A `case` is computed outside the `if` condition (G-903).
+    select case when s.kind = 'message' then 1000 else 2200 end into v_limit
+    from public.social_inbox s where s.approval_id = p_id;
+    if char_length(v_edited) > coalesce(v_limit, 1000) then
+      raise exception 'validation' using detail = format(
+        'The reply is longer than Instagram takes (%s characters).', coalesce(v_limit, 1000)
+      );
+    end if;
+  end if;
   update public.agent_approvals
   set state = p_decision,
       decided_by = case when p_actor_kind = 'human' then p_actor end,
@@ -56,6 +80,7 @@ begin
   v_trigger := 'When you draft ' || case v_row.action
     when 'reply_inquiry' then 'a reply to an inquiry'
     when 'social_post' then 'a social post'
+    when 'reply_social' then 'a reply on Instagram'
     when 'newsletter_issue' then 'a Place Notes issue'
     else 'a proposal (' || v_row.action || ')'
   end;
@@ -114,6 +139,21 @@ begin
         where t <> 'hire'
       )
     );
+  end if;
+
+  -- W8 item 4: an approved reply to an Instagram comment or message is sent once by the `send_social_reply` job (keyed
+  -- by the approval, only after a person approved it, above); a declined one leaves the comment unanswered, as ignored.
+  if v_row.action = 'reply_social' then
+    if p_decision = 'approved' then
+      perform public.enqueue_job(
+        'send_social_reply',
+        jsonb_build_object('params', '{}'::jsonb, 'data', jsonb_build_object('approval_id', p_id)),
+        'send_social_reply:' || p_id::text
+      );
+    else
+      update public.social_inbox set state = 'ignored', updated_at = now()
+      where approval_id = p_id and state = 'proposed';
+    end if;
   end if;
 
   insert into public.agent_messages (thread, author_kind, author_id, author_name, body)

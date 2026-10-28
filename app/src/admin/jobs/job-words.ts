@@ -35,6 +35,8 @@ export const jobNames: Readonly<Record<string, string>> = {
   market_open_notice: "Tell a market's waiting list",
   copy_submission_media: "Copy a request's photographs",
   takedown_media: "Take down published files",
+  read_social_inbox: "Read Instagram comments and messages",
+  send_social_reply: "Send an approved Instagram reply",
 };
 
 export function jobName(type: string): string {

@@ -150,6 +150,7 @@ import { Route as ApiAdminAutomationRevisionsRouteImport } from './routes/api/ad
 import { Route as ApiAdminAutomationScheduleSettingsRouteImport } from './routes/api/admin/automation.schedule-settings'
 import { Route as ApiAdminAutomationTemplatesRouteImport } from './routes/api/admin/automation.templates'
 import { Route as ApiAdminChannelsHealthRouteImport } from './routes/api/admin/channels.health'
+import { Route as ApiAdminChannelsInboxRouteImport } from './routes/api/admin/channels.inbox'
 import { Route as ApiAdminChannelsPostsRouteImport } from './routes/api/admin/channels.posts'
 import { Route as ApiAdminEmailsIndexRouteImport } from './routes/api/admin/emails.index'
 import { Route as ApiAdminInquiriesIndexRouteImport } from './routes/api/admin/inquiries.index'
@@ -1052,6 +1053,11 @@ const ApiAdminAutomationTemplatesRoute =
 const ApiAdminChannelsHealthRoute = ApiAdminChannelsHealthRouteImport.update({
   id: '/api/admin/channels/health',
   path: '/api/admin/channels/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminChannelsInboxRoute = ApiAdminChannelsInboxRouteImport.update({
+  id: '/api/admin/channels/inbox',
+  path: '/api/admin/channels/inbox',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAdminChannelsPostsRoute = ApiAdminChannelsPostsRouteImport.update({
@@ -2039,6 +2045,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/automation/schedule-settings': typeof ApiAdminAutomationScheduleSettingsRouteWithChildren
   '/api/admin/automation/templates': typeof ApiAdminAutomationTemplatesRouteWithChildren
   '/api/admin/channels/health': typeof ApiAdminChannelsHealthRoute
+  '/api/admin/channels/inbox': typeof ApiAdminChannelsInboxRoute
   '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRouteWithChildren
   '/api/admin/inquiries/$id': typeof ApiAdminInquiriesIdRouteWithChildren
   '/api/admin/inquiries/assignees': typeof ApiAdminInquiriesAssigneesRoute
@@ -2327,6 +2334,7 @@ export interface FileRoutesByTo {
   '/api/admin/automation/schedule-settings': typeof ApiAdminAutomationScheduleSettingsRouteWithChildren
   '/api/admin/automation/templates': typeof ApiAdminAutomationTemplatesRouteWithChildren
   '/api/admin/channels/health': typeof ApiAdminChannelsHealthRoute
+  '/api/admin/channels/inbox': typeof ApiAdminChannelsInboxRoute
   '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRouteWithChildren
   '/api/admin/inquiries/$id': typeof ApiAdminInquiriesIdRouteWithChildren
   '/api/admin/inquiries/assignees': typeof ApiAdminInquiriesAssigneesRoute
@@ -2621,6 +2629,7 @@ export interface FileRoutesById {
   '/api/admin/automation/schedule-settings': typeof ApiAdminAutomationScheduleSettingsRouteWithChildren
   '/api/admin/automation/templates': typeof ApiAdminAutomationTemplatesRouteWithChildren
   '/api/admin/channels/health': typeof ApiAdminChannelsHealthRoute
+  '/api/admin/channels/inbox': typeof ApiAdminChannelsInboxRoute
   '/api/admin/channels/posts': typeof ApiAdminChannelsPostsRouteWithChildren
   '/api/admin/inquiries/$id': typeof ApiAdminInquiriesIdRouteWithChildren
   '/api/admin/inquiries/assignees': typeof ApiAdminInquiriesAssigneesRoute
@@ -2915,6 +2924,7 @@ export interface FileRouteTypes {
     | '/api/admin/automation/schedule-settings'
     | '/api/admin/automation/templates'
     | '/api/admin/channels/health'
+    | '/api/admin/channels/inbox'
     | '/api/admin/channels/posts'
     | '/api/admin/inquiries/$id'
     | '/api/admin/inquiries/assignees'
@@ -3203,6 +3213,7 @@ export interface FileRouteTypes {
     | '/api/admin/automation/schedule-settings'
     | '/api/admin/automation/templates'
     | '/api/admin/channels/health'
+    | '/api/admin/channels/inbox'
     | '/api/admin/channels/posts'
     | '/api/admin/inquiries/$id'
     | '/api/admin/inquiries/assignees'
@@ -3496,6 +3507,7 @@ export interface FileRouteTypes {
     | '/api/admin/automation/schedule-settings'
     | '/api/admin/automation/templates'
     | '/api/admin/channels/health'
+    | '/api/admin/channels/inbox'
     | '/api/admin/channels/posts'
     | '/api/admin/inquiries/$id'
     | '/api/admin/inquiries/assignees'
@@ -3704,6 +3716,7 @@ export interface RootRouteChildren {
   ApiAdminAutomationScheduleSettingsRoute: typeof ApiAdminAutomationScheduleSettingsRouteWithChildren
   ApiAdminAutomationTemplatesRoute: typeof ApiAdminAutomationTemplatesRouteWithChildren
   ApiAdminChannelsHealthRoute: typeof ApiAdminChannelsHealthRoute
+  ApiAdminChannelsInboxRoute: typeof ApiAdminChannelsInboxRoute
   ApiAdminChannelsPostsRoute: typeof ApiAdminChannelsPostsRouteWithChildren
   ApiAdminInquiriesIdRoute: typeof ApiAdminInquiriesIdRouteWithChildren
   ApiAdminInquiriesAssigneesRoute: typeof ApiAdminInquiriesAssigneesRoute
@@ -4757,6 +4770,13 @@ declare module '@tanstack/react-router' {
       path: '/api/admin/channels/health'
       fullPath: '/api/admin/channels/health'
       preLoaderRoute: typeof ApiAdminChannelsHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/channels/inbox': {
+      id: '/api/admin/channels/inbox'
+      path: '/api/admin/channels/inbox'
+      fullPath: '/api/admin/channels/inbox'
+      preLoaderRoute: typeof ApiAdminChannelsInboxRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/channels/posts': {
@@ -6709,6 +6729,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminAutomationTemplatesRoute:
     ApiAdminAutomationTemplatesRouteWithChildren,
   ApiAdminChannelsHealthRoute: ApiAdminChannelsHealthRoute,
+  ApiAdminChannelsInboxRoute: ApiAdminChannelsInboxRoute,
   ApiAdminChannelsPostsRoute: ApiAdminChannelsPostsRouteWithChildren,
   ApiAdminInquiriesIdRoute: ApiAdminInquiriesIdRouteWithChildren,
   ApiAdminInquiriesAssigneesRoute: ApiAdminInquiriesAssigneesRoute,

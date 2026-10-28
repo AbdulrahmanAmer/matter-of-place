@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   channelHealthListSchema,
   channelIdsAnswerSchema,
+  inboxListSchema,
   socialPostListSchema,
   type ChannelIdsKey,
 } from "../../domain/channels";
@@ -19,6 +20,15 @@ export function fetchPosts(query: Readonly<Record<string, string>>) {
   return adminFetch(
     `/api/admin/channels/posts${search === "" ? "" : `?${search}`}`,
     socialPostListSchema,
+  );
+}
+
+/** W8 item 4: the Instagram comments and messages, or one post's (`post_id`), newest first. */
+export function fetchInbox(query: Readonly<Record<string, string>>) {
+  const search = new URLSearchParams(query).toString();
+  return adminFetch(
+    `/api/admin/channels/inbox${search === "" ? "" : `?${search}`}`,
+    inboxListSchema,
   );
 }
 

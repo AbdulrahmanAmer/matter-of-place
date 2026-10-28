@@ -96,6 +96,10 @@ export const rlsMatrix: Record<string, Access> = {
   newsletter_issues: staffRead,
   // B10 step 6: written only through the social.sql functions under the service role.
   social_posts: staffRead,
+  // W8 item 4: staff read the comments and messages beside the post; only the service role writes, and the read's
+  // cursors are the job's alone.
+  social_inbox: staffRead,
+  social_inbox_cursors: {},
   // W8 item 10: the same rule, written only through the proposed post functions.
   proposed_posts: staffRead,
   proposed_post_channels: staffRead,

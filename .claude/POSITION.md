@@ -2516,3 +2516,33 @@ registry replay, type and full suites (CI). W8 item 10 stays [ ]. Bank grew: P-3
   exit 0, nothing to end. Matter's goal run 0951ea21 closed by hand. Matter's own studio lock merged in PR 509.
   UNPROVEN: the sweep ending a real stack; a stall report reaching Matter's live session. Bank P-4660, P-4661, P-4662
   (raw insert into agent_messages reaches no one), P-4643 cause corrected.
+- 2026-10-28 00:15 +0300, W8 item 4 round 2 (branch overdrive/w8-4-comments, worktree E:/mop-build/od-w8-4, merged
+  origin/main first, no G/P heading lost): the fresh Opus review's findings fixed. A reply on Instagram needs a person
+  (`workforce_decide` raises `manual_approval` for an agent or the system; begin refuses an approval with no person);
+  the send refuses while Instagram is off in Channels; paging stops at the cursor, a cap holds it
+  (`social_inbox_truncated`), rate limits skip a tick; the 24-hour message window rides in the proposal and begin
+  refuses past it; privacy notice and delete-by-handle; wake caps 10 a read and 50 a day; the lows. Fns migration
+  20261027205444, registry W8-4.json 64 entries (32 new), every new test watched red on round 1's code; SQL dry-run on
+  a native PG 18 stub cluster. No PR (Matter merges). UNPROVEN until CI: typecheck, lint, db cases, replay. Bank P-4692,
+  hit again P-008 and P-015.
+- 2026-10-28 01:20 +0300, W8 item 4 round 3 (branch overdrive/w8-4-comments, worktree E:/mop-build/od-w8-4, origin/main
+  had nothing new): the fresh review's two mediums and the lows fixed. Every Instagram list is read to its end whatever
+  Graph's order (nested replies and messages paged), a capped list keeps Graph's `after` cursor in
+  `social_inbox_cursors.pending` and resumes next tick, the time cursor never passes an open list's start; the privacy
+  paragraphs name Instagram and an access request exports a handle's rows; record takes an advisory lock, only a human
+  role row approves (decide and begin), an edit over the limit is refused, the switch is read before begin, every
+  `retry_at` skips a tick, a deleted handle's held lines go. Migrations 20261027215437 (column) and 20261027221335 (fns);
+  registry W8-4.json 79 entries (19 new), 20 sql entries in five registries rebuilt on current texts; new unit, screen
+  and privacy tests red on round 2's code; SQL probes on a native PG 18 stub cluster, red on round 2's texts. No PR
+  (Matter merges). UNPROVEN until CI: typecheck, lint, db cases, replay. Bank P-4693, hit again P-2216.
+- 2026-10-28 02:15 +0300, W8 item 4 round 4 (branch overdrive/w8-4-comments, worktree E:/mop-build/od-w8-4, merged
+  origin/main 97304ea3 first: main's P-4681 kept, the branch's renumbered P-4691..P-4693, every main line present):
+  the fresh review's high and medium fixed. One list's Graph error no longer ends the read (`readList`): a refused
+  cursor restarts its list from page one once, a gone node is dropped (`social_inbox_list_gone`), a still-refused list
+  holds the time cursor (`social_inbox_list_failed`), a rate limit keeps the pages read and stores every list left;
+  comments and messages read apart. Export and delete by handle only with a proving message holding the request's
+  8-character reference (`subject_handle_proof`, else `handle_unverified`), its id on the request and in the audit row;
+  the hint names the reference; privacy lows. Migrations 20261027225100 (column) and 20261027225253 (fns); round 1's
+  three migrations renamed after main's 20261027202710. Registry W8-4.json 94 entries (16 new, 1 dropped), 9 sql
+  entries rebuilt. New tests red on round 3's code; SQL on the stub cluster. No PR (Matter merges). UNPROVEN until CI:
+  typecheck, lint, db cases, replay. Bank P-4694; hit again P-318, P-2216, P-4648.

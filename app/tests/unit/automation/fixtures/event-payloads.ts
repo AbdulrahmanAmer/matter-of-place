@@ -104,4 +104,5 @@ export const eventPayloadExamples: Record<EventType, JsonObject> = {
     entity: "inquiry",
     entity_id: "7d1e4c2a-5b6f-4e8a-9c0d-1a2b3c4d5e6f",
   },
+  "social.inbox_received": { inbox_id: "5e8f2a10-3c4d-4b6a-9e7f-0a1b2c3d4e5f", kind: "comment" },
 };

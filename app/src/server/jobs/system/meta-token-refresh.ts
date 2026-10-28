@@ -9,13 +9,18 @@ import type { StepContext, SystemJobDefinition } from "../types.ts";
 // function secret), records what debug_token says, alerts an admin when the token is dead or about to expire, and
 // renews a token that has a refresh route. A Graph network error or 5xx throws, so the job retries.
 
-/** The permissions publishing and insights need (INT-06); one missing one records `scopes_missing`. */
+/**
+ * The permissions publishing and insights need (INT-06), and reading and answering comments and messages (W8 item 4);
+ * one missing one records `scopes_missing`.
+ */
 export const META_REQUIRED_SCOPES = [
   "instagram_basic",
   "instagram_content_publish",
   "instagram_manage_insights",
   "pages_show_list",
   "pages_read_engagement",
+  "instagram_manage_comments",
+  "instagram_manage_messages",
 ] as const;
 
 const DAY_MS = 24 * 60 * 60 * 1000;

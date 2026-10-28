@@ -72,6 +72,44 @@ export const socialPostListSchema = z.object({
   total: z.number().int().min(0),
 });
 
+/** W8 item 4: the states of an Instagram comment or message, from read to answered. */
+const inboxStates = ["new", "proposed", "answered", "ignored"] as const;
+
+export const inboxStateLabels: Record<(typeof inboxStates)[number], string> = {
+  new: "New",
+  proposed: "Reply proposed",
+  answered: "Answered",
+  ignored: "Not answered",
+};
+
+/** The query of `GET /api/admin/channels/inbox`: one post's comments, or everything newest first. */
+export const inboxFilters = z.object({
+  post_id: z.string().uuid().optional(),
+  state: z.enum(inboxStates).optional(),
+});
+
+export type InboxFilters = z.output<typeof inboxFilters>;
+
+/** Rows of `GET /api/admin/channels/inbox`, newest first. */
+export const inboxPageSize = 100;
+
+export const inboxItemSchema = z.object({
+  id: z.string().uuid(),
+  kind: z.enum(["comment", "message"]),
+  social_post_id: z.string().uuid().nullable(),
+  author_handle: z.string(),
+  body: z.string(),
+  received_at: z.string(),
+  state: z.enum(inboxStates),
+  reply_state: z.enum(["sending", "sent", "refused", "failed", "unknown"]).nullable(),
+  reply_error: z.string().nullable(),
+  replied_at: z.string().nullable(),
+});
+
+export type InboxItem = z.infer<typeof inboxItemSchema>;
+
+export const inboxListSchema = z.object({ items: z.array(inboxItemSchema) });
+
 /** The three channels that post at launch (S48); Facebook and YouTube are disabled blocks until further notice. */
 export const liveChannels = [
   "instagram",

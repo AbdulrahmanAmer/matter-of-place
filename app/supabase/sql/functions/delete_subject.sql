@@ -2,7 +2,8 @@ create or replace function public.delete_subject(
   p_subject_request_id uuid,
   p_actor uuid,
   p_actor_kind public.actor_kind,
-  p_request_id text
+  p_request_id text,
+  p_instagram_handle text default null
 )
 returns jsonb
 language plpgsql
@@ -17,7 +18,11 @@ declare
   v_subscribers int;
   v_submissions int;
   v_inbound int;
+  v_handle text := lower(nullif(btrim(ltrim(btrim(coalesce(p_instagram_handle, '')), '@')), ''));
+  v_social int := 0;
+  v_social_ids uuid[] := '{}';
   v_counts jsonb;
+  v_proof uuid;
 begin
   -- Invariant 15 (GP-01): a deletion request, once identity is confirmed, anonymises every row the address appears
   -- in. Nothing is hard deleted (GD-04): the rows stay for the counts and lose what names the person.
@@ -35,6 +40,11 @@ begin
     raise exception 'not_verified';
   end if;
   v_email := lower(v_row.email);
+  -- W8 item 4 round 4: a typed handle deletes nothing until a message from it proves it is the person's
+  -- (subject_handle_proof); that message's id is kept on the request and in the audit row.
+  if v_handle is not null then
+    v_proof := public.subject_handle_proof(v_row.id, v_row.received_at, v_handle);
+  end if;
   select coalesce(array_agg(c.id), '{}') into v_contacts from public.contacts c where lower(c.email) = v_email;
   select coalesce(array_agg(i.id), '{}') into v_inquiries from public.inquiries i where lower(i.email) = v_email;
 
@@ -87,28 +97,45 @@ begin
     attachments = '{}'
   where lower(m.from_email) = v_email;
   get diagnostics v_inbound = row_count;
+  -- W8 item 4 round 2: the Instagram handle the person names (staff enter it on the request) deletes that handle's
+  -- comments and messages; deleted, not anonymised, as retention does, since a body quotes the person.
+  if v_handle is not null then
+    with gone as (
+      delete from public.social_inbox s where lower(s.author_handle) = v_handle returning s.id
+    )
+    select coalesce(array_agg(gone.id), '{}') into v_social_ids from gone;
+    v_social := cardinality(v_social_ids);
+    -- Round 3: a held line (W8 0d, the runner's `heldLine`) quotes the part of a comment that tried to instruct and
+    -- the triage's words about its author; one tied to a deleted row, by the record it ends with, goes with it.
+    delete from public.agent_messages m
+    where m.author_id = 'triage' and m.author_kind = 'system'
+      and substring(m.body from E'\nRecord: social_comment ([0-9a-f-]{36})\\.$') = any (v_social_ids::text[]);
+  end if;
 
   update public.subject_requests r
-  set status = 'fulfilled', fulfilled_at = now(), handled_by = p_actor
+  set status = 'fulfilled', fulfilled_at = now(), handled_by = p_actor, handle_proof_id = v_proof
   where r.id = p_subject_request_id;
   v_counts := jsonb_build_object(
     'subscribers', v_subscribers,
     'inquiries', cardinality(v_inquiries),
     'contacts', cardinality(v_contacts),
     'submissions', v_submissions,
-    'inbound_mail', v_inbound
+    'inbound_mail', v_inbound,
+    'social_inbox', v_social
   );
   -- Ids and counts only (invariant 18): the audit trail keeps no copy of the address.
   perform public.write_audit(
     p_actor, p_actor_kind, 'audit.subject_delete', 'subject_request', p_subject_request_id,
     jsonb_build_object('id', v_row.id, 'status', v_row.status),
-    jsonb_build_object('id', v_row.id, 'status', 'fulfilled', 'counts', v_counts),
+    jsonb_build_object(
+      'id', v_row.id, 'status', 'fulfilled', 'counts', v_counts, 'handle_proof_id', v_proof
+    ),
     p_request_id
   );
   return jsonb_build_object('id', v_row.id, 'status', 'fulfilled', 'counts', v_counts);
 end;
 $$;
 
-revoke execute on function public.delete_subject(uuid, uuid, public.actor_kind, text)
+revoke execute on function public.delete_subject(uuid, uuid, public.actor_kind, text, text)
   from public, anon, authenticated;
-grant execute on function public.delete_subject(uuid, uuid, public.actor_kind, text) to service_role;
+grant execute on function public.delete_subject(uuid, uuid, public.actor_kind, text, text) to service_role;

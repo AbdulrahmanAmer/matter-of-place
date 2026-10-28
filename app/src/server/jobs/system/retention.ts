@@ -42,6 +42,8 @@ const ROW_KEYS_AFTER_EMAIL = [
   // was never named here, so no reply was ever removed.
   "email_replies",
   "inbound_mail",
+  // W8 item 4: Instagram comments and messages, after a year.
+  "social_inbox",
 ];
 
 function unavailable(fn: string): AppError {

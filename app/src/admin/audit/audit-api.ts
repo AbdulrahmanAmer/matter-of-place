@@ -39,12 +39,16 @@ export function postSubjectStatus(input: {
   return adminFetch(`${REQUESTS}/${id}/status`, subjectStatusAnswer, post(body));
 }
 
-export function postSubjectExport(id: string) {
-  return adminFetch(`${REQUESTS}/${id}/export`, subjectExportSchema, post());
+/** W8 item 4 round 3: the Instagram handle, when the person named one, adds its comments and messages to the bundle. */
+export function postSubjectExport(input: { id: string; instagram_handle?: string | undefined }) {
+  const { id, ...body } = input;
+  return adminFetch(`${REQUESTS}/${id}/export`, subjectExportSchema, post(body));
 }
 
-export function postSubjectDelete(id: string) {
-  return adminFetch(`${REQUESTS}/${id}/delete`, subjectFulfilledSchema, post());
+/** W8 item 4 round 2: the Instagram handle, when the person named one, is deleted with the request. */
+export function postSubjectDelete(input: { id: string; instagram_handle?: string | undefined }) {
+  const { id, ...body } = input;
+  return adminFetch(`${REQUESTS}/${id}/delete`, subjectFulfilledSchema, post(body));
 }
 
 export function postSubjectOptOut(id: string) {

@@ -137,6 +137,14 @@ const builders: Record<EventType, Builder> = {
     );
     return { reply_id: row.id, entity: row.entity, entity_id: row.entity_id };
   },
+  // W8 item 4: a dry run of an Instagram comment or message names its row and kind only.
+  "social.inbox_received": async (db, id) => {
+    const row = await firstRow(
+      db.from("social_inbox").select("id, kind").eq("id", id).limit(1),
+      "comment or message",
+    );
+    return { inbox_id: row.id, kind: row.kind };
+  },
   "submission.declined": async (db, id) => {
     const row = await submissionRow(db, id);
     return {
@@ -320,6 +328,7 @@ const placeholders: Partial<Record<EventType, JsonObject>> = {
   },
   "email.received": { inbound_id: SAMPLE_ID, alias: "hello" },
   "email.reply_received": { reply_id: SAMPLE_ID, entity: "inquiry", entity_id: SAMPLE_ID },
+  "social.inbox_received": { inbox_id: SAMPLE_ID, kind: "comment" },
 };
 
 /** Builds the payload of `trigger` from the row `entityId` names; a system event needs no row. */

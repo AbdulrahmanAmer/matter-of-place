@@ -106,8 +106,8 @@ describe("step catalog", () => {
     expect(stepSpecs.render_carousel.paramsSchema.safeParse({ max_slides: 9 }).success).toBe(false);
   });
 
-  it("keeps the 21 event types in step with the database check list", () => {
-    expect(eventTypes).toHaveLength(21);
+  it("keeps the 22 event types in step with the database check list", () => {
+    expect(eventTypes).toHaveLength(22);
     expect([...eventTypes].sort()).toEqual([...catalogEventTypes].sort());
     expect(Object.keys(eventPayloadSchemas).sort()).toEqual([...eventTypes].sort());
   });

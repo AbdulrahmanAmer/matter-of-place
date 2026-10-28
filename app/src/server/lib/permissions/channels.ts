@@ -8,6 +8,8 @@ const operators = ["media_ops", "chief_editor", "admin"] as const;
 export const channels = [
   { action: "channels.posts_list", group: "channels", roles: appRoles },
   { action: "channels.health", group: "channels", roles: appRoles },
+  // W8 item 4: the Instagram comments and messages beside the posts, read by every staff role.
+  { action: "channels.inbox_list", group: "channels", roles: appRoles },
   { action: "channels.retry", group: "channels", roles: operators },
   { action: "channels.cancel", group: "channels", roles: operators },
   { action: "channels.metrics_refresh", group: "channels", roles: operators },

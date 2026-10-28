@@ -33,6 +33,7 @@ const ALL_KEYS = [
   "agent_messages",
   "email_replies",
   "inbound_mail",
+  "social_inbox",
 ];
 
 const mediaRow = (n: number) => {
@@ -277,6 +278,7 @@ describe("retention", () => {
       "retention_delete_rows:agent_messages",
       "retention_delete_rows:email_replies",
       "retention_delete_rows:inbound_mail",
+      "retention_delete_rows:social_inbox",
       "retention_log_run",
     ]);
     const logged = rpcCalls(db)

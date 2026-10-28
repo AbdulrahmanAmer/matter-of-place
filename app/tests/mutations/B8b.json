@@ -274,10 +274,10 @@
     "id": "b8b-g2-catalog-event-count",
     "test": "tests/unit/automation/catalog.test.ts",
     "file": "src/domain/events.ts",
-    "find": "  \"email.received\",\n  \"email.reply_received\",\n] as const;",
-    "replace": "  \"email.received\",\n] as const;",
+    "find": "  \"email.received\",\n  \"email.reply_received\",\n  \"social.inbox_received\",\n] as const;",
+    "replace": "  \"email.received\",\n  \"social.inbox_received\",\n] as const;",
     "run": "bunx vitest run --project unit --testTimeout=60000 tests/unit/automation/catalog.test.ts",
-    "expect": "× .*keeps the 21 event types"
+    "expect": "× .*keeps the 22 event types"
   },
   {
     "id": "b8b-g2-catalog-example-parse",

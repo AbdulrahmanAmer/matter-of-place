@@ -255,13 +255,15 @@ describe("meta_token_refresh", () => {
     ]);
   });
 
-  it("names the five permissions publishing and insights need", () => {
+  it("names the seven permissions publishing, insights, comments and messages need", () => {
     expect(META_REQUIRED_SCOPES).toEqual([
       "instagram_basic",
       "instagram_content_publish",
       "instagram_manage_insights",
       "pages_show_list",
       "pages_read_engagement",
+      "instagram_manage_comments",
+      "instagram_manage_messages",
     ]);
   });
 });

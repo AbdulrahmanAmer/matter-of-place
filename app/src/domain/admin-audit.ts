@@ -115,8 +115,25 @@ export const subjectStatusAnswer = z.object({
   handled_by: z.string().nullable(),
 });
 
-/** `POST audit/subject-requests/:id/export`, `delete` and `opt-out`: the request alone. */
+/** `POST audit/subject-requests/:id/opt-out`: the request alone. */
 export const subjectActionInput = z.object({ id: z.string().uuid() }).strict();
+
+/**
+ * `POST audit/subject-requests/:id/delete`: the request, and the Instagram handle the person names, if any, whose
+ * comments and messages are deleted with it (W8 item 4 round 2). A leading @ is allowed; the rest is a handle.
+ * `POST audit/subject-requests/:id/export` takes the same shape: the handle's comments and messages join the bundle
+ * (round 3). One schema, one export (knip refuses an alias as a duplicate export, P-4654).
+ */
+export const subjectDeleteInput = z
+  .object({
+    id: z.string().uuid(),
+    instagram_handle: z
+      .string()
+      .trim()
+      .regex(/^@?[A-Za-z0-9._]{1,30}$/, { message: "Enter an Instagram handle." })
+      .optional(),
+  })
+  .strict();
 
 /** The access bundle: every row the address appears in, as stored (S55). */
 export const subjectExportSchema = z.object({
@@ -128,6 +145,8 @@ export const subjectExportSchema = z.object({
   submissions: z.array(z.unknown()),
   // W8 0h review: the person's emails the mailbox check recorded.
   inbound_mail: z.array(z.unknown()),
+  // W8 item 4 round 3: the comments and messages of the Instagram handle named, empty when none was.
+  social_inbox: z.array(z.unknown()),
 });
 
 /** What `delete_subject` and `opt_out_subject` changed, as counts only. */

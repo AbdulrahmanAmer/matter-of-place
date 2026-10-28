@@ -50,6 +50,7 @@ const BUNDLE = {
   contacts: [],
   submissions: [],
   inbound_mail: [],
+  social_inbox: [],
 };
 
 /** A request received `daysAgo` days before NOW, due 45 days after it, as B3's generated column has it. */
@@ -65,6 +66,7 @@ const requestRow = (id: string, daysAgo: number): RequestRow => {
     due_at: new Date(received + 45 * DAY).toISOString(),
     verified_at: null,
     fulfilled_at: null,
+    handle_proof_id: null,
     handled_by: null,
     ip_hash: null,
     turnstile_ok: true,

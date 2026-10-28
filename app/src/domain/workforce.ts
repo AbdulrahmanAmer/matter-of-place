@@ -58,6 +58,7 @@ export const wakeLabels: Record<(typeof eventTypes)[number], string> = {
   "email.bounced": "An email to a request or inquiry bounces",
   "email.received": "A person emails one of our addresses",
   "email.reply_received": "A person replies to an email we sent",
+  "social.inbox_received": "A person comments or writes to us on Instagram",
 };
 
 const agentModels = ["opus", "sonnet", "haiku"] as const;

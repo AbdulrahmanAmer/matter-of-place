@@ -19,6 +19,16 @@ export const LogEvent = [
   "runner_beat_failed",
   "ops_health_failed",
   "meta_token_refresh_failed",
+  // W8 item 4: the comments and messages read did nothing (Instagram off, its ids unset, or no token).
+  "social_inbox_skipped",
+  // Round 2: a read hit its page cap with newer items unread (the cursor held), or Graph's rate limit (tick skipped).
+  // Round 3: a capped read stores where each list stopped; a stored value not in that shape is read afresh.
+  "social_inbox_truncated",
+  "social_inbox_rate_limited",
+  "social_inbox_pending_unreadable",
+  // Round 4: one list of a read whose node Graph says is gone (dropped), or that Graph refused (the cursor held).
+  "social_inbox_list_gone",
+  "social_inbox_list_failed",
   "fanout_failed",
   "fanout_payload_invalid",
   "fanout_failure_unrecorded",

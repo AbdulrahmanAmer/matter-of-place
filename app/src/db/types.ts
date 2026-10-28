@@ -1239,6 +1239,46 @@ isOneToOne: false
       referencedColumns: ["property_id"]
     }
                   ]
+                },"social_inbox": {
+                  Row: {
+                    "approval_id": string | null,"author_handle": string,"body": string,"channel": string,"created_at": string,"graph_id": string,"id": string,"kind": string,"parent_graph_id": string | null,"received_at": string,"replied_at": string | null,"reply_error": string | null,"reply_graph_id": string | null,"reply_state": string | null,"social_post_id": string | null,"state": string,"thread_graph_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "approval_id"?: string | null,"author_handle"?: string,"body"?: string,"channel": string,"created_at"?: string,"graph_id": string,"id"?: string,"kind": string,"parent_graph_id"?: string | null,"received_at": string,"replied_at"?: string | null,"reply_error"?: string | null,"reply_graph_id"?: string | null,"reply_state"?: string | null,"social_post_id"?: string | null,"state"?: string,"thread_graph_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "approval_id"?: string | null,"author_handle"?: string,"body"?: string,"channel"?: string,"created_at"?: string,"graph_id"?: string,"id"?: string,"kind"?: string,"parent_graph_id"?: string | null,"received_at"?: string,"replied_at"?: string | null,"reply_error"?: string | null,"reply_graph_id"?: string | null,"reply_state"?: string | null,"social_post_id"?: string | null,"state"?: string,"thread_graph_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "social_inbox_approval_id_fkey"
+      columns: ["approval_id"]
+isOneToOne: false
+      referencedRelation: "agent_approvals"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "social_inbox_social_post_id_fkey"
+      columns: ["social_post_id"]
+isOneToOne: false
+      referencedRelation: "social_posts"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"social_inbox_cursors": {
+                  Row: {
+                    "key": string,"pending": NonNullable<Json>,"read_at": string,"read_until": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "key": string,"pending"?: NonNullable<Json>,"read_at"?: string,"read_until": string
+                  }
+                  Update: {
+                    "key"?: string,"pending"?: NonNullable<Json>,"read_at"?: string,"read_until"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"social_posts": {
                   Row: {
                     "asset_id": string,"channel": string,"created_at": string,"error": string | null,"id": string,"metrics": NonNullable<Json>,"permalink": string | null,"posted_at": string | null,"property_id": string | null,"remote_id": string | null,"scheduled_at": string,"status": Database["public"]['Enums']["social_post_status"],"updated_at": string,"withdraw_required_at": string | null,"withdrawn_at": string | null
@@ -1313,14 +1353,14 @@ isOneToOne: false
                   ]
                 },"subject_requests": {
                   Row: {
-                    "created_at": string,"due_at": string | null,"email": string,"fulfilled_at": string | null,"handled_by": string | null,"id": string,"ip_hash": string | null,"kind": string,"note": string | null,"received_at": string,"status": string,"turnstile_ok": boolean,"updated_at": string,"verified_at": string | null
+                    "created_at": string,"due_at": string | null,"email": string,"fulfilled_at": string | null,"handle_proof_id": string | null,"handled_by": string | null,"id": string,"ip_hash": string | null,"kind": string,"note": string | null,"received_at": string,"status": string,"turnstile_ok": boolean,"updated_at": string,"verified_at": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"due_at"?: never,"email": string,"fulfilled_at"?: string | null,"handled_by"?: string | null,"id"?: string,"ip_hash"?: string | null,"kind": string,"note"?: string | null,"received_at"?: string,"status"?: string,"turnstile_ok"?: boolean,"updated_at"?: string,"verified_at"?: string | null
+                    "created_at"?: string,"due_at"?: never,"email": string,"fulfilled_at"?: string | null,"handle_proof_id"?: string | null,"handled_by"?: string | null,"id"?: string,"ip_hash"?: string | null,"kind": string,"note"?: string | null,"received_at"?: string,"status"?: string,"turnstile_ok"?: boolean,"updated_at"?: string,"verified_at"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"due_at"?: never,"email"?: string,"fulfilled_at"?: string | null,"handled_by"?: string | null,"id"?: string,"ip_hash"?: string | null,"kind"?: string,"note"?: string | null,"received_at"?: string,"status"?: string,"turnstile_ok"?: boolean,"updated_at"?: string,"verified_at"?: string | null
+                    "created_at"?: string,"due_at"?: never,"email"?: string,"fulfilled_at"?: string | null,"handle_proof_id"?: string | null,"handled_by"?: string | null,"id"?: string,"ip_hash"?: string | null,"kind"?: string,"note"?: string | null,"received_at"?: string,"status"?: string,"turnstile_ok"?: boolean,"updated_at"?: string,"verified_at"?: string | null
                   }
                   Relationships: [
                     
@@ -1830,7 +1870,7 @@ isOneToOne: false
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_media_id": string,"p_request_id": string }; Returns: string
                            },
 "delete_subject":
-{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_subject_request_id": string }; Returns: Json
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_instagram_handle"?: string,"p_request_id": string,"p_subject_request_id": string }; Returns: Json
                            },
 "drop_old_analytics_partitions":
 { Args: { "keep_months"?: number }; Returns: number
@@ -1874,7 +1914,7 @@ isOneToOne: false
 { Args: { "months_ahead"?: number }; Returns: undefined
                            },
 "export_subject":
-{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_request_id": string,"p_subject_request_id": string }; Returns: Json
+{ Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_instagram_handle"?: string,"p_request_id": string,"p_subject_request_id": string }; Returns: Json
                            },
 "fail_job":
 { Args: { "p_claim": string,"p_dead"?: boolean,"p_error": string,"p_job_id": string,"p_run_url"?: string }; Returns: boolean
@@ -2490,6 +2530,18 @@ isOneToOne: false
 "settings_put_site":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_note": string,"p_request_id": string,"p_value": Json }; Returns: undefined
                            },
+"social_inbox_propose":
+{ Args: { "p_agent_id": string,"p_content": Json,"p_content_hash": string,"p_inbox_id": string,"p_run_id": string,"p_summary": string }; Returns: string
+                           },
+"social_inbox_record":
+{ Args: { "p_cursor_key": string,"p_items": Json,"p_pending"?: Json,"p_read_until"?: string }; Returns: number
+                           },
+"social_inbox_reply_begin":
+{ Args: { "p_approval_id": string }; Returns: Json
+                           },
+"social_inbox_reply_result":
+{ Args: { "p_error"?: string,"p_inbox_id": string,"p_outcome": string,"p_reply_graph_id"?: string }; Returns: undefined
+                           },
 "spend_client_credit":
 { Args: { "p_actor": string,"p_actor_kind": Database["public"]['Enums']["actor_kind"],"p_amount": number,"p_reason": string,"p_request_id": string,"p_submission_id": string }; Returns: {
               "event_id": string,"payment_id": string
@@ -2509,6 +2561,9 @@ isOneToOne: false
                            },
 "studio_piece_put":
 { Args: { "p_asset_id"?: string,"p_folder": string,"p_id": string,"p_note": string,"p_owner": string,"p_preview_key"?: string,"p_state": string,"p_title": string }; Returns: undefined
+                           },
+"subject_handle_proof":
+{ Args: { "p_handle": string,"p_received_at": string,"p_subject_request_id": string }; Returns: string
                            },
 "submission_event_payload":
 { Args: { "p_submission": Omit<Database["public"]['Tables']["submissions"]['Row'], Database["public"]['Tables']["submissions"]['ComputedFields']> }; Returns: Json

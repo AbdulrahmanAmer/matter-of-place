@@ -9,8 +9,10 @@ import { newsletterHygiene } from "./newsletter-hygiene.ts";
 import { newsletterPreview } from "./newsletter-preview.ts";
 import { newsletterSend } from "./newsletter-send.ts";
 import { prune } from "./prune.ts";
+import { readSocialInbox } from "./read-social-inbox.ts";
 import { reconcile } from "./reconcile.ts";
 import { retention } from "./retention.ts";
+import { sendSocialReply } from "./send-social-reply.ts";
 import { takedownMedia } from "./takedown-media.ts";
 
 // System jobs (health, prune, reconcile, retention and the rest): each slice appends one import and one entry. They
@@ -29,6 +31,8 @@ const systemJobs: readonly SystemJobDefinition[] = [
   marketOpenNotice,
   copySubmissionMedia,
   takedownMedia,
+  readSocialInbox,
+  sendSocialReply,
 ];
 
 export function listSystemJobs(): readonly SystemJobDefinition[] {

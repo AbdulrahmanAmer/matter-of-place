@@ -159,6 +159,7 @@ export function subjectRequestRow(overrides: Partial<Tables<"subject_requests">>
     due_at: null,
     email: "reader@fixtures.invalid",
     fulfilled_at: null,
+    handle_proof_id: null,
     handled_by: null,
     id: REQUEST_ID,
     ip_hash: null,

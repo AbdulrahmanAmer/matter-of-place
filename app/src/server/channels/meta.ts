@@ -85,7 +85,8 @@ const postListSchema = z
   })
   .passthrough();
 
-interface Session {
+/** A connected adapter: the Graph base of the stored version, the two account ids, the token and its proof. */
+export interface Session {
   ctx: StepContext;
   base: string;
   igUserId: string;
@@ -102,7 +103,8 @@ async function readMetaSettings(ctx: StepContext): Promise<unknown> {
   return data[0]?.value;
 }
 
-async function connect(ctx: StepContext): Promise<Session> {
+/** The adapter's session, shared with the comments and messages of `meta-inbox.ts` (W8 item 4). */
+export async function connect(ctx: StepContext): Promise<Session> {
   const settings = settingsSchema.safeParse(await readMetaSettings(ctx));
   if (!settings.success) {
     throw new AppError(
@@ -177,7 +179,8 @@ function parsed<T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>, body: Json, what
   return result.data;
 }
 
-async function call<T>(
+/** One Graph call whose answer is parsed with `schema`; a write is refused unless `liveSideEffects("social")`. */
+export async function call<T>(
   session: Session,
   method: "GET" | "POST",
   path: string,

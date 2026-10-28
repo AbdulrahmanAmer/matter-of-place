@@ -1,10 +1,14 @@
 import { z } from "zod";
 import {
   channelIdsSchema,
+  inboxItemSchema,
+  inboxPageSize,
   socialPostPageSize,
   socialPostSchema,
   type ChannelHealth,
   type ChannelIdsKey,
+  type InboxFilters,
+  type InboxItem,
   type SocialChannel,
   type SocialPost,
   type SocialPostFilters,
@@ -64,6 +68,35 @@ export async function listPosts(
   const { data, error, count } = await query.range(from, from + socialPostPageSize - 1);
   if (error !== null) throw fromRpcError(error);
   return { items: z.array(socialPostSchema).parse(data), total: count ?? 0 };
+}
+
+/**
+ * W8 item 4, `GET /api/admin/channels/inbox`: the Instagram comments and messages, newest first, or one post's
+ * comments (`post_id`, the `?post=` of the posts table), each with its state and what became of its reply.
+ */
+export async function listInbox(
+  actor: AdminActor,
+  db: Db,
+  input: InboxFilters,
+): Promise<{ items: InboxItem[] }> {
+  authorize(actor, "channels.inbox_list");
+  let query = db
+    .from("social_inbox")
+    .select(
+      "id, kind, social_post_id, author_handle, body, received_at, state, reply_state, reply_error, replied_at",
+    );
+  if (input.post_id !== undefined) query = query.eq("social_post_id", input.post_id);
+  if (input.state !== undefined) query = query.eq("state", input.state);
+  const { data, error } = await query
+    .order("received_at", { ascending: false })
+    .limit(inboxPageSize);
+  if (error !== null) throw fromRpcError(error);
+  const items = z.array(inboxItemSchema).parse(data);
+  // Round 2: the words are outside text, read by a person only; an agent's key (Matter holds admin) gets the rows
+  // without them, as a colleague only ever sees a comment through the triage (W8 0a, 0b).
+  return {
+    items: actor.kind === "agent" ? items.map((item) => ({ ...item, body: "" })) : items,
+  };
 }
 
 const settingsSchema = z

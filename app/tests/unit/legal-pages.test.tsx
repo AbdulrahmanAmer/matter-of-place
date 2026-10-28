@@ -354,6 +354,44 @@ describe("the legal pages", () => {
     }
   });
 
+  it("/privacy names Instagram comments and messages: from Instagram, to hosting, database and AI processing (W8 item 4)", async () => {
+    await renderPage(pageOf(privacyRoute), UNSET);
+    const header = screen.queryByRole("rowheader", { name: "Social media messages" });
+    expect(header?.textContent).toBe("Social media messages");
+    const row = header?.closest("tr");
+    const cells = [...(row?.querySelectorAll("td") ?? [])].map((cell) => cell.textContent);
+    expect(cells[1]).toContain("Instagram");
+    expect(cells[3]).toBe(`${String(retentionPeriods.social_inbox.months)} months, then deleted.`);
+    expect(cells[4]).toMatch(/hosting and database providers, and our AI processing provider/);
+  });
+
+  it("/privacy says below the table where Instagram words come from, that we reply there, and that the AI drafting a reply reads them (W8 item 4 round 3)", async () => {
+    await renderPage(pageOf(privacyRoute), UNSET);
+    /** The text of the paragraphs under one heading, up to the next heading. */
+    const under = (heading: string) => {
+      const texts: string[] = [];
+      let node = screen.queryByRole("heading", { name: heading })?.nextElementSibling ?? null;
+      while (node !== null && node.tagName !== "H2") {
+        if (node.tagName === "P") texts.push(node.textContent);
+        node = node.nextElementSibling;
+      }
+      return texts.join(" ");
+    };
+    const said = {
+      source: under("Where it comes from"),
+      use: under("How we use it"),
+      receives: under("Who receives it"),
+    };
+    expect(said.source).toContain("when you comment on our Instagram posts or write to us there");
+    expect(said.use).toContain("reply to your comments and messages on Instagram");
+    // Round 4: the handle and the comments a comment answers reach the AI too, and a person approves before the send.
+    expect(said.receives).toContain(
+      "the words and handle of an Instagram comment or message, and the comments it answers, when a reply is drafted",
+    );
+    expect(said.receives).toContain("a person approves every reply before it is sent");
+    expect(Object.values(said).join(" ")).not.toMatch(/—|–/);
+  });
+
   it("/privacy limits the hours to rate-limit records and says a hash on a record stays with it", async () => {
     await renderPage(pageOf(privacyRoute), UNSET);
     const row = screen.getByRole("rowheader", { name: "Identifiers" }).closest("tr");

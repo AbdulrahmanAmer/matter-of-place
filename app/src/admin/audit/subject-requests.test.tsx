@@ -137,6 +137,7 @@ describe("screen 25, data requests", () => {
       contacts: [],
       submissions: [],
       inbound_mail: [],
+      social_inbox: [],
     };
     const requested = serve({
       [`GET ${LIST}`]: { items: [verified], next_cursor: null },
@@ -148,6 +149,8 @@ describe("screen 25, data requests", () => {
       </AdminProviders>,
     );
     fireEvent.click(await screen.findByRole("button", { name: "Export" }));
+    const dialog = await screen.findByRole("dialog", { name: "Export this person's data" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Export" }));
     await waitFor(() => {
       expect(saved).toHaveLength(1);
     });
@@ -155,6 +158,104 @@ describe("screen 25, data requests", () => {
       posts: requested.filter((line) => line.startsWith("POST ")),
       file: JSON.parse(await (saved[0] ?? new Blob()).text()) as unknown,
     }).toEqual({ posts: [`POST ${LIST}/${verified.id}/export {}`], file: bundle });
+  });
+
+  it("Export sends the Instagram handle the person named, so its comments and messages join the file (W8 item 4 round 3)", async () => {
+    Object.assign(URL, { createObjectURL: () => "blob:bundle", revokeObjectURL: () => undefined });
+    const verified = row(2, { verified_at: "2026-09-02T12:00:00+00:00" });
+    const requested = serve({
+      [`GET ${LIST}`]: { items: [verified], next_cursor: null },
+      [`POST ${LIST}/${verified.id}/export`]: {
+        request: { id: verified.id, kind: "access", received_at: verified.received_at },
+        email: verified.email,
+        subscribers: [],
+        inquiries: [],
+        contacts: [],
+        submissions: [],
+        inbound_mail: [],
+        social_inbox: [{ graph_id: "c1" }],
+      },
+    });
+    render(
+      <AdminProviders actions={ADMIN_ACTIONS}>
+        <SubjectRequestsTab />
+      </AdminProviders>,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "Export" }));
+    const dialog = await screen.findByRole("dialog", { name: "Export this person's data" });
+    fireEvent.change(within(dialog).getByLabelText("Instagram handle"), {
+      target: { value: "@reader.one" },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Export" }));
+    const posts = () => requested.filter((line) => line.startsWith("POST "));
+    await waitFor(() => {
+      expect(posts()).toHaveLength(1);
+    });
+    expect(posts()).toEqual([
+      `POST ${LIST}/${verified.id}/export ${JSON.stringify({ instagram_handle: "@reader.one" })}`,
+    ]);
+  });
+
+  it("Delete sends the Instagram handle the person named, refuses one that is not a handle, and sends none when empty", async () => {
+    const line = row(4, { kind: "deletion", verified_at: "2026-09-02T12:00:00+00:00" });
+    const answer = { id: line.id, status: "fulfilled", counts: { social_inbox: 2 } };
+    const requested = serve({
+      [`GET ${LIST}`]: { items: [line], next_cursor: null },
+      [`POST ${LIST}/${line.id}/delete`]: answer,
+    });
+    render(
+      <AdminProviders actions={ADMIN_ACTIONS}>
+        <SubjectRequestsTab />
+      </AdminProviders>,
+    );
+    const posts = () => requested.filter((entry) => entry.startsWith("POST "));
+    fireEvent.click(await screen.findByRole("button", { name: "Delete" }));
+    let dialog = await screen.findByRole("dialog", { name: "Delete this person's data" });
+    fireEvent.change(within(dialog).getByLabelText("Instagram handle"), {
+      target: { value: "not a handle!" },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
+    const refused = {
+      error:
+        within(dialog).queryByText("Enter an Instagram handle, or leave it empty.")?.textContent ??
+        null,
+      posts: posts(),
+    };
+    expect(refused).toEqual({ error: "Enter an Instagram handle, or leave it empty.", posts: [] });
+    fireEvent.change(within(dialog).getByLabelText("Instagram handle"), {
+      target: { value: " @reader.one " },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
+    await waitFor(() => {
+      expect(posts()).toHaveLength(1);
+    });
+    fireEvent.click(await screen.findByRole("button", { name: "Delete" }));
+    dialog = await screen.findByRole("dialog", { name: "Delete this person's data" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
+    await waitFor(() => {
+      expect(posts()).toHaveLength(2);
+    });
+    expect({ refused, posts: posts() }).toEqual({
+      refused: { error: "Enter an Instagram handle, or leave it empty.", posts: [] },
+      posts: [
+        `POST ${LIST}/${line.id}/delete ${JSON.stringify({ instagram_handle: "@reader.one" })}`,
+        `POST ${LIST}/${line.id}/delete {}`,
+      ],
+    });
+  });
+
+  it("tells staff how a person proves a handle: a message from it holding the request's reference (W8 item 4 round 4)", async () => {
+    const line = row(4, {
+      id: "4a3c2563-0000-4000-8000-000000000004",
+      kind: "deletion",
+      verified_at: "2026-09-02T12:00:00+00:00",
+    });
+    mount([line]);
+    fireEvent.click(await screen.findByRole("button", { name: "Delete" }));
+    const dialog = await screen.findByRole("dialog", { name: "Delete this person's data" });
+    expect(within(dialog).queryByText(/that holds 4a3c2563\./)?.textContent).toBe(
+      "Optional. A handle counts once the person sends us an Instagram message from it, after this request, that holds 4a3c2563. Its comments and messages are then deleted too, with any line held for Matter about them.",
+    );
   });
 
   it("Reject asks for a note and sends nothing without one", async () => {

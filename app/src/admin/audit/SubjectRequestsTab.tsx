@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   noteRequired,
+  subjectDeleteInput,
   type SubjectRequestRow,
   type SubjectStatusAction,
 } from "../../domain/admin-audit";
@@ -34,9 +35,10 @@ const URGENT_DAYS = 10;
 
 type Pending =
   | { row: SubjectRequestRow; action: Exclude<SubjectStatusAction, "start_verification"> }
-  | { row: SubjectRequestRow; action: "delete" | "opt_out" };
+  | { row: SubjectRequestRow; action: "export" | "delete" | "opt_out" };
 
 const DIALOG: Readonly<Record<Pending["action"], { title: string; confirm: string }>> = {
+  export: { title: "Export this person's data", confirm: "Export" },
   confirm_identity: { title: "Identity confirmed", confirm: "Confirm identity" },
   reject: { title: "Reject this request", confirm: "Reject" },
   fulfil_correction: { title: "Mark corrected", confirm: "Mark corrected" },
@@ -100,6 +102,9 @@ export function SubjectRequestsTab() {
   const [pending, setPending] = useState<Pending | null>(null);
   const [note, setNote] = useState("");
   const [noteError, setNoteError] = useState<string | null>(null);
+  // W8 item 4 round 2: the Instagram handle a deletion names; its comments and messages are deleted with the request.
+  const [handle, setHandle] = useState("");
+  const [handleError, setHandleError] = useState<string | null>(null);
   const busy = status.isPending || exporting.isPending || deleting.isPending || optingOut.isPending;
   const nextCursor = page.data?.next_cursor ?? null;
   const loadError = page.error;
@@ -115,6 +120,8 @@ export function SubjectRequestsTab() {
   const open = (next: Pending) => {
     setNote("");
     setNoteError(null);
+    setHandle("");
+    setHandleError(null);
     setPending(next);
   };
 
@@ -152,15 +159,7 @@ export function SubjectRequestsTab() {
             label="Export"
             disabled={busy}
             onClick={() => {
-              exporting.mutate(row.id, {
-                onSuccess: (bundle) => {
-                  download(row.id, bundle);
-                  toast({ message: "Export downloaded. The request is fulfilled." });
-                },
-                onError: (error) => {
-                  toast({ message: failure(error), tone: "danger" });
-                },
-              });
+              open({ row, action: "export" });
             }}
           />
         ) : null}
@@ -241,8 +240,31 @@ export function SubjectRequestsTab() {
     if (pending === null) return;
     const { row, action } = pending;
     const close = { onSettled: () => setPending(null) };
-    if (action === "delete") {
-      deleting.mutate(row.id, { ...done("The person's data is anonymised."), ...close });
+    if (action === "delete" || action === "export") {
+      const named = handle.trim();
+      const input = subjectDeleteInput.safeParse({
+        id: row.id,
+        ...(named === "" ? {} : { instagram_handle: named }),
+      });
+      if (!input.success) {
+        setHandleError("Enter an Instagram handle, or leave it empty.");
+        return;
+      }
+      if (action === "export") {
+        // W8 item 4 round 3: an access request covers the comments and messages of the handle the person names.
+        exporting.mutate(input.data, {
+          onSuccess: (bundle) => {
+            download(row.id, bundle);
+            toast({ message: "Export downloaded. The request is fulfilled." });
+          },
+          onError: (error) => {
+            toast({ message: failure(error), tone: "danger" });
+          },
+          ...close,
+        });
+        return;
+      }
+      deleting.mutate(input.data, { ...done("The person's data is anonymised."), ...close });
       return;
     }
     if (action === "opt_out") {
@@ -292,11 +314,44 @@ export function SubjectRequestsTab() {
           setPending(null);
         }}
       >
-        {pending === null ? null : pending.action === "delete" ? (
-          <p>
-            Every row of {pending.row.email} is anonymised: the address, name, phone and messages.
-            This cannot be undone.
-          </p>
+        {pending === null ? null : pending.action === "delete" || pending.action === "export" ? (
+          <>
+            {pending.action === "delete" ? (
+              <p>
+                Every row of {pending.row.email} is anonymised: the address, name, phone and
+                messages. This cannot be undone.
+              </p>
+            ) : (
+              <p>
+                Every row of {pending.row.email} is saved as one file, and the request is fulfilled.
+              </p>
+            )}
+            <Field
+              label="Instagram handle"
+              hint={
+                // W8 item 4 round 4: the database takes a handle only once a message from it, after the request,
+                // holds the request's reference (subject_handle_proof); the hint says how the person proves it.
+                `Optional. A handle counts once the person sends us an Instagram message from it, after this request, that holds ${pending.row.id.slice(0, 8)}. ${
+                  pending.action === "delete"
+                    ? "Its comments and messages are then deleted too, with any line held for Matter about them."
+                    : "Its comments and messages are then in the file too."
+                }`
+              }
+              {...(handleError === null ? {} : { error: handleError })}
+            >
+              {(control) => (
+                <input
+                  {...control}
+                  type="text"
+                  autoComplete="off"
+                  value={handle}
+                  onChange={(event) => {
+                    setHandle(event.target.value);
+                  }}
+                />
+              )}
+            </Field>
+          </>
         ) : pending.action === "opt_out" ? (
           <p>{pending.row.email} is unsubscribed and no mail is sent to it again.</p>
         ) : (

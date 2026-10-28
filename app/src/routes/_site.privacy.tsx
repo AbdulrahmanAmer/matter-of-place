@@ -50,6 +50,7 @@ const retentionRows: readonly { key: RetentionKey; label: string }[] = [
   { key: "unconfirmed_subscribers", label: "Newsletter signups that were never confirmed" },
   { key: "email_pii", label: "Email addresses in sent-message and delivery records" },
   { key: "rate_limits", label: "Hashed IP addresses in rate-limit records" },
+  { key: "social_inbox", label: "Comments on our Instagram posts and messages sent to us there" },
 ];
 
 const categories: readonly {
@@ -99,6 +100,15 @@ const categories: readonly {
     purpose: "To review the property and, once accepted, publish it.",
     kept: `Declined photographs ${keep("declined_submission_media")}. Accepted photographs while the property is published.`,
     receives: "Our hosting, storage and image processing providers.",
+  },
+  {
+    name: "Social media messages",
+    what: "Your Instagram handle and the words of a comment on our posts or a message you send us.",
+    source: "Instagram, when you comment on our posts or write to us there.",
+    purpose: "To read what you wrote and reply to you.",
+    kept: `${keep("social_inbox")}, then deleted.`,
+    receives:
+      "Our hosting and database providers, and our AI processing provider, which drafts a reply for a person to approve.",
   },
 ];
 
@@ -156,15 +166,15 @@ function PrivacyPage() {
 
         <h2>Where it comes from</h2>
         <p>
-          It comes from you, through the forms on this site, and from your browser, through
-          analytics once you allow them.
+          It comes from you, through the forms on this site and when you comment on our Instagram
+          posts or write to us there, and from your browser, through analytics once you allow them.
         </p>
 
         <h2>How we use it</h2>
         <p>
-          We use it to answer inquiries, review and publish submitted properties, send the messages
-          you ask for, invoice accepted properties, keep the site working and understand which pages
-          are read.
+          We use it to answer inquiries, reply to your comments and messages on Instagram, review
+          and publish submitted properties, send the messages you ask for, invoice accepted
+          properties, keep the site working and understand which pages are read.
         </p>
 
         <h2>Who receives it</h2>
@@ -175,8 +185,10 @@ function PrivacyPage() {
           counts page reads, only after you allow analytics.
         </p>
         <p>
-          An AI writing assistant receives the facts of a property when a caption is drafted. A
-          person reviews every caption before it is used.
+          An AI writing assistant receives the facts of a property when a caption is drafted, and
+          the words and handle of an Instagram comment or message, and the comments it answers, when
+          a reply is drafted. A person reviews every caption, and a person approves every reply
+          before it is sent.
         </p>
         <p>
           Meta, X and LinkedIn receive only what we post. {siteConfig.parentCompany} receives the

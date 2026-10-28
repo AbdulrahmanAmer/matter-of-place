@@ -105,12 +105,16 @@ export const errorCodes = {
   // B7 step 15a: a redirect row that breaks invariant 16, and a data request out of order (invariant 15).
   invalid_redirect: 422,
   not_verified: 409,
+  // W8 item 4 round 4: an Instagram handle named on a data request with no message from it proving it is the person's.
+  handle_unverified: 409,
   wrong_kind: 409,
   note_required: 422,
   // W8 item 10 (H116): a proposed post refused at creation, each with its reason in the message.
   channel_disabled: 422,
   invalid_format: 422,
   caption_too_long: 422,
+  // W8 item 4: a proposed Instagram reply longer than its kind takes; the detail names the limit.
+  reply_too_long: 422,
   media_not_found: 422,
   reel_poster_required: 422,
   // W6 item 8 (H142): a Five Features credit is spent only by a contact whose ledger holds one.
