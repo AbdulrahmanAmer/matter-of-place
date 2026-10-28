@@ -94,6 +94,9 @@ import { groundingLines, requestSequence } from "./grounding.ts";
 import { requestDesk } from "./request-desk.ts";
 import { forgetNewWork, newWorkLines } from "./new-work.ts";
 import { interestLines } from "./interest.ts";
+import { siteNumbersLines } from "./site-numbers.ts";
+import { proposalOutcomeLines } from "./proposal-outcomes.ts";
+import { emailDeliveryLines } from "./email-delivery.ts";
 import { colleagueCalls, colleagueRoutes } from "./colleague-calls.ts";
 import { mergedByRun, queueMerges } from "../matter/lessons.ts";
 import { applyHires } from "./hiring.ts";
@@ -751,6 +754,11 @@ export async function context(
     );
     // W7 item 8: confirmed interest per market and page, for Campaigns and Newsletter (interest.ts), counts only.
     parts.push(...(await interestLines(client, agentSlug)));
+    // W7 items 10 to 12: the Analyst's site numbers, every colleague's own decided proposals, and the delivery of the
+    // emails about inquiries for the Concierge (site-numbers.ts, proposal-outcomes.ts, email-delivery.ts).
+    parts.push(...(await siteNumbersLines(client, agentSlug)));
+    parts.push(...(await proposalOutcomeLines(client, run.agent_id)));
+    parts.push(...(await emailDeliveryLines(client, agentSlug)));
     // W7 item 9: the newest requests and inquiries themselves, for their owners (new-work.ts).
     parts.push(...(await newWorkLines(client, owns)));
   }

@@ -1584,6 +1584,11 @@ isOneToOne: false
               "key_id": string,"last_used_at": string,"revoked_at": string,"roles": (Database["public"]['Enums']["app_role"])[],"scopes": (string)[],"user_id": string
             }[]
                            },
+"analyst_site_numbers":
+{ Args: { "p_pages": (string)[],"p_to": string }; Returns: {
+              "days": number,"events": number,"kind": string,"label": string
+            }[]
+                           },
 "apply_email_event":
 { Args: { "p": Json }; Returns: boolean
                            },
@@ -1789,6 +1794,11 @@ isOneToOne: false
                            },
 "complete_distributed_submissions":
 { Args: { "p_now": string }; Returns: number
+                           },
+"concierge_email_delivery":
+{ Args: { "p_limit": number }; Returns: {
+              "inquiry_id": string,"opened": boolean,"sent_at": string,"status": string,"template_key": string
+            }[]
                            },
 "confirm_subscriber":
 { Args: { "p_token_hash": string }; Returns: string

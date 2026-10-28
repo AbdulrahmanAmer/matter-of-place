@@ -1,0 +1,119 @@
+[
+  {
+    "id": "w7-11-own-rows",
+    "test": "tests/unit/workforce-proposal-outcomes.test.ts",
+    "file": "scripts/workforce/proposal-outcomes.ts",
+    "find": "      .eq(\"agent_id\", agentId)",
+    "replace": "      .in(\"agent_id\", [agentId, \"id-editor\"])",
+    "run": "bunx vitest run --project unit tests/unit/workforce-proposal-outcomes.test.ts",
+    "expect": "× .*shows each colleague its own decided proposals and no one else's"
+  },
+  {
+    "id": "w7-11-in-the-situation",
+    "test": "tests/unit/workforce-proposal-outcomes.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    parts.push(...(await proposalOutcomeLines(client, run.agent_id)));",
+    "replace": "    parts.push(...(await proposalOutcomeLines(client, \"id-editor\")));",
+    "run": "bunx vitest run --project unit tests/unit/workforce-proposal-outcomes.test.ts",
+    "expect": "× .*shows each colleague its own decided proposals and no one else's"
+  },
+  {
+    "id": "w7-11-decided-only",
+    "test": "tests/unit/workforce-proposal-outcomes.test.ts",
+    "file": "scripts/workforce/proposal-outcomes.ts",
+    "find": "      .in(\"state\", [\"approved\", \"rejected\"])",
+    "replace": "      .in(\"state\", [\"approved\", \"rejected\", \"pending\", \"void\"])",
+    "run": "bunx vitest run --project unit tests/unit/workforce-proposal-outcomes.test.ts",
+    "expect": "× .*says approved as drafted, approved after an edit, or declined with the reason, newest first"
+  },
+  {
+    "id": "w7-11-newest-first",
+    "test": "tests/unit/workforce-proposal-outcomes.test.ts",
+    "file": "scripts/workforce/proposal-outcomes.ts",
+    "find": "      .order(\"decided_at\", { ascending: false, nullsFirst: false })",
+    "replace": "      .order(\"decided_at\", { ascending: true, nullsFirst: false })",
+    "run": "bunx vitest run --project unit tests/unit/workforce-proposal-outcomes.test.ts",
+    "expect": "× .*says approved as drafted, approved after an edit, or declined with the reason, newest first"
+  },
+  {
+    "id": "w7-11-reason",
+    "test": "tests/unit/workforce-proposal-outcomes.test.ts",
+    "file": "scripts/workforce/proposal-outcomes.ts",
+    "find": "      : `declined, because: \"${oneLine(row.reason, REASON_CAP)}\"`;",
+    "replace": "      : \"declined\";",
+    "run": "bunx vitest run --project unit tests/unit/workforce-proposal-outcomes.test.ts",
+    "expect": "× .*says approved as drafted, approved after an edit, or declined with the reason, newest first"
+  },
+  {
+    "id": "w7-11-edited",
+    "test": "tests/unit/workforce-proposal-outcomes.test.ts",
+    "file": "scripts/workforce/proposal-outcomes.ts",
+    "find": "  return row.edited ? \"approved after a person edited it\" : \"approved as drafted\";",
+    "replace": "  return \"approved as drafted\";",
+    "run": "bunx vitest run --project unit tests/unit/workforce-proposal-outcomes.test.ts",
+    "expect": "× .*says approved as drafted, approved after an edit, or declined with the reason, newest first"
+  },
+  {
+    "id": "w7-11-edited-flag",
+    "test": "tests/unit/workforce-proposal-outcomes.test.ts",
+    "file": "scripts/workforce/proposal-outcomes.ts",
+    "find": "        data.map(({ edited_content, ...row }) => ({ ...row, edited: edited_content !== null })),",
+    "replace": "        data.map(({ edited_content, ...row }) => ({ ...row, edited: edited_content === undefined })),",
+    "run": "bunx vitest run --project unit tests/unit/workforce-proposal-outcomes.test.ts",
+    "expect": "× .*says approved as drafted, approved after an edit, or declined with the reason, newest first"
+  },
+  {
+    "id": "w7-11-one-line",
+    "test": "tests/unit/workforce-proposal-outcomes.test.ts",
+    "file": "scripts/workforce/proposal-outcomes.ts",
+    "find": "  const flat = text.replace(/\\s+/g, \" \").trim();",
+    "replace": "  const flat = text.trim();",
+    "run": "bunx vitest run --project unit tests/unit/workforce-proposal-outcomes.test.ts",
+    "expect": "× .*says approved as drafted, approved after an edit, or declined with the reason, newest first"
+  },
+  {
+    "id": "w7-11-ten",
+    "test": "tests/unit/workforce-proposal-outcomes.test.ts",
+    "file": "scripts/workforce/proposal-outcomes.ts",
+    "find": "const NEWEST = 10;",
+    "replace": "const NEWEST = 12;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-proposal-outcomes.test.ts",
+    "expect": "× .*keeps the ten newest decided only"
+  },
+  {
+    "id": "w7-11-no-body",
+    "test": "tests/unit/workforce-proposal-outcomes.test.ts",
+    "file": "scripts/workforce/proposal-outcomes.ts",
+    "find": "      .select(\"action, summary, state, reason, edited_content, decided_at\")",
+    "replace": "      .select(\"action, summary, state, reason, edited_content, decided_at, content\")",
+    "run": "bunx vitest run --project unit tests/unit/workforce-proposal-outcomes.test.ts",
+    "expect": "× .*shows no proposal's body, no edited version and no address"
+  },
+  {
+    "id": "w7-11-none-yet",
+    "test": "tests/unit/workforce-proposal-outcomes.test.ts",
+    "file": "scripts/workforce/proposal-outcomes.ts",
+    "find": "      ? [\"- none decided yet\"]",
+    "replace": "      ? []",
+    "run": "bunx vitest run --project unit tests/unit/workforce-proposal-outcomes.test.ts",
+    "expect": "× .*says none decided yet for a colleague with no decision"
+  },
+  {
+    "id": "w7-11-summary-cap",
+    "test": "tests/unit/workforce-proposal-outcomes.test.ts",
+    "file": "scripts/workforce/proposal-outcomes.ts",
+    "find": "const SUMMARY_CAP = 120;",
+    "replace": "const SUMMARY_CAP = 200;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-proposal-outcomes.test.ts",
+    "expect": "× .*says none decided yet for a colleague with no decision"
+  },
+  {
+    "id": "w7-11-failed-line",
+    "test": "tests/unit/workforce-proposal-outcomes.test.ts",
+    "file": "scripts/workforce/proposal-outcomes.ts",
+    "find": "    if (error !== null) throw new Error(\"not read\");",
+    "replace": "    if (error !== null) return [];",
+    "run": "bunx vitest run --project unit tests/unit/workforce-proposal-outcomes.test.ts",
+    "expect": "× .*gives one plain line when the read fails, and the run goes on"
+  }
+]
