@@ -1,0 +1,174 @@
+[
+  {
+    "id": "w7-8-readers",
+    "test": "tests/unit/workforce-interest.test.ts",
+    "file": "scripts/workforce/interest.ts",
+    "find": "const READERS: readonly string[] = [\"campaigns\", \"newsletter\"];",
+    "replace": "const READERS: readonly string[] = [\"campaigns\", \"newsletter\", \"editor\"];",
+    "run": "bunx vitest run --project unit tests/unit/workforce-interest.test.ts",
+    "expect": "× .*reaches Campaigns and Newsletter and no other colleague"
+  },
+  {
+    "id": "w7-8-in-the-situation",
+    "test": "tests/unit/workforce-interest.test.ts",
+    "file": "scripts/workforce/daemon.ts",
+    "find": "    parts.push(...(await interestLines(client, agentSlug)));",
+    "replace": "    parts.push(...(await interestLines(client, \"\")));",
+    "run": "bunx vitest run --project unit tests/unit/workforce-interest.test.ts",
+    "expect": "× .*reaches Campaigns and Newsletter and no other colleague"
+  },
+  {
+    "id": "w7-8-this-week",
+    "test": "tests/unit/workforce-interest.test.ts",
+    "file": "scripts/workforce/interest.ts",
+    "find": "      p_since: new Date(now.getTime() - WEEK_MS).toISOString(),",
+    "replace": "      p_since: now.toISOString(),",
+    "run": "bunx vitest run --project unit tests/unit/workforce-interest.test.ts",
+    "expect": "× .*asks the database for the counts from seven days before the read, over our pages only"
+  },
+  {
+    "id": "w7-8-our-pages-sent",
+    "test": "tests/unit/workforce-interest.test.ts",
+    "file": "scripts/workforce/interest.ts",
+    "find": "      p_pages: [...PAGES.keys()],",
+    "replace": "      p_pages: [],",
+    "run": "bunx vitest run --project unit tests/unit/workforce-interest.test.ts",
+    "expect": "× .*asks the database for the counts from seven days before the read, over our pages only"
+  },
+  {
+    "id": "w7-8-market-rows",
+    "test": "tests/unit/workforce-interest.test.ts",
+    "file": "scripts/workforce/interest.ts",
+    "find": "      if (market !== undefined) add(market, row);",
+    "replace": "      if (market === undefined) add(market, row);",
+    "run": "bunx vitest run --project unit tests/unit/workforce-interest.test.ts",
+    "expect": "× .*counts confirmed signups per market and per page, this week and in total"
+  },
+  {
+    "id": "w7-8-all-signups",
+    "test": "tests/unit/workforce-interest.test.ts",
+    "file": "scripts/workforce/interest.ts",
+    "find": "    add(all, row);",
+    "replace": "    add(all, { ...row, total: 0 });",
+    "run": "bunx vitest run --project unit tests/unit/workforce-interest.test.ts",
+    "expect": "× .*counts confirmed signups per market and per page, this week and in total"
+  },
+  {
+    "id": "w7-8-our-pages-only",
+    "test": "tests/unit/workforce-interest.test.ts",
+    "file": "scripts/workforce/interest.ts",
+    "find": "    const page = PAGES.get(row.source) ?? \"Other pages\";",
+    "replace": "    const page = PAGES.get(row.source) ?? row.source;",
+    "run": "bunx vitest run --project unit tests/unit/workforce-interest.test.ts",
+    "expect": "× .*says no address, name, id or word a visitor typed"
+  },
+  {
+    "id": "w7-8-region-name",
+    "test": "tests/unit/workforce-interest.test.ts",
+    "file": "scripts/workforce/interest.ts",
+    "find": "      `${marketName(market)}, ${regionName(region)} page`,",
+    "replace": "      `${marketName(market)}, ${region} page`,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-interest.test.ts",
+    "expect": "× .*names a market's page and a region's page as the site names them"
+  },
+  {
+    "id": "w7-8-market-page-name",
+    "test": "tests/unit/workforce-interest.test.ts",
+    "file": "scripts/workforce/interest.ts",
+    "find": "    `${marketName(market)} page`,",
+    "replace": "    `${market} page`,",
+    "run": "bunx vitest run --project unit tests/unit/workforce-interest.test.ts",
+    "expect": "× .*counts confirmed signups per market and per page, this week and in total"
+  },
+  {
+    "id": "w7-8-refused-read",
+    "test": "tests/unit/workforce-interest.test.ts",
+    "file": "scripts/workforce/interest.ts",
+    "find": "    if (error !== null) throw new Error(\"not read\");",
+    "replace": "    if (error !== null) return [interestBlock([])];",
+    "run": "bunx vitest run --project unit tests/unit/workforce-interest.test.ts",
+    "expect": "× .*gives one plain line when the read fails, and the run goes on"
+  },
+  {
+    "id": "w7-8-failed-line",
+    "test": "tests/unit/workforce-interest.test.ts",
+    "file": "scripts/workforce/interest.ts",
+    "find": "    return [\"The interest counts could not be read for this run; say so if a plan needs them.\"];",
+    "replace": "    return [interestBlock([])];",
+    "run": "bunx vitest run --project unit tests/unit/workforce-interest.test.ts",
+    "expect": "× .*gives one plain line when the read fails, and the run goes on"
+  },
+  {
+    "id": "w7-8-none-yet",
+    "test": "tests/unit/workforce-interest.test.ts",
+    "file": "scripts/workforce/interest.ts",
+    "find": "      ? [\"- none yet\"]",
+    "replace": "      ? []",
+    "run": "bunx vitest run --project unit tests/unit/workforce-interest.test.ts",
+    "expect": "× .*shows no page yet when nobody has confirmed"
+  },
+  {
+    "id": "w7-8-db-distinct-markets",
+    "kind": "sql",
+    "test": "tests/db/newsletter-interest-counts.db.test.ts",
+    "sql": "create or replace function public.newsletter_interest_counts(p_since timestamptz, p_pages text[])\nreturns table (\n  market text,\n  source text,\n  this_week int,\n  total int\n)\nlanguage sql\nstable\nsecurity invoker\nset search_path = ''\nas $$\n  -- W7 item 8: the confirmed signups of the Interest screen's list (not archived, not anonymised, as\n  -- newsletter_export_subscribers reads it; confirmed and not unsubscribed), counted here so no subscriber row leaves\n  -- the database and no read meets PostgREST's row cap. One row per market (source ''), a signup counted once for a\n  -- market however often its list names it; one row per page of p_pages (market ''), any other source counted under\n  -- source '', so no word a visitor typed is returned. This week is confirmed at or after p_since.\n  with confirmed as (\n    select s.markets,\n      case when s.source = any(p_pages) then s.source else '' end as source,\n      s.confirmed_at >= p_since as this_week\n    from public.subscribers s\n    where s.archived_at is null\n      and s.email not like '%.invalid'\n      and s.confirmed_at is not null\n      and s.unsubscribed_at is null\n  )\n  select m.market, ''::text, (count(*) filter (where c.this_week))::int, count(*)::int\n  from confirmed c\n  cross join lateral (select unnest(c.markets) as market) m\n  group by m.market\n  union all\n  select ''::text, c.source, (count(*) filter (where c.this_week))::int, count(*)::int\n  from confirmed c\n  group by c.source\n  order by 1, 2;\n$$;\n\nrevoke execute on function public.newsletter_interest_counts(timestamptz, text[])\n  from public, anon, authenticated;\ngrant execute on function public.newsletter_interest_counts(timestamptz, text[]) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/newsletter-interest-counts.db.test.ts -t \"counts a confirmed signup once\"",
+    "expect": "× .*counts a confirmed signup once per market however often its list names it, and once on its page"
+  },
+  {
+    "id": "w7-8-db-this-week",
+    "kind": "sql",
+    "test": "tests/db/newsletter-interest-counts.db.test.ts",
+    "sql": "create or replace function public.newsletter_interest_counts(p_since timestamptz, p_pages text[])\nreturns table (\n  market text,\n  source text,\n  this_week int,\n  total int\n)\nlanguage sql\nstable\nsecurity invoker\nset search_path = ''\nas $$\n  -- W7 item 8: the confirmed signups of the Interest screen's list (not archived, not anonymised, as\n  -- newsletter_export_subscribers reads it; confirmed and not unsubscribed), counted here so no subscriber row leaves\n  -- the database and no read meets PostgREST's row cap. One row per market (source ''), a signup counted once for a\n  -- market however often its list names it; one row per page of p_pages (market ''), any other source counted under\n  -- source '', so no word a visitor typed is returned. This week is confirmed at or after p_since.\n  with confirmed as (\n    select s.markets,\n      case when s.source = any(p_pages) then s.source else '' end as source,\n      s.confirmed_at is not null as this_week\n    from public.subscribers s\n    where s.archived_at is null\n      and s.email not like '%.invalid'\n      and s.confirmed_at is not null\n      and s.unsubscribed_at is null\n  )\n  select m.market, ''::text, (count(*) filter (where c.this_week))::int, count(*)::int\n  from confirmed c\n  cross join lateral (select distinct unnest(c.markets) as market) m\n  group by m.market\n  union all\n  select ''::text, c.source, (count(*) filter (where c.this_week))::int, count(*)::int\n  from confirmed c\n  group by c.source\n  order by 1, 2;\n$$;\n\nrevoke execute on function public.newsletter_interest_counts(timestamptz, text[])\n  from public, anon, authenticated;\ngrant execute on function public.newsletter_interest_counts(timestamptz, text[]) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/newsletter-interest-counts.db.test.ts -t \"counts a confirmed signup once\"",
+    "expect": "× .*counts a confirmed signup once per market however often its list names it, and once on its page"
+  },
+  {
+    "id": "w7-8-db-confirmed-only",
+    "kind": "sql",
+    "test": "tests/db/newsletter-interest-counts.db.test.ts",
+    "sql": "create or replace function public.newsletter_interest_counts(p_since timestamptz, p_pages text[])\nreturns table (\n  market text,\n  source text,\n  this_week int,\n  total int\n)\nlanguage sql\nstable\nsecurity invoker\nset search_path = ''\nas $$\n  -- W7 item 8: the confirmed signups of the Interest screen's list (not archived, not anonymised, as\n  -- newsletter_export_subscribers reads it; confirmed and not unsubscribed), counted here so no subscriber row leaves\n  -- the database and no read meets PostgREST's row cap. One row per market (source ''), a signup counted once for a\n  -- market however often its list names it; one row per page of p_pages (market ''), any other source counted under\n  -- source '', so no word a visitor typed is returned. This week is confirmed at or after p_since.\n  with confirmed as (\n    select s.markets,\n      case when s.source = any(p_pages) then s.source else '' end as source,\n      s.confirmed_at >= p_since as this_week\n    from public.subscribers s\n    where s.archived_at is null\n      and s.email not like '%.invalid'\n      and s.unsubscribed_at is null\n  )\n  select m.market, ''::text, (count(*) filter (where c.this_week))::int, count(*)::int\n  from confirmed c\n  cross join lateral (select distinct unnest(c.markets) as market) m\n  group by m.market\n  union all\n  select ''::text, c.source, (count(*) filter (where c.this_week))::int, count(*)::int\n  from confirmed c\n  group by c.source\n  order by 1, 2;\n$$;\n\nrevoke execute on function public.newsletter_interest_counts(timestamptz, text[])\n  from public, anon, authenticated;\ngrant execute on function public.newsletter_interest_counts(timestamptz, text[]) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/newsletter-interest-counts.db.test.ts -t \"leaves out pending\"",
+    "expect": "× .*leaves out pending, unsubscribed, archived and anonymised signups"
+  },
+  {
+    "id": "w7-8-db-not-unsubscribed",
+    "kind": "sql",
+    "test": "tests/db/newsletter-interest-counts.db.test.ts",
+    "sql": "create or replace function public.newsletter_interest_counts(p_since timestamptz, p_pages text[])\nreturns table (\n  market text,\n  source text,\n  this_week int,\n  total int\n)\nlanguage sql\nstable\nsecurity invoker\nset search_path = ''\nas $$\n  -- W7 item 8: the confirmed signups of the Interest screen's list (not archived, not anonymised, as\n  -- newsletter_export_subscribers reads it; confirmed and not unsubscribed), counted here so no subscriber row leaves\n  -- the database and no read meets PostgREST's row cap. One row per market (source ''), a signup counted once for a\n  -- market however often its list names it; one row per page of p_pages (market ''), any other source counted under\n  -- source '', so no word a visitor typed is returned. This week is confirmed at or after p_since.\n  with confirmed as (\n    select s.markets,\n      case when s.source = any(p_pages) then s.source else '' end as source,\n      s.confirmed_at >= p_since as this_week\n    from public.subscribers s\n    where s.archived_at is null\n      and s.email not like '%.invalid'\n      and s.confirmed_at is not null\n  )\n  select m.market, ''::text, (count(*) filter (where c.this_week))::int, count(*)::int\n  from confirmed c\n  cross join lateral (select distinct unnest(c.markets) as market) m\n  group by m.market\n  union all\n  select ''::text, c.source, (count(*) filter (where c.this_week))::int, count(*)::int\n  from confirmed c\n  group by c.source\n  order by 1, 2;\n$$;\n\nrevoke execute on function public.newsletter_interest_counts(timestamptz, text[])\n  from public, anon, authenticated;\ngrant execute on function public.newsletter_interest_counts(timestamptz, text[]) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/newsletter-interest-counts.db.test.ts -t \"leaves out pending\"",
+    "expect": "× .*leaves out pending, unsubscribed, archived and anonymised signups"
+  },
+  {
+    "id": "w7-8-db-not-archived",
+    "kind": "sql",
+    "test": "tests/db/newsletter-interest-counts.db.test.ts",
+    "sql": "create or replace function public.newsletter_interest_counts(p_since timestamptz, p_pages text[])\nreturns table (\n  market text,\n  source text,\n  this_week int,\n  total int\n)\nlanguage sql\nstable\nsecurity invoker\nset search_path = ''\nas $$\n  -- W7 item 8: the confirmed signups of the Interest screen's list (not archived, not anonymised, as\n  -- newsletter_export_subscribers reads it; confirmed and not unsubscribed), counted here so no subscriber row leaves\n  -- the database and no read meets PostgREST's row cap. One row per market (source ''), a signup counted once for a\n  -- market however often its list names it; one row per page of p_pages (market ''), any other source counted under\n  -- source '', so no word a visitor typed is returned. This week is confirmed at or after p_since.\n  with confirmed as (\n    select s.markets,\n      case when s.source = any(p_pages) then s.source else '' end as source,\n      s.confirmed_at >= p_since as this_week\n    from public.subscribers s\n    where true\n      and s.email not like '%.invalid'\n      and s.confirmed_at is not null\n      and s.unsubscribed_at is null\n  )\n  select m.market, ''::text, (count(*) filter (where c.this_week))::int, count(*)::int\n  from confirmed c\n  cross join lateral (select distinct unnest(c.markets) as market) m\n  group by m.market\n  union all\n  select ''::text, c.source, (count(*) filter (where c.this_week))::int, count(*)::int\n  from confirmed c\n  group by c.source\n  order by 1, 2;\n$$;\n\nrevoke execute on function public.newsletter_interest_counts(timestamptz, text[])\n  from public, anon, authenticated;\ngrant execute on function public.newsletter_interest_counts(timestamptz, text[]) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/newsletter-interest-counts.db.test.ts -t \"leaves out pending\"",
+    "expect": "× .*leaves out pending, unsubscribed, archived and anonymised signups"
+  },
+  {
+    "id": "w7-8-db-not-anonymised",
+    "kind": "sql",
+    "test": "tests/db/newsletter-interest-counts.db.test.ts",
+    "sql": "create or replace function public.newsletter_interest_counts(p_since timestamptz, p_pages text[])\nreturns table (\n  market text,\n  source text,\n  this_week int,\n  total int\n)\nlanguage sql\nstable\nsecurity invoker\nset search_path = ''\nas $$\n  -- W7 item 8: the confirmed signups of the Interest screen's list (not archived, not anonymised, as\n  -- newsletter_export_subscribers reads it; confirmed and not unsubscribed), counted here so no subscriber row leaves\n  -- the database and no read meets PostgREST's row cap. One row per market (source ''), a signup counted once for a\n  -- market however often its list names it; one row per page of p_pages (market ''), any other source counted under\n  -- source '', so no word a visitor typed is returned. This week is confirmed at or after p_since.\n  with confirmed as (\n    select s.markets,\n      case when s.source = any(p_pages) then s.source else '' end as source,\n      s.confirmed_at >= p_since as this_week\n    from public.subscribers s\n    where s.archived_at is null\n      and s.confirmed_at is not null\n      and s.unsubscribed_at is null\n  )\n  select m.market, ''::text, (count(*) filter (where c.this_week))::int, count(*)::int\n  from confirmed c\n  cross join lateral (select distinct unnest(c.markets) as market) m\n  group by m.market\n  union all\n  select ''::text, c.source, (count(*) filter (where c.this_week))::int, count(*)::int\n  from confirmed c\n  group by c.source\n  order by 1, 2;\n$$;\n\nrevoke execute on function public.newsletter_interest_counts(timestamptz, text[])\n  from public, anon, authenticated;\ngrant execute on function public.newsletter_interest_counts(timestamptz, text[]) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/newsletter-interest-counts.db.test.ts -t \"leaves out pending\"",
+    "expect": "× .*leaves out pending, unsubscribed, archived and anonymised signups"
+  },
+  {
+    "id": "w7-8-db-other-pages",
+    "kind": "sql",
+    "test": "tests/db/newsletter-interest-counts.db.test.ts",
+    "sql": "create or replace function public.newsletter_interest_counts(p_since timestamptz, p_pages text[])\nreturns table (\n  market text,\n  source text,\n  this_week int,\n  total int\n)\nlanguage sql\nstable\nsecurity invoker\nset search_path = ''\nas $$\n  -- W7 item 8: the confirmed signups of the Interest screen's list (not archived, not anonymised, as\n  -- newsletter_export_subscribers reads it; confirmed and not unsubscribed), counted here so no subscriber row leaves\n  -- the database and no read meets PostgREST's row cap. One row per market (source ''), a signup counted once for a\n  -- market however often its list names it; one row per page of p_pages (market ''), any other source counted under\n  -- source '', so no word a visitor typed is returned. This week is confirmed at or after p_since.\n  with confirmed as (\n    select s.markets,\n      s.source as source,\n      s.confirmed_at >= p_since as this_week\n    from public.subscribers s\n    where s.archived_at is null\n      and s.email not like '%.invalid'\n      and s.confirmed_at is not null\n      and s.unsubscribed_at is null\n  )\n  select m.market, ''::text, (count(*) filter (where c.this_week))::int, count(*)::int\n  from confirmed c\n  cross join lateral (select distinct unnest(c.markets) as market) m\n  group by m.market\n  union all\n  select ''::text, c.source, (count(*) filter (where c.this_week))::int, count(*)::int\n  from confirmed c\n  group by c.source\n  order by 1, 2;\n$$;\n\nrevoke execute on function public.newsletter_interest_counts(timestamptz, text[])\n  from public, anon, authenticated;\ngrant execute on function public.newsletter_interest_counts(timestamptz, text[]) to service_role;\n",
+    "run": "bunx vitest run --project db tests/db/newsletter-interest-counts.db.test.ts -t \"counts a source outside the pages\"",
+    "expect": "× .*counts a source outside the pages under '' and never returns it"
+  },
+  {
+    "id": "w7-8-db-service-role-only",
+    "kind": "sql",
+    "test": "tests/db/newsletter-interest-counts.db.test.ts",
+    "sql": "create or replace function public.newsletter_interest_counts(p_since timestamptz, p_pages text[])\nreturns table (\n  market text,\n  source text,\n  this_week int,\n  total int\n)\nlanguage sql\nstable\nsecurity invoker\nset search_path = ''\nas $$\n  -- W7 item 8: the confirmed signups of the Interest screen's list (not archived, not anonymised, as\n  -- newsletter_export_subscribers reads it; confirmed and not unsubscribed), counted here so no subscriber row leaves\n  -- the database and no read meets PostgREST's row cap. One row per market (source ''), a signup counted once for a\n  -- market however often its list names it; one row per page of p_pages (market ''), any other source counted under\n  -- source '', so no word a visitor typed is returned. This week is confirmed at or after p_since.\n  with confirmed as (\n    select s.markets,\n      case when s.source = any(p_pages) then s.source else '' end as source,\n      s.confirmed_at >= p_since as this_week\n    from public.subscribers s\n    where s.archived_at is null\n      and s.email not like '%.invalid'\n      and s.confirmed_at is not null\n      and s.unsubscribed_at is null\n  )\n  select m.market, ''::text, (count(*) filter (where c.this_week))::int, count(*)::int\n  from confirmed c\n  cross join lateral (select distinct unnest(c.markets) as market) m\n  group by m.market\n  union all\n  select ''::text, c.source, (count(*) filter (where c.this_week))::int, count(*)::int\n  from confirmed c\n  group by c.source\n  order by 1, 2;\n$$;\n\nrevoke execute on function public.newsletter_interest_counts(timestamptz, text[])\n  from public, anon, authenticated;\ngrant execute on function public.newsletter_interest_counts(timestamptz, text[]) to anon, authenticated, service_role;\n",
+    "run": "bunx vitest run --project db tests/db/newsletter-interest-counts.db.test.ts -t \"answers the service role\"",
+    "expect": "× .*answers the service role and refuses anon and a signed-in user"
+  }
+]

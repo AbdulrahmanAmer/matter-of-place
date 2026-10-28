@@ -9397,3 +9397,17 @@ A test, hook or script now holds each of these rules; the full entry was deleted
 - rule: an action a key may take for itself is scoped to a real group (`dashboard`), not `scopeFree`, unless the service reads no database; a fixture default is a fixed id, never `crypto.randomUUID()`. Run both greps in your head before pushing a new service or fixture.
 - proof: `grep -n "agent_sign_in" app/src/server/lib/permissions/dashboard.ts` shows no `scopeFree`; `grep -c "randomUUID" app/tests/fixtures/supabase-auth.ts` → `0`.
 - added: 2026-10-28
+
+## P-4672 · A unit test that drives `context()` as the Editor reaches the request desk, which deletes folders under the real home
+- symptom: 2026-10-27, W7 item 8: a test calling `context()` for every colleague slug with `owns = ownsSource(source, slug)` stopped at "unexpected table agents" in `requestDesk`; had the fake answered it, the Editor's case would have run `rmSync` on `~/.mop-workforce/desks/editor/work/requests` of the live runner on this laptop.
+- cause: `requestDesk` (request-desk.ts) defaults its `home` to `homedir()` and clears the outside and work request folders of the owner of submissions before it reads anything; `context()` passes no home.
+- rule: a test that drives `context()` for a slug that owns submissions passes `owns = () => false` unless it is about the request desk, and a request-desk test passes its own temporary `home`; never let a unit test reach `requestDesk` with the default home.
+- proof: `grep -n 'home = join(homedir()' app/scripts/workforce/request-desk.ts` → the default; `cd app && bunx vitest run --project unit tests/unit/workforce-interest.test.ts` → `6 passed` with `() => false`.
+- added: 2026-10-27
+
+## P-4690 · A new advisory on a package three levels down fails `audit:deps` in every open pull request at once
+- symptom: 2026-10-28 ~00:50 +0300, PR 519 (W7 item 8): all 5,803 tests, typecheck, lint and knip passed, and the check job still failed at its last step, `bun run audit:deps`: undici `>=7.0.0 <7.30.1` (through jsdom, wrangler > miniflare and nitro > env-runner > miniflare) with three high advisories published that week (GHSA-4w7w-5xrc-9h26, GHSA-2m5v-pch6-74hx, GHSA-qrxm-fqhp-jwvm).
+- cause: the audit reads advisories at run time, so a release that was clean yesterday fails today; the package is transitive, so no branch's own change can fix it.
+- rule: fix it once, in its own small pull request from main, with an `overrides` pin to the fixed version (supply-chain rules: at least 7 days old unless it is the security fix, install with `--ignore-scripts`, `bun audit` and `osv-scanner scan source --lockfile bun.lock` before pushing); then merge main into every open branch. Never ignore a high advisory to get one PR through.
+- proof: `cd app && bun audit --audit-level=high --ignore=GHSA-jmr9-qjv8-65gv --ignore=GHSA-7pqw-9j4j-h8q3 --ignore=GHSA-xjj6-f33q-929c --ignore=GHSA-27r3-jxmh-p828 --ignore=GHSA-mrhx-c7xc-m3w5` → `No vulnerabilities found (checked 881 packages ...)` with `"undici": "7.30.1"` in `overrides` (7.30.1 published 2026-10-15).
+- added: 2026-10-28
