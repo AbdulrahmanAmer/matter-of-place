@@ -339,19 +339,14 @@ describe("W8 item 4 round 2", () => {
   it("refuses an agent's or the system's approval of a reply with manual_approval, and lets an agent decline one", async () => {
     const seen = await withRollback(async (db) => {
       const { approval, hash } = await proposed(db);
-      const agent = await scalar<string>(
-        db,
-        "select id as v from public.agents where slug = 'matter'",
-      );
-      const byAgent = await refusal(db, DECIDE, [approval, "approved", hash, agent, "agent", null]);
-      const bySystem = await refusal(db, DECIDE, [
-        approval,
-        "approved",
-        hash,
-        null,
-        "system",
-        null,
+      // Matter on record: a chief editor whose role rows say agent (write_audit holds the actor as stored).
+      const agent = await createStaffUser(db, ["chief_editor"]);
+      await db.query("update public.user_roles set actor_kind = 'agent' where user_id = $1", [
+        agent,
       ]);
+      const byAgent = await refusal(db, DECIDE, [approval, "approved", hash, agent, "agent", null]);
+      // actor_kind holds human and agent only: the system is a null actor (write_audit).
+      const bySystem = await refusal(db, DECIDE, [approval, "approved", hash, null, null, null]);
       const jobs = await scalar<number>(
         db,
         "select count(*)::int as v from public.jobs where type = 'send_social_reply' and idempotency_key = $1",
@@ -535,8 +530,8 @@ describe("W8 item 4 round 2", () => {
       await db.query("savepoint w84again");
       const again = await scalar<string>(
         db,
-        "select public.social_inbox_propose($1, $2, null, 'Again', $3::jsonb, 'h2') as v",
-        [inbox, agent, JSON.stringify({ inbox_id: inbox, body: "Thank you." })],
+        "select public.social_inbox_propose($1, $2, null, 'Again', $3::jsonb, $4) as v",
+        [inbox, agent, JSON.stringify({ inbox_id: inbox, body: "Thank you." }), "b".repeat(64)],
       ).catch(async (error: unknown) => {
         await db.query("rollback to savepoint w84again");
         return error instanceof Error ? error.message : String(error);

@@ -268,12 +268,9 @@ async function readAll(
       }
     } else if (ended.end === "gone") {
       session.ctx.log("info", "social_inbox_list_gone", { edge: pass.edge });
-    } else if (ended.end !== "done") {
+    } else if (ended.end === "failed") {
       unread = true;
-      session.ctx.log("warn", "social_inbox_list_failed", {
-        edge: pass.edge,
-        code: ended.end === "failed" ? ended.code : null,
-      });
+      session.ctx.log("warn", "social_inbox_list_failed", { edge: pass.edge, code: ended.code });
     }
   }
   const newest = newestOf(reading.times, since);
@@ -458,7 +455,7 @@ export async function sendReply(
   target: { kind: "comment" | "message"; graph_id: string; thread_graph_id: string },
   text: string,
 ): Promise<string> {
-  if (text.trim() === "" || [...text].length > REPLY_LIMITS[target.kind]) {
+  if (text.trim() === "" || Array.from(text).length > REPLY_LIMITS[target.kind]) {
     throw new AppError(
       "validation",
       undefined,

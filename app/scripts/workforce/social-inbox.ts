@@ -82,7 +82,7 @@ export async function fileSocialReply(
   const target = await targetOf(client, inbox);
   if (target === null) return "The reply was not proposed: the comment is no longer held.";
   const limit = REPLY_LIMITS[target.kind];
-  if ([...body].length > limit) {
+  if (Array.from(body).length > limit) {
     return `The reply was not proposed: Instagram takes ${limit.toLocaleString("en-US")} characters for a ${target.kind}. Write it shorter.`;
   }
   const content = {
