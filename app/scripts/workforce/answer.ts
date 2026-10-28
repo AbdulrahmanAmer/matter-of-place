@@ -93,12 +93,14 @@ function* bracketsFrom(text: string, from: number): Generator<[number, string]> 
 
 /**
  * How far the JSON object or array that opens at `from` reads as JSON: `closed` just past its end, `invalid` at the
- * first character that cannot continue it (`wrongCloser` when that is a closer of the other kind where its own closer
- * could stand), or `end` with the text ending inside it: the closers it still owes, and whether they may follow now
- * (never inside a string, a number or a literal, nor after a key, a ":" or a ",": P-4691 round 5, a cut answer).
+ * first character that cannot continue it (`broken` when a value was read before it, or it is a closer of the other kind
+ * where its own closer could stand: an object written wrong, not prose), or `end` with the text ending inside it: the
+ * closers it still owes, and whether they may follow now (never inside a string, a number or a literal, nor after a
+ * key, a ":" or a ",": P-4691 round 5, a cut answer).
  */
 type ValueRead =
-  | { stop: "closed" | "invalid"; at: number; wrongCloser: boolean }
+  | { stop: "closed"; at: number }
+  | { stop: "invalid"; at: number; broken: boolean }
   | { stop: "end"; owed: string; closable: boolean };
 
 const JSON_NUMBER = /-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/y;
@@ -129,10 +131,11 @@ function readValue(text: string, from: number): ValueRead {
   // what may come next; `opened` right after an opener, where its own closer may come at once
   let want: "value" | "key" | "colon" | "after" = "value";
   let opened = false;
+  let valued = false;
   const invalid = (at: number, wrongCloser = false): ValueRead => ({
     stop: "invalid",
     at,
-    wrongCloser,
+    broken: wrongCloser || valued,
   });
   const cut: ValueRead = { stop: "end", owed: "", closable: false };
   let at = from;
@@ -145,6 +148,7 @@ function readValue(text: string, from: number): ValueRead {
     const wanted = want;
     const justOpened = opened;
     opened = false;
+    valued ||= wanted === "after";
     if (char === "}" || char === "]") {
       const closes = owed.at(-1);
       if (closes === undefined || (wanted !== "after" && !justOpened)) return invalid(at);
@@ -152,7 +156,7 @@ function readValue(text: string, from: number): ValueRead {
       owed.pop();
       at += 1;
       want = "after";
-      if (owed.length === 0) return { stop: "closed", at, wrongCloser: false };
+      if (owed.length === 0) return { stop: "closed", at };
     } else if ((char === "{" || char === "[") && wanted === "value") {
       owed.push(char === "{" ? "}" : "]");
       want = char === "{" ? "key" : "value";
