@@ -30,7 +30,7 @@
     "id": "ag-d-roles-ignored",
     "test": "tests/unit/admin-page-gate.test.ts",
     "file": "src/server/lib/admin-page-gate.ts",
-    "find": "  if (user !== null && (await enabledRoles(db, user.userId)).length > 0) return { cookies };",
+    "find": "  if (user !== null && (await sessionPrincipal(db, user.userId)) !== null) return { cookies };",
     "replace": "  if (user !== null) return { cookies };",
     "run": "bunx vitest run --project unit tests/unit/admin-page-gate.test.ts",
     "expect": "× .*refuses a signed session whose every role is disabled"

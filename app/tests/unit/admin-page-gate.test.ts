@@ -13,9 +13,23 @@ vi.mock("../../src/server/lib/session", () => ({
 
 const USER = "00000000-0000-4000-8000-000000000001";
 const page = new Request("https://matterofplace.com/admin/team?tab=keys");
-const roles = (rows: { role: "admin" | "chief_editor"; disabled_at: string | null }[]) =>
+const roles = (
+  rows: { role: "admin" | "chief_editor"; disabled_at: string | null }[],
+  keys: { revoked_at: string | null }[] = [],
+) =>
   fakeDb({
     tables: {
+      // H151: an agent account (one that holds a key) passes only while a key is live.
+      agent_keys: keys.map((row, index) => ({
+        id: `00000000-0000-4000-8000-00000000020${String(index)}`,
+        user_id: USER,
+        key_hash: "0".repeat(64),
+        label: "Matter",
+        scopes: ["workforce"],
+        last_used_at: null,
+        created_at: "2026-10-01T00:00:00Z",
+        ...row,
+      })),
       user_roles: rows.map((row, index) => ({
         id: `00000000-0000-4000-8000-00000000010${String(index)}`,
         user_id: USER,
@@ -51,6 +65,24 @@ describe("adminPageGate", () => {
       roles([{ role: "admin", disabled_at: "2026-10-01T00:00:00Z" }]),
     );
     expect("refuse" in answer).toBe(true);
+  });
+
+  it("refuses the session of an agent account whose only key is revoked (H151)", async () => {
+    vi.mocked(getSessionUser).mockResolvedValue({ userId: USER, sessionId: "s", signedInAt: 0 });
+    const answer = await adminPageGate(
+      page,
+      roles([{ role: "admin", disabled_at: null }], [{ revoked_at: "2026-10-02T00:00:00Z" }]),
+    );
+    expect("refuse" in answer).toBe(true);
+  });
+
+  it("lets an agent account with a live key through (H151)", async () => {
+    vi.mocked(getSessionUser).mockResolvedValue({ userId: USER, sessionId: "s", signedInAt: 0 });
+    const answer = await adminPageGate(
+      page,
+      roles([{ role: "admin", disabled_at: null }], [{ revoked_at: null }]),
+    );
+    expect(answer).toEqual({ cookies: [] });
   });
 
   it("lets a person with an enabled role through, with the cookies the check refreshed", async () => {

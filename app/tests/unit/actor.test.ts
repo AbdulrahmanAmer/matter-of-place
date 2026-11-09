@@ -41,7 +41,7 @@ afterEach(() => {
 });
 
 describe("requireActor", () => {
-  it("keeps only the enabled role of a user with one enabled and one disabled row, in one read", async () => {
+  it("keeps only the enabled role of a user with one enabled and one disabled row, in one read of each table", async () => {
     const db = rolesDb([
       { role: "managing_editor", disabled: false },
       { role: "admin", disabled: true },
@@ -54,7 +54,10 @@ describe("requireActor", () => {
       scopes: [],
       session: { id: SESSION_ID, signedInAt: Date.parse("2026-10-05T09:00:00Z") },
     });
-    expect(db.calls).toEqual([{ kind: "from", name: "user_roles", args: [] }]);
+    expect(db.calls).toEqual([
+      { kind: "from", name: "user_roles", args: [] },
+      { kind: "from", name: "agent_keys", args: [] },
+    ]);
   });
 
   it("answers a user whose rows are all disabled 401 account_disabled", async () => {

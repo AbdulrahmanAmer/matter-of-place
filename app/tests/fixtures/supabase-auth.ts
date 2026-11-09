@@ -108,21 +108,52 @@ export const authApiCalls = (fake: AuthFake) =>
 
 type Role = Database["public"]["Enums"]["app_role"];
 
-/** A fake database whose `user_roles` read answers `rows` for the signed-in user. */
+/** An `agent_keys` row of the signed-in user (H151): live unless `revoked`; `id` orders keys for metering. */
+export function agentKeyRow(
+  scopes: string[],
+  {
+    revoked = false,
+    id = "00000000-0000-4000-8000-0000000000d0",
+  }: { revoked?: boolean; id?: string } = {},
+): Database["public"]["Tables"]["agent_keys"]["Row"] {
+  const stamp = "2026-10-05T08:00:00.000Z";
+  return {
+    id,
+    user_id: USER_ID,
+    key_hash: "0".repeat(64),
+    label: "Matter",
+    scopes,
+    last_used_at: null,
+    revoked_at: revoked ? stamp : null,
+    created_at: stamp,
+  };
+}
+
+/** Allows every rate-limit check and every `last_used_at` touch an agent session makes (H151). */
+export const meteringRpc: NonNullable<FakeDbOptions["rpc"]> = {
+  rate_limit_check: () => [{ allowed: true, retry_after: 0 }],
+  touch_agent_key: () => undefined,
+};
+
+/**
+ * A fake database whose `user_roles` read answers `rows` for the signed-in user, as a person unless `kind` says agent.
+ * Its `agent_keys` read answers none unless `options.tables` gives some (H151 reads both for every session).
+ */
 export function rolesDb(
-  rows: { role: Role; disabled: boolean }[],
+  rows: { role: Role; disabled: boolean; kind?: "human" | "agent" }[],
   options: FakeDbOptions = {},
 ): FakeDb {
   const now = "2026-10-05T09:00:00.000Z";
   return fakeDb({
     ...options,
     tables: {
+      agent_keys: [],
       ...options.tables,
-      user_roles: rows.map(({ role, disabled }, index) => ({
+      user_roles: rows.map(({ role, disabled, kind = "human" }, index) => ({
         id: `00000000-0000-4000-8000-00000000000${String(index)}`,
         user_id: USER_ID,
         role,
-        actor_kind: "human",
+        actor_kind: kind,
         display_name: null,
         disabled_at: disabled ? now : null,
         created_at: now,

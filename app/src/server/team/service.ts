@@ -24,13 +24,13 @@ import {
   type teamUsersPageSchema,
   type verifyInput,
 } from "../../domain/admin-team.ts";
-import { enabledRoles } from "../lib/actor.ts";
+import { sessionPrincipal } from "../lib/actor.ts";
 import { fromRpcError } from "../lib/admin-errors.ts";
 import type { AdminActor } from "../lib/admin-route.ts";
 import { adminJson } from "../lib/admin-response.ts";
-import { generateKey, hashAgentKey } from "../lib/agent-keys.ts";
+import { generateKey, hashAgentKey, KeyRateLimited } from "../lib/agent-keys.ts";
 import { auditContext } from "../lib/audit.ts";
-import { authorize, can, matrix, type AppRole } from "../lib/authz.ts";
+import { authorize, can, ForbiddenError, matrix, type AppRole } from "../lib/authz.ts";
 import {
   CSRF_COOKIE,
   csrfCookie,
@@ -182,8 +182,8 @@ export async function verifySignIn(
   if (error !== null && isAuthRetryableFetchError(error)) throw unavailable();
   const session = data.session;
   if (session === null) return seeOther("/admin/sign-in?state=expired");
-  const roles = await enabledRoles(db, session.user.id);
-  if (roles.length === 0) {
+  // H151: an agent account without a live key is refused here as a disabled one is, before any cookie leaves.
+  if ((await sessionPrincipal(db, session.user.id)) === null) {
     await client.signOut();
     // The session is signed out again, so none of its cookies leave the Worker.
     takeIssuedCookies(request);
@@ -231,8 +231,7 @@ export async function signInWithPassword(
   if (session === null) {
     throw new AppError("unauthorized", undefined, "That email and password do not match.");
   }
-  const roles = await enabledRoles(db, session.user.id);
-  if (roles.length === 0) {
+  if ((await sessionPrincipal(db, session.user.id)) === null) {
     await client.signOut();
     // The session is signed out again, so none of its cookies leave the Worker.
     takeIssuedCookies(request);
@@ -285,6 +284,50 @@ export async function setOwnPassword(
   });
   if (auditError !== null) logLine("warn", "password_audit_failed", { code: auditError.code });
   return { status: "set" };
+}
+
+// H151: sign-in tokens an agent key may take for its own account in one hour (a run needs one; a few retries spare).
+const AGENT_SIGN_INS_PER_HOUR = 6;
+
+/**
+ * `POST auth/agent-sign-in` (ruling H151): a one-time sign-in token for the calling key's own account, which the
+ * laptop spends on the admin's confirm page as a mailed link would, so no service role leaves the Worker. Only a
+ * bearer key may ask: a person and every cookie session, an agent's too, are refused. The account is the key's,
+ * never one named in the request. Limited per account and audited before the token exists, so a refused audit
+ * issues nothing; the token is answered once and never logged.
+ */
+export async function issueAgentSignIn(actor: AdminActor, db: Db): Promise<Response> {
+  authorize(actor, "dashboard.agent_sign_in");
+  if (actor.kind !== "agent" || actor.session !== undefined) throw new ForbiddenError("forbidden");
+  const verdict = await checkDb(db, [
+    {
+      bucket: "agent-sign-in",
+      keyHash: actor.userId,
+      limit: AGENT_SIGN_INS_PER_HOUR,
+      windowSeconds: 3600,
+    },
+  ]);
+  if (!verdict.ok) throw new KeyRateLimited(verdict.retryAfter);
+  const found = await db.auth.admin.getUserById(actor.userId);
+  const email = found.data.user?.email;
+  if (found.error !== null) throw authFailure(found.error);
+  if (email === undefined)
+    throw new AppError("not_found", undefined, "This account has no address.");
+  await rpcOrThrow(
+    db.rpc("write_audit", {
+      ...auditContext(actor),
+      p_action: "dashboard.agent_sign_in",
+      p_entity: "user",
+      p_entity_id: actor.userId,
+      p_before: null,
+      p_after: { sign_in_token: "issued" },
+    }),
+  );
+  const link = await db.auth.admin.generateLink({ type: "magiclink", email });
+  if (link.error !== null) throw authFailure(link.error);
+  const tokenHash = link.data.properties.hashed_token;
+  if (tokenHash === "") throw unavailable();
+  return adminJson({ token_hash: tokenHash });
 }
 
 /** Ends the session at Supabase Auth and expires its cookies and `mop_csrf`. */

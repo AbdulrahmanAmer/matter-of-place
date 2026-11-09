@@ -4,7 +4,9 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ConfirmForm } from "../../src/admin/team/ConfirmForm";
+import type { Database } from "../../src/db";
 import {
+  agentKeyRow,
   CSRF_KEY,
   fakeAuth,
   rolesDb,
@@ -22,7 +24,10 @@ import {
 // Invariant 19, API-01: opening the mailed link spends nothing; the confirm page's POST spends the token
 // hash, sets the session and `mop_csrf`, and redirects only inside `/admin`.
 
-async function verifyRoute(disabled = false) {
+async function verifyRoute(
+  disabled = false,
+  agentKeys?: Database["public"]["Tables"]["agent_keys"]["Row"][],
+) {
   const key = await signer("kid-a");
   const token = await key.token({ now: Date.now() });
   const auth = fakeAuth([key.jwk], (url) => {
@@ -33,7 +38,15 @@ async function verifyRoute(disabled = false) {
   stubAuthEnv();
   vi.resetModules();
   const { setDbForTests } = await import("../../src/server/lib/db");
-  setDbForTests(rolesDb([{ role: "managing_editor", disabled }]));
+  // H151: given keys, the account is an agent's.
+  setDbForTests(
+    rolesDb(
+      [{ role: "managing_editor", disabled, kind: agentKeys === undefined ? "human" : "agent" }],
+      {
+        tables: { agent_keys: agentKeys ?? [] },
+      },
+    ),
+  );
   const handler = routeHandler(await import("../../src/routes/api/admin/auth.verify"), "POST");
   const post = (next: string, headers: Record<string, string> = {}) =>
     handler({
@@ -126,6 +139,21 @@ describe("POST auth/verify", () => {
       "/auth/v1/verify",
       "/auth/v1/logout",
     ]);
+  });
+});
+
+describe("the confirm page for an agent account (H151)", () => {
+  it("sends an agent account whose only key is revoked to state=disabled and sets no cookie", async () => {
+    const { post } = await verifyRoute(false, [agentKeyRow(["workforce"], { revoked: true })]);
+    const response = await post("/admin");
+    const kept = setCookies(response).filter(
+      (cookie) => cookie.startsWith("mop_csrf=") || sessionCookies(response).includes(cookie),
+    );
+    expect({ status: response.status, to: response.headers.get("location"), kept }).toEqual({
+      status: 303,
+      to: "/admin/sign-in?state=disabled",
+      kept: [],
+    });
   });
 });
 

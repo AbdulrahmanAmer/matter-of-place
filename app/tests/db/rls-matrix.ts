@@ -26,7 +26,7 @@ export const rlsMatrix: Record<string, Access> = {
   pii_columns: {},
   action_roles: {},
   user_roles: { select: staffRoles, insert: admin, update: admin },
-  agent_keys: { select: staffRoles, insert: admin, update: admin, delete: admin },
+  agent_keys: { select: staffRoles, update: admin, delete: admin },
   audit_log: staffRead,
   markets: staffRead,
   regions: staffRead,
